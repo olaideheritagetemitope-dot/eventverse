@@ -149,7 +149,7 @@
 - [x] Add server-side payment-attempt initialization with idempotency and order state transition
 - [x] Replace simulated payment progress with verified payment-status polling
 - [x] Supply Paystack credentials and implement provider redirect/webhook verification
-- [ ] Issue tickets only after verified payment and implement secure QR check-in
+- [x] Issue tickets only after verified payment and implement secure QR check-in
 
 # ChatGPT Directive Expansion — 2026-08-19
 
@@ -170,6 +170,14 @@
 - [x] Configure Paystack live public key and server secret in the deployed environment
 - [x] Implement Paystack transaction initialization with a real authorization URL
 - [x] Implement verified Paystack callback/webhook handling and idempotent ticket issuance
-- [ ] Render issued tickets only after verified payment and expose secure QR validation state
-- [ ] Implement staff-authorized ticket check-in with audit logging
+- [x] Render issued tickets only after verified payment and expose secure QR validation state
+- [x] Implement staff-authorized ticket check-in with audit logging
 - [ ] Add responsive and production smoke tests for live payment and role workflows
+
+# Attached Directive and Source Reconciliation
+
+- [x] Extract and reconcile all requirements from Untitleddocument.docx
+- [x] Compare the supplied EventVerse.jsx source against the current Atizzy implementation without reintroducing mock data
+- [x] Preserve the supplied visual hierarchy and responsive behavior while keeping live Supabase workflows
+- [x] Resolve every remaining mock, placeholder, dead-end, or hard-coded commerce/authentication path found during reconciliation
+- [x] Validate the reconciled implementation with build, tests, responsive smoke checks, and deployment verification

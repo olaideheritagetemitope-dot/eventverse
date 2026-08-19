@@ -110,9 +110,23 @@ export async function loadRoleDashboard(userId, roles = []) {
   return { events: eventsResult.data || [], bookings: bookingsResult.data || [], venues: venuesResult.data || [], songs: songsResult.data || [], orders: ordersResult.data || [] };
 }
 
+export async function issueTicketQrToken(ticketId) {
+  if (!ticketId) throw new Error("A ticket id is required.");
+  const { data, error } = await supabase.rpc("issue_ticket_qr_token", { p_ticket_id: ticketId });
+  if (error) throw error;
+  return data;
+}
+
 export async function checkInTicket(ticketId) {
   if (!ticketId) throw new Error("A ticket id is required.");
   const { data, error } = await supabase.rpc("check_in_ticket", { p_ticket_id: ticketId });
+  if (error) throw error;
+  return data;
+}
+
+export async function checkInTicketWithToken(qrToken) {
+  if (!qrToken) throw new Error("A QR token is required.");
+  const { data, error } = await supabase.rpc("check_in_ticket_with_token", { p_qr_token: qrToken });
   if (error) throw error;
   return data;
 }

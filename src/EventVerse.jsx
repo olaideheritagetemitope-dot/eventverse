@@ -8,7 +8,8 @@ import {
 import { supabase } from "./lib/supabase";
 import { loadCatalog, loadEventDetail, searchCatalog, formatFollowers } from "./services/catalog";
 import CheckInScreen from "./components/CheckInScreen";
-import { loadCurrentUser, loadFavoriteState, toggleEventFavorite, toggleArtistFollow, toggleMusicFavorite, loadMusicFavorites, recordPlay, loadPlaylists, createPlaylist, submitBooking, loadRoleDashboard, checkInTicket } from "./services/user";
+import { loadCurrentUser, loadFavoriteState, toggleEventFavorite, toggleArtistFollow, toggleMusicFavorite, loadMusicFavorites, recordPlay, loadPlaylists, createPlaylist, submitBooking, loadRoleDashboard, issueTicketQrToken } from "./services/user";
+import QRCode from "qrcode";
 
 /* ============================== DESIGN TOKENS ==============================
    Black (bg)        #0B0A08  — dominant surface
@@ -503,13 +504,16 @@ function AttendeeHome({ nav, player, catalog, account, loading, error }) {
   const artists = catalog?.artists || [];
   const categories = [{ name: "All" }, ...(catalog?.categories || [])];
   const displayName = account?.profile?.full_name || account?.user?.user_metadata?.full_name || account?.user?.email?.split("@")[0] || "there";
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const liveLocation = events.find((event) => event.city || event.venues?.city)?.city || events.find((event) => event.venues?.city)?.venues?.city || "Location unavailable";
   return (
     <Phone>
       <div className="flex items-center justify-between px-5 pt-1 pb-3">
         <button className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: C.card }}><Menu size={17} color={C.ivory} /></button>
         <div className="text-center">
-          <p className="text-[13.5px] font-semibold" style={{ color: C.ivory }}>Good evening, {displayName} 👋</p>
-          <p className="text-[11px] flex items-center justify-center gap-1" style={{ color: C.muted }}><MapPin size={10} />Lagos, Nigeria</p>
+          <p className="text-[13.5px] font-semibold" style={{ color: C.ivory }}>{greeting}, {displayName} 👋</p>
+          <p className="text-[11px] flex items-center justify-center gap-1" style={{ color: C.muted }}><MapPin size={10} />{liveLocation}</p>
         </div>
         <button className="w-9 h-9 rounded-full flex items-center justify-center relative" style={{ background: C.card }}>
           <Bell size={16} color={C.ivory} />
@@ -1000,15 +1004,29 @@ function DigitalTicket({ nav, data }) {
   const typeName = ticket?.ticket_types?.name || ticket?.typeName || "Ticket";
   const start = event.starts_at ? new Date(event.starts_at) : null;
   const ticketId = ticket?.id || "Ticket pending";
+  const [qrImage, setQrImage] = useState("");
+  const [qrError, setQrError] = useState("");
+
+  useEffect(() => {
+    let mounted = true;
+    if (!ticket?.id || !["ISSUED", "ACTIVE", "CHECKED_IN"].includes(ticket.status)) return undefined;
+    issueTicketQrToken(ticket.id)
+      .then((payload) => QRCode.toDataURL(payload.qr_token, { margin: 1, width: 240, errorCorrectionLevel: "M" }).then((url) => {
+        if (mounted) setQrImage(url);
+      }))
+      .catch((error) => { if (mounted) setQrError(error.message || "Unable to prepare the secure ticket QR."); });
+    return () => { mounted = false; };
+  }, [ticket?.id, ticket?.status]);
+
   return (
     <Phone>
       <TopBack title={event.title || "Digital Ticket"} onBack={nav.pop} />
       <div className="flex-1 flex items-center justify-center px-6">
         <div className="w-full rounded-3xl overflow-hidden" style={{ background: `linear-gradient(160deg, ${C.wood}, ${C.card2})`, border: `1px solid ${C.gold}44` }}>
           <div className="p-5 pb-4" style={{ background: "#00000030" }}><div className="flex justify-between items-start mb-1"><span className="text-[11px] font-semibold px-2 py-1 rounded-full" style={{ background: C.gold, color: "#1A1408" }}>{typeName}</span><QrCode size={16} color={C.goldSoft} /></div><p className="ev-display text-[17px] mt-2" style={{ color: C.ivory }}>{event.title || "Atizzy ticket"}</p><p className="text-[11.5px]" style={{ color: C.muted }}>Issued by Atizzy · {ticket?.status || "PENDING"}</p></div>
-          <div className="flex items-center justify-center py-6" style={{ borderTop: `1px dashed ${C.gold}55`, borderBottom: `1px dashed ${C.gold}55` }}><div className="w-36 h-36 rounded-xl flex flex-col items-center justify-center gap-2" style={{ background: "#F3EEE3", color: C.bg }}><QrCode size={92} strokeWidth={1.2} /><span className="text-[9px] font-semibold tracking-widest">SERVER VERIFIED</span></div></div>
+          <div className="flex items-center justify-center py-6" style={{ borderTop: `1px dashed ${C.gold}55`, borderBottom: `1px dashed ${C.gold}55` }}><div className="w-36 h-36 rounded-xl flex items-center justify-center p-2" style={{ background: "#F3EEE3" }}>{qrImage ? <img src={qrImage} alt="Secure ticket QR code" className="h-full w-full object-contain" /> : <div className="flex flex-col items-center gap-2 text-center px-3" style={{ color: C.bg }}><QrCode size={72} strokeWidth={1.2} /><span className="text-[9px] font-semibold tracking-widest">{qrError ? "QR UNAVAILABLE" : "PREPARING QR"}</span></div>}</div></div>
           <div className="p-5 grid grid-cols-2 gap-4"><Ticket2 label="Ticket ID" value={ticketId} /><Ticket2 label="Order ID" value={ticket?.order_id || "Pending"} /><Ticket2 label="Date" value={start ? start.toLocaleDateString("en-NG", { dateStyle: "medium" }) : "Pending"} /><Ticket2 label="Time" value={start ? start.toLocaleTimeString("en-NG", { timeStyle: "short" }) : "Pending"} /><Ticket2 label="Venue" value={event.venues?.name || event.city || "Pending"} /><Ticket2 label="Entry" value={ticket?.checked_in_at ? "Checked in" : "Valid"} /></div>
-          <div className="px-5 pb-5"><p className="text-[11px]" style={{ color: C.muted }}>The QR validation token is controlled server-side and is not exposed in the client.</p></div>
+          <div className="px-5 pb-5"><p className="text-[11px]" style={{ color: C.muted }}>{qrError || "This QR is issued for the ticket owner and validated server-side at entry."}</p></div>
         </div>
       </div>
     </Phone>
