@@ -184,3 +184,58 @@ export async function artistUpdateBookingStatus(bookingId, status) {
   if (error) throw error;
   return data;
 }
+
+export async function loadArtistOnboarding(userId) {
+  if (!userId) return { registration: null, verification: null, fees: [] };
+  const [{ data: fees, error: feeError }, { data: registration, error: registrationError }, { data: artist, error: artistError }] = await Promise.all([
+    supabase.from("platform_settings").select("key,amount,currency,description").in("key", ["artist_registration_fee", "artist_verification_fee"]),
+    supabase.from("artist_registrations").select("id,user_id,transaction_id,artist_id,status,failure_reason,submitted_at,activated_at,updated_at").eq("user_id", userId).maybeSingle(),
+    supabase.from("artists").select("id,user_id,verified").eq("user_id", userId).maybeSingle(),
+  ]);
+  if (feeError) throw feeError;
+  if (registrationError) throw registrationError;
+  if (artistError) throw artistError;
+  let verification = null;
+  if (artist?.id) {
+    const { data, error } = await supabase.from("artist_verifications").select("id,artist_id,user_id,transaction_id,status,failure_reason,requested_at,verified_at,updated_at").eq("artist_id", artist.id).maybeSingle();
+    if (error) throw error;
+    verification = data;
+  }
+  return { fees: fees || [], registration, verification, artist };
+}
+
+export async function initializeArtistFeePayment(userId, transactionType) {
+  if (!userId || !transactionType) throw new Error("Artist payment details are required.");
+  const idempotencyKey = `atizzy-${transactionType.toLowerCase()}-${userId}-${Date.now()}`;
+  const { data, error } = await supabase.rpc("initialize_artist_fee_payment", { p_transaction_type: transactionType, p_idempotency_key: idempotencyKey });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+
+export async function loadArtistFeeTransaction(transactionId) {
+  if (!transactionId) return null;
+  const { data, error } = await supabase.from("artist_fee_transactions").select("id,user_id,artist_id,transaction_type,amount,currency,provider,provider_reference,idempotency_key,status,verified_at,created_at,updated_at").eq("id", transactionId).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function loadArtistAdminOverview() {
+  const [{ data: settings, error: settingsError }, { data: registrations, error: registrationsError }, { data: verifications, error: verificationsError }, { data: transactions, error: transactionsError }] = await Promise.all([
+    supabase.from("platform_settings").select("key,amount,currency,description,updated_by,updated_at").in("key", ["artist_registration_fee", "artist_verification_fee"]),
+    supabase.from("artist_registrations").select("id,user_id,transaction_id,artist_id,status,submitted_at,activated_at,updated_at").order("created_at", { ascending: false }).limit(100),
+    supabase.from("artist_verifications").select("id,artist_id,user_id,transaction_id,status,requested_at,verified_at,updated_at").order("created_at", { ascending: false }).limit(100),
+    supabase.from("artist_fee_transactions").select("id,user_id,artist_id,transaction_type,amount,currency,status,provider_reference,verified_at,created_at").order("created_at", { ascending: false }).limit(100),
+  ]);
+  const firstError = [settingsError, registrationsError, verificationsError, transactionsError].find(Boolean);
+  if (firstError) throw firstError;
+  return { settings: settings || [], registrations: registrations || [], verifications: verifications || [], transactions: transactions || [] };
+}
+
+export async function updateArtistFee(key, amount, userId) {
+  if (!userId || !key) throw new Error("Fee setting access is required.");
+  const numericAmount = Number(amount);
+  if (!Number.isFinite(numericAmount) || numericAmount < 0) throw new Error("Enter a valid non-negative fee.");
+  const { data, error } = await supabase.from("platform_settings").update({ amount: numericAmount, updated_by: userId, updated_at: new Date().toISOString() }).eq("key", key).select("key,amount,currency,description,updated_by,updated_at").single();
+  if (error) throw error;
+  return data;
+}
