@@ -190,3 +190,11 @@
 - [x] Disable record-dependent actions until a real Supabase ID exists; never invent backend IDs
 - [x] Restore complete role dashboard metric widgets and operational panels with zero-data states
 - [x] Validate the preservation rule at responsive mobile and desktop widths
+
+# Attached Workflow Implementation
+
+- [x] Extract every workflow step and acceptance condition from the attached Untitleddocument.docx
+- [x] Map each workflow step to an existing Atizzy route, component, Supabase RPC, or Paystack endpoint
+- [x] Implement missing workflow transitions and role-gated actions without changing the approved visual structure
+- [x] Add explicit loading, empty, error, cancellation, retry, and success states for every workflow branch
+- [x] Validate the complete workflow with production build, tests, responsive checks, and security boundaries

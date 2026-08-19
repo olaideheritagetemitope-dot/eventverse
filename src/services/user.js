@@ -130,3 +130,17 @@ export async function checkInTicketWithToken(qrToken) {
   if (error) throw error;
   return data;
 }
+
+export async function updateProfile(userId, updates) {
+  if (!userId) throw new Error("Sign in to edit your profile.");
+  const payload = {
+    id: userId,
+    full_name: updates?.full_name?.trim() || null,
+    phone: updates?.phone?.trim() || null,
+    avatar_url: updates?.avatar_url?.trim() || null,
+    updated_at: new Date().toISOString(),
+  };
+  const { data, error } = await supabase.from("user_profiles").upsert(payload, { onConflict: "id" }).select("id,full_name,phone,avatar_url,onboarding_complete,updated_at").single();
+  if (error) throw error;
+  return data;
+}

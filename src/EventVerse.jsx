@@ -8,7 +8,7 @@ import {
 import { supabase } from "./lib/supabase";
 import { loadCatalog, loadEventDetail, searchCatalog, formatFollowers } from "./services/catalog";
 import CheckInScreen from "./components/CheckInScreen";
-import { loadCurrentUser, loadFavoriteState, toggleEventFavorite, toggleArtistFollow, toggleMusicFavorite, loadMusicFavorites, recordPlay, loadPlaylists, createPlaylist, submitBooking, loadRoleDashboard, issueTicketQrToken } from "./services/user";
+import { loadCurrentUser, loadFavoriteState, toggleEventFavorite, toggleArtistFollow, toggleMusicFavorite, loadMusicFavorites, recordPlay, loadPlaylists, createPlaylist, submitBooking, loadRoleDashboard, issueTicketQrToken, updateProfile } from "./services/user";
 import QRCode from "qrcode";
 
 /* ============================== DESIGN TOKENS ==============================
@@ -762,6 +762,16 @@ function EventDetail({ nav, data, account }) {
   const setEventFavorite = async () => {
     try { const next = !favorite; await toggleEventFavorite(account?.user?.id, ev.id, next); setFavorite(next); } catch (toggleError) { setError(toggleError.message || "Unable to update favorite."); }
   };
+  const shareEvent = async () => {
+    const url = `${window.location.origin}/events/${encodeURIComponent(ev.id)}`;
+    try {
+      if (navigator.share) await navigator.share({ title: ev.title, text: `Join ${ev.title} on Atizzy`, url });
+      else if (navigator.clipboard) { await navigator.clipboard.writeText(url); setError("Event link copied."); }
+      else setError(url);
+    } catch (shareError) {
+      if (shareError?.name !== "AbortError") setError("Unable to share this event.");
+    }
+  };
   return (
     <Phone>
       <div style={{ height: 240, background: ev.img }} className="relative flex-shrink-0">
@@ -769,7 +779,7 @@ function EventDetail({ nav, data, account }) {
           <button onClick={nav.pop} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "#00000060" }}><ChevronLeft size={18} color="#fff" /></button>
           <div className="flex gap-2">
             <button onClick={setEventFavorite} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "#00000060" }}><Heart size={16} color="#fff" fill={favorite ? "#fff" : "none"} /></button>
-            <button className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "#00000060" }}><Share2 size={16} color="#fff" /></button>
+            <button onClick={shareEvent} aria-label="Share event" className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "#00000060" }}><Share2 size={16} color="#fff" /></button>
           </div>
         </div>
       </div>
@@ -1185,23 +1195,40 @@ function RoleResourceScreen({ nav, account, title, description, rows, emptyLabel
 function Profile({ nav, player, account }) {
   const items = ["My Tickets", "Music Library", "Preferences", "Notifications", "Security", "Help & Support"];
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [message, setMessage] = useState("");
+  const [form, setForm] = useState({ full_name: account?.profile?.full_name || "", phone: account?.profile?.phone || "", avatar_url: account?.profile?.avatar_url || "" });
+  useEffect(() => { setForm({ full_name: account?.profile?.full_name || "", phone: account?.profile?.phone || "", avatar_url: account?.profile?.avatar_url || "" }); }, [account?.profile?.full_name, account?.profile?.phone, account?.profile?.avatar_url]);
   const signOut = async () => {
     setBusy(true);
-    await supabase.auth.signOut();
-    setBusy(false);
-    nav.reset("login");
+    try { await supabase.auth.signOut(); nav.reset("login"); } finally { setBusy(false); }
+  };
+  const saveProfile = async (event) => {
+    event.preventDefault();
+    setBusy(true); setMessage("");
+    try { await updateProfile(account?.user?.id, form); setMessage("Profile saved."); setEditing(false); } catch (error) { setMessage(error.message || "Unable to save profile."); } finally { setBusy(false); }
   };
   return (
     <Phone>
       <div className="px-5 pt-2 pb-4 flex flex-col items-center">
-        <div className="w-20 h-20 rounded-full mb-3" style={{ background: `linear-gradient(135deg, ${C.wood}, ${C.green})` }} />
+        <div className="w-20 h-20 rounded-full mb-3 overflow-hidden" style={{ background: `linear-gradient(135deg, ${C.wood}, ${C.green})` }}>
+          {account?.profile?.avatar_url && <img src={account.profile.avatar_url} alt="Profile avatar" className="w-full h-full object-cover" />}
+        </div>
         <p className="text-[16px] font-semibold" style={{ color: C.ivory }}>{account?.profile?.full_name || account?.user?.email || "Atizzy member"}</p>
         <p className="text-[12px] flex items-center gap-1 mt-0.5" style={{ color: C.muted }}><MapPin size={11} />{account?.profile?.city || "Location not provided"}</p>
+        <button onClick={() => { setMessage(""); setEditing((value) => !value); }} className="mt-3 px-4 py-2 rounded-xl text-[12px] font-semibold" style={{ background: C.card, color: C.goldSoft, border: `1px solid ${C.line}` }}>{editing ? "Close editor" : "Edit profile"}</button>
       </div>
       <div className="flex-1 overflow-y-auto px-5">
+        {editing && <form onSubmit={saveProfile} className="rounded-2xl p-4 mb-3" style={{ background: C.card, border: `1px solid ${C.line}` }}>
+          <p className="text-[13px] font-semibold mb-3" style={{ color: C.ivory }}>Edit profile</p>
+          {[['full_name','Name'],['phone','Phone'],['avatar_url','Avatar URL']].map(([key, label]) => <label key={key} className="block mb-3"><span className="block text-[11px] mb-1" style={{ color: C.muted }}>{label}</span><input value={form[key]} onChange={(event) => setForm((current) => ({ ...current, [key]: event.target.value }))} className="w-full rounded-xl px-3 py-2 text-[13px] outline-none" style={{ background: C.bg, color: C.ivory, border: `1px solid ${C.line}` }} placeholder={label} /></label>)}
+          <button type="submit" disabled={busy} className="w-full py-2.5 rounded-xl text-[12px] font-semibold" style={{ background: C.gold, color: C.bg }}>{busy ? "Saving..." : "Save changes"}</button>
+          {message && <p className="text-[11px] mt-2" style={{ color: message === "Profile saved." ? C.green : "#E98979" }}>{message}</p>}
+        </form>}
+        {message && !editing && <p className="text-[11px] mb-3 text-center" style={{ color: C.green }}>{message}</p>}
         {account?.roles?.length > 0 && <button onClick={() => nav.push("roleCenter")} className="w-full flex items-center justify-between py-3.5" style={{ borderBottom: `1px solid ${C.line}` }}><span className="text-[13.5px]" style={{ color: C.goldSoft }}>Open workspace</span><ShieldCheck size={15} color={C.gold} /></button>}
         {items.map((it) => (
-          <button key={it} className="w-full flex items-center justify-between py-3.5" style={{ borderBottom: `1px solid ${C.line}` }}>
+          <button key={it} onClick={() => it === "My Tickets" ? nav.push("tickets") : it === "Music Library" ? nav.push("music") : null} className="w-full flex items-center justify-between py-3.5" style={{ borderBottom: `1px solid ${C.line}` }}>
             <span className="text-[13.5px]" style={{ color: C.ivory }}>{it}</span>
             <ChevronRight size={15} color={C.muted} />
           </button>
@@ -1426,7 +1453,8 @@ function Booking({ nav, data, account }) {
 export default function EventVerseApp() {
   const [stack, setStack] = useState(() => {
     const completed = typeof window !== "undefined" && window.localStorage.getItem("eventverse:onboarding-complete") === "1";
-    return [{ screen: completed ? "login" : "onboarding", data: null }];
+    const sharedEventId = typeof window !== "undefined" ? window.location.pathname.match(/^\/events\/([^/]+)/)?.[1] : null;
+    return [{ screen: sharedEventId ? "eventDetail" : (completed ? "login" : "onboarding"), data: sharedEventId ? { id: decodeURIComponent(sharedEventId) } : null }];
   });
   const [song, setSong] = useState(null);
   const [playing, setPlaying] = useState(false);
@@ -1464,6 +1492,7 @@ export default function EventVerseApp() {
         }
         if (callbackError) console.error("EventVerse OAuth callback returned an error", callbackError);
         const { data } = await supabase.auth.getSession();
+        const sharedEventId = url.pathname.match(/^\/events\/([^/]+)/)?.[1] ? decodeURIComponent(url.pathname.match(/^\/events\/([^/]+)/)[1]) : null;
         const paymentCallback = url.searchParams.get("payment") === "callback";
         const pendingPayment = paymentCallback ? JSON.parse(window.localStorage.getItem("atizzy:pending-payment") || "null") : null;
         if (paymentCallback) {
@@ -1472,7 +1501,7 @@ export default function EventVerseApp() {
         }
         if (mounted && data.session) {
           window.localStorage.setItem("eventverse:onboarding-complete", "1");
-          setStack([{ screen: pendingPayment ? "processing" : "home", data: pendingPayment || null }]);
+          setStack([{ screen: pendingPayment ? "processing" : (sharedEventId ? "eventDetail" : "home"), data: pendingPayment || (sharedEventId ? { id: sharedEventId } : null) }]);
           void ensureUserProfile(data.session.user);
         }
       } catch (restoreError) {
