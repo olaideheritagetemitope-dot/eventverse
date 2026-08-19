@@ -168,6 +168,60 @@ function EventCard({ ev, onClick, wide }) {
   );
 }
 
+function EmptyEventCard({ wide = false }) {
+  return (
+    <div className="flex-shrink-0 text-left rounded-2xl overflow-hidden" style={{ width: wide ? "100%" : 168, background: C.card, opacity: 0.78 }}>
+      <div className="relative flex items-center justify-center" style={{ height: wide ? 150 : 100, background: `linear-gradient(145deg, ${C.wood}66, ${C.card})` }}>
+        <span className="text-[24px]" style={{ color: C.muted }}>—</span>
+        <span className="absolute top-2 left-2 text-[10px] font-semibold px-2 py-1 rounded-full" style={{ background: `${C.line}cc`, color: C.muted }}>Coming soon</span>
+      </div>
+      <div className="p-3">
+        <p className="text-[13px] font-semibold leading-tight mb-1" style={{ color: C.muted }}>Event details pending</p>
+        <p className="text-[11px] mb-1.5 flex items-center gap-1" style={{ color: C.muted }}><MapPin size={10} />Venue pending</p>
+        <p className="text-[12px] font-semibold" style={{ color: C.muted }}>Price pending</p>
+        <button type="button" disabled className="mt-3 w-full rounded-lg py-2 text-[11px] font-semibold" style={{ color: C.muted, border: `1px solid ${C.line}` }}>View event →</button>
+      </div>
+    </div>
+  );
+}
+
+function EmptyArtistCard() {
+  return (
+    <div className="flex-shrink-0 flex flex-col items-center gap-1.5 w-16 opacity-78">
+      <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: `linear-gradient(145deg, ${C.wood}66, ${C.card})`, border: `1px solid ${C.line}` }}><User size={19} color={C.muted} /></div>
+      <span className="text-[11px] truncate w-full text-center" style={{ color: C.muted }}>Artist pending</span>
+    </div>
+  );
+}
+
+function EmptySongCard() {
+  return (
+    <div className="flex-shrink-0 w-36 rounded-2xl p-3 opacity-78" style={{ background: C.card, border: `1px solid ${C.line}` }}>
+      <div className="h-24 rounded-xl flex items-center justify-center" style={{ background: `linear-gradient(145deg, ${C.wood}66, ${C.card})` }}><Music2 size={20} color={C.muted} /></div>
+      <p className="text-[12px] font-semibold mt-2 truncate" style={{ color: C.muted }}>Song pending</p>
+      <p className="text-[11px] mt-1 truncate" style={{ color: C.muted }}>Artist pending</p>
+      <button type="button" disabled className="mt-2 text-[11px]" style={{ color: C.muted }}>Play unavailable</button>
+    </div>
+  );
+}
+
+function EmptyVenueCard() {
+  return (
+    <div className="flex-shrink-0 w-44 rounded-2xl overflow-hidden opacity-78" style={{ background: C.card }}>
+      <div className="h-[90px] flex items-center justify-center" style={{ background: `linear-gradient(160deg, ${C.wood}, ${C.blue})` }}><MapPin size={20} color={C.muted} /></div>
+      <div className="p-3"><p className="text-[12.5px] font-semibold" style={{ color: C.muted }}>Venue pending</p><p className="text-[11px]" style={{ color: C.muted }}>Location unavailable</p></div>
+    </div>
+  );
+}
+
+function EmptySongRow() {
+  return <div className="w-full flex items-center gap-3 py-2 opacity-78"><div className="w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${C.wood}, ${C.green})` }}><Music2 size={16} color={C.muted} /></div><div className="flex-1 text-left"><p className="text-[13px] font-semibold" style={{ color: C.muted }}>Song details pending</p><p className="text-[11px]" style={{ color: C.muted }}>Artist details pending</p></div><span className="text-[11px]" style={{ color: C.muted }}>—</span><Heart size={15} color={C.muted} /></div>;
+}
+
+function EmptyResourceCard({ label, description }) {
+  return <div className="rounded-2xl p-4 mb-3" style={{ background: C.card, border: `1px solid ${C.line}` }}><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: C.wood }}><ShieldCheck size={17} color={C.muted} /></div><div><p className="text-[13px] font-semibold" style={{ color: C.muted }}>{label}</p><p className="text-[11px] mt-1" style={{ color: C.muted }}>{description}</p></div></div><button disabled className="mt-3 w-full rounded-lg py-2 text-[11px]" style={{ color: C.muted, border: `1px solid ${C.line}` }}>Action unavailable until a live record exists</button></div>;
+}
+
 function BottomNav({ current, go }) {
   const items = [
     { id: "home", label: "Home", icon: Home },
@@ -534,10 +588,10 @@ function AttendeeHome({ nav, player, catalog, account, loading, error }) {
         </div>
 
         <div className="px-5 mb-6">
-          {loading && <p className="text-[13px] py-8 text-center" style={{ color: C.muted }}>Loading live events...</p>}
+          {loading && <p className="text-[13px] py-3 text-center" style={{ color: C.muted }}>Loading live events...</p>}
           {!loading && error && <AuthMessage error={error} />}
-          {!loading && !error && !events.length && <p className="text-[13px] py-8 text-center" style={{ color: C.muted }}>No published events are available yet.</p>}
-          {!loading && events[0] && <EventCard ev={events[0]} wide onClick={() => nav.push("eventDetail", events[0])} />}
+          {events[0] ? <EventCard ev={events[0]} wide onClick={() => nav.push("eventDetail", events[0])} /> : <EmptyEventCard wide />}
+          {!loading && !error && !events.length && <p className="text-[11px] mt-2 text-center" style={{ color: C.muted }}>Featured event content will appear here when published.</p>}
         </div>
 
         <div className="mb-6">
@@ -546,7 +600,9 @@ function AttendeeHome({ nav, player, catalog, account, loading, error }) {
             <button onClick={() => nav.push("explore")} className="text-[12px]" style={{ color: C.gold }}>See all</button>
           </div>
           <div className="flex gap-3 px-5 overflow-x-auto no-scrollbar">
-            {events.slice(1, 5).map((ev) => <EventCard key={ev.id} ev={ev} onClick={() => nav.push("eventDetail", ev)} />)}
+            {(events.length ? events.slice(1, 5) : []).map((ev) => <EventCard key={ev.id} ev={ev} onClick={() => nav.push("eventDetail", ev)} />)}
+            {!events.length && [0, 1, 2].map((slot) => <EmptyEventCard key={`upcoming-empty-${slot}`} />)}
+            {events.length > 0 && events.length < 4 && Array.from({ length: 4 - events.length }).map((_, index) => <EmptyEventCard key={`upcoming-empty-${index}`} />)}
           </div>
         </div>
 
@@ -558,12 +614,24 @@ function AttendeeHome({ nav, player, catalog, account, loading, error }) {
           <div className="flex gap-4 px-5 overflow-x-auto no-scrollbar">
             {artists.map((a) => (
               <button key={a.id} onClick={() => nav.push("artist", a)} className="flex-shrink-0 flex flex-col items-center gap-1.5 w-16">
-                <div className="w-16 h-16 rounded-full relative" style={{ background: a.img }}>
+                <div className="w-16 h-16 rounded-full relative" style={imageStyle(a.img, C.card)}>
                   {a.verified && <span className="absolute bottom-0 right-0 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: C.gold }}><Check size={9} color="#1A1408" strokeWidth={3} /></span>}
                 </div>
                 <span className="text-[11px] truncate w-full text-center" style={{ color: C.ivory }}>{a.name}</span>
               </button>
             ))}
+            {!artists.length && [0, 1, 2].map((slot) => <EmptyArtistCard key={`artist-empty-${slot}`} />)}
+          </div>
+        </div>
+
+        <div className="mb-5">
+          <div className="flex items-center justify-between px-5 mb-3">
+            <span className="text-[14px] font-semibold" style={{ color: C.ivory }}>Music</span>
+            <button onClick={() => nav.tab("music")} className="text-[12px]" style={{ color: C.gold }}>See all</button>
+          </div>
+          <div className="flex gap-3 px-5 overflow-x-auto no-scrollbar">
+            {(catalog?.songs || []).slice(0, 4).map((song) => <button key={song.id} onClick={() => nav.push("musicPlayer", song)} className="flex-shrink-0 w-36 rounded-2xl p-3 text-left" style={{ background: C.card, border: `1px solid ${C.line}` }}><div className="h-24 rounded-xl" style={imageStyle(song.coverUrl, C.card)} /><p className="text-[12px] font-semibold mt-2 truncate" style={{ color: C.ivory }}>{song.title}</p><p className="text-[11px] mt-1 truncate" style={{ color: C.muted }}>{song.artist}</p></button>)}
+            {!(catalog?.songs || []).length && [0, 1, 2].map((slot) => <EmptySongCard key={`song-empty-${slot}`} />)}
           </div>
         </div>
       </div>
@@ -578,6 +646,8 @@ function AttendeeHome({ nav, player, catalog, account, loading, error }) {
 function Explore({ nav, player, catalog }) {
   const [cat, setCat] = useState("All");
   const events = catalog?.events || [];
+  const categories = [{ name: "All" }, ...(catalog?.categories || [])];
+  const venues = catalog?.venues || [];
   return (
     <Phone>
       <div className="px-5 pt-1 pb-3">
@@ -593,13 +663,15 @@ function Explore({ nav, player, catalog }) {
 
       <div className="flex-1 overflow-y-auto">
         <Section title="Trending Events" nav={nav}>
-          {events.slice(0, 3).map((ev) => <EventCard key={ev.id} ev={ev} onClick={() => nav.push("eventDetail", ev)} />)}
+            {events.slice(0, 3).map((ev) => <EventCard key={ev.id} ev={ev} onClick={() => nav.push("eventDetail", ev)} />)}
+            {!events.length && [0, 1, 2].map((slot) => <EmptyEventCard key={`trending-empty-${slot}`} />)}
         </Section>
         <Section title="Events Near You" nav={nav}>
-          {events.filter((e) => e.tag === "Near You").concat(events[3] ? [events[3]] : []).map((ev) => <EventCard key={ev.id} ev={ev} onClick={() => nav.push("eventDetail", ev)} />)}
+            {events.filter((e) => e.tag === "Near You").concat(events[3] ? [events[3]] : []).map((ev) => <EventCard key={ev.id} ev={ev} onClick={() => nav.push("eventDetail", ev)} />)}
+            {!events.length && [0, 1, 2].map((slot) => <EmptyEventCard key={`nearby-empty-${slot}`} />)}
         </Section>
         <Section title="Popular Venues" nav={nav} last>
-          {(catalog?.venues || []).slice(0, 6).map((venue) => (
+          {venues.slice(0, 6).map((venue) => (
             <div key={venue.id} className="flex-shrink-0 w-44 rounded-2xl overflow-hidden" style={{ background: C.card }}>
               <div style={{ height: 90, background: `linear-gradient(160deg, ${C.wood}, ${C.blue})` }} />
               <div className="p-3">
@@ -608,6 +680,7 @@ function Explore({ nav, player, catalog }) {
               </div>
             </div>
           ))}
+          {!venues.length && [0, 1, 2].map((slot) => <EmptyVenueCard key={`venue-empty-${slot}`} />)}
         </Section>
       </div>
       <MiniPlayer song={player.song} playing={player.playing} onToggle={player.toggle} onOpen={() => nav.push("musicPlayer")} />
@@ -1105,7 +1178,7 @@ function RoleCenter({ nav, account }) {
 }
 
 function RoleResourceScreen({ nav, account, title, description, rows, emptyLabel, columns }) {
-  return <Phone><TopBack title={title} onBack={nav.pop} /><div className="px-5 pt-2 pb-3"><p className="text-[12px] uppercase tracking-[0.16em]" style={{ color: C.gold }}>Protected workspace</p><h1 className="ev-display text-[24px] mt-1" style={{ color: C.ivory }}>{title}</h1><p className="text-[12px] mt-2" style={{ color: C.muted }}>{description}</p></div><div className="flex-1 overflow-y-auto px-5">{!rows?.length ? <p className="py-10 text-center text-[13px]" style={{ color: C.muted }}>{emptyLabel}</p> : rows.map((row) => <div key={row.id} className="rounded-2xl p-4 mb-3" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[14px] font-semibold" style={{ color: C.ivory }}>{row[columns.title] || "Untitled"}</p><div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">{columns.meta.map((key) => <span key={key} className="text-[11px]" style={{ color: C.muted }}>{String(row[key] ?? "Not provided")}</span>)}</div></div>)}</div></Phone>;
+  return <Phone><TopBack title={title} onBack={nav.pop} /><div className="px-5 pt-2 pb-3"><p className="text-[12px] uppercase tracking-[0.16em]" style={{ color: C.gold }}>Protected workspace</p><h1 className="ev-display text-[24px] mt-1" style={{ color: C.ivory }}>{title}</h1><p className="text-[12px] mt-2" style={{ color: C.muted }}>{description}</p></div><div className="flex-1 overflow-y-auto px-5">{!rows?.length ? <EmptyResourceCard label={emptyLabel} description="This module stays available while live records are provisioned." /> : rows.map((row) => <div key={row.id} className="rounded-2xl p-4 mb-3" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[14px] font-semibold" style={{ color: C.ivory }}>{row[columns.title] || "Untitled"}</p><div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">{columns.meta.map((key) => <span key={key} className="text-[11px]" style={{ color: C.muted }}>{String(row[key] ?? "Not provided")}</span>)}</div></div>)}</div></Phone>;
 }
 
 /* ============================== PROFILE (stub, phase 1) ============================== */
@@ -1225,6 +1298,7 @@ function MusicHome({ nav, player, catalog, account }) {
               <p className="text-[10.5px] truncate" style={{ color: C.muted }}>{s.artist}</p>
             </button>
           ))}
+          {!songs.length && [0, 1, 2].map((slot) => <EmptySongCard key={`recent-empty-${slot}`} />)}
         </Section>
         <div className="mb-6">
           <div className="flex items-center justify-between px-5 mb-3">
@@ -1241,15 +1315,17 @@ function MusicHome({ nav, player, catalog, account }) {
                 <span className="text-[11px]" style={{ color: C.muted }}>{s.duration}</span><span onClick={(event) => { event.stopPropagation(); toggleSongFavorite(s.id); }} className="px-1"><Heart size={15} color={favorites.includes(s.id) ? C.gold : C.muted} fill={favorites.includes(s.id) ? C.gold : "none"} /></span>
               </button>
             ))}
+            {!songs.length && [0, 1, 2].map((slot) => <EmptySongRow key={`popular-song-empty-${slot}`} />)}
           </div>
         </div>
         <Section title="Popular Artists" last>
           {artists.map((a) => (
             <button key={a.id} onClick={() => nav.push("artist", a)} className="flex-shrink-0 flex flex-col items-center gap-1.5 w-16">
-              <div className="w-16 h-16 rounded-full" style={{ background: a.img }} />
+              <div className="w-16 h-16 rounded-full" style={imageStyle(a.img, C.card)} />
               <span className="text-[11px] truncate w-full text-center" style={{ color: C.ivory }}>{a.name}</span>
             </button>
           ))}
+          {!artists.length && [0, 1, 2].map((slot) => <EmptyArtistCard key={`music-artist-empty-${slot}`} />)}
         </Section>
       </div>
       <MiniPlayer song={player.song} playing={player.playing} onToggle={player.toggle} onOpen={() => nav.push("musicPlayer")} />

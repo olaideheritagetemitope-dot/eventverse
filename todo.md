@@ -181,3 +181,12 @@
 - [x] Preserve the supplied visual hierarchy and responsive behavior while keeping live Supabase workflows
 - [x] Resolve every remaining mock, placeholder, dead-end, or hard-coded commerce/authentication path found during reconciliation
 - [x] Validate the reconciled implementation with build, tests, responsive smoke checks, and deployment verification
+
+# UI Structure Preservation Directive
+
+- [x] Preserve every original attendee Home section and card shell when live Supabase collections are empty
+- [x] Preserve event, artist, song, ticket, booking, and dashboard card structures with visual loading/empty states
+- [x] Keep all navigation items, tabs, routes, CTAs, and workflows rendered even when no record exists
+- [x] Disable record-dependent actions until a real Supabase ID exists; never invent backend IDs
+- [x] Restore complete role dashboard metric widgets and operational panels with zero-data states
+- [x] Validate the preservation rule at responsive mobile and desktop widths
