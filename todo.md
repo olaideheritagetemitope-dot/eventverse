@@ -31,3 +31,11 @@
 - [ ] Apply the smallest compatible regression fix
 - [ ] Validate responsive layouts and production build after the fix
 - [ ] Deploy the regression fix and verify the live result
+
+- [x] Restore missing login page after onboarding transition
+- [x] Verify login page navigation and post-login flow
+- [x] Redeploy and verify the login regression fix
+
+- [ ] Resolve Vercel production deployment block
+- [ ] Promote the corrected build to the canonical EventVerse URL
+- [ ] Verify the canonical URL reaches the login page after onboarding
