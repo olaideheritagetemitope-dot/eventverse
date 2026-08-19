@@ -739,58 +739,104 @@ function EventDetail({ nav, data }) {
 }
 
 /* ============================== TICKET SELECTION ============================== */
-function TicketSelection({ nav, data, cart, setCart }) {
+function TicketSelection({ nav, data }) {
   const ev = data || EVENTS[0];
-  const types = [
-    { id: "regular", name: "Regular", price: 5000, avail: 300 },
-    { id: "vip", name: "VIP", price: 15000, avail: 120 },
-    { id: "vvip", name: "VVIP", price: 30000, avail: 45 },
-  ];
+  const [types, setTypes] = useState([]);
+  const [cart, setCart] = useState({});
+  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let mounted = true;
+    const loadTypes = async () => {
+      if (!ev?.id || typeof ev.id !== "string") {
+        if (mounted) { setError("This event is not available for live ticketing yet."); setLoading(false); }
+        return;
+      }
+      const { data: rows, error: queryError } = await supabase
+        .from("ticket_types")
+        .select("id,event_id,name,price,capacity,sold,reserved,maximum_per_customer,sales_start,sales_end")
+        .eq("event_id", ev.id)
+        .order("price");
+      if (!mounted) return;
+      if (queryError) setError(queryError.message);
+      setTypes(rows || []);
+      setLoading(false);
+    };
+    loadTypes();
+    return () => { mounted = false; };
+  }, [ev?.id]);
+
   const qty = (id) => cart[id] || 0;
-  const setQty = (id, v) => setCart((c) => ({ ...c, [id]: Math.max(0, v) }));
-  const total = types.reduce((s, t) => s + t.price * qty(t.id), 0);
-  const count = types.reduce((s, t) => s + qty(t.id), 0);
+  const available = (type) => Math.max(0, Number(type.capacity || 0) - Number(type.sold || 0) - Number(type.reserved || 0));
+  const setQty = (type, value) => {
+    const next = Math.max(0, Math.min(value, Number(type.maximum_per_customer || available(type))));
+    setCart((current) => ({ ...current, [type.id]: next }));
+  };
+  const count = types.reduce((sum, type) => sum + qty(type.id), 0);
+  const reserve = async () => {
+    if (!ev?.id || count === 0) return;
+    setBusy(true); setError("");
+    const items = types.filter((type) => qty(type.id) > 0).map((type) => ({ ticket_type_id: type.id, quantity: qty(type.id) }));
+    const idempotencyKey = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `atizzy-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const { data: reservation, error: reservationError } = await supabase.rpc("reserve_event_tickets", {
+      p_event_id: ev.id,
+      p_items: items,
+      p_idempotency_key: idempotencyKey,
+      p_hold_minutes: 10,
+    });
+    setBusy(false);
+    if (reservationError) return setError(reservationError.message);
+    nav.push("checkout", { ev, reservation, items, types });
+  };
+
   return (
     <Phone>
       <TopBack title="Select Tickets" onBack={nav.pop} />
       <div className="flex-1 overflow-y-auto px-5">
         <p className="text-[13px] font-semibold mb-4" style={{ color: C.ivory }}>{ev.title}</p>
-        {types.map((t) => (
-          <div key={t.id} className="rounded-2xl p-4 mb-3" style={{ background: qty(t.id) > 0 ? `linear-gradient(135deg, ${C.woodLight}33, ${C.card})` : C.card, border: `1px solid ${qty(t.id) > 0 ? C.gold + "77" : C.line}` }}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[14px] font-semibold" style={{ color: C.ivory }}>{t.name}</p>
-                <p className="text-[13px] font-semibold mt-0.5" style={{ color: C.goldSoft }}>{money(t.price)}</p>
-                <p className="text-[11px] mt-0.5" style={{ color: C.muted }}>Available: {t.avail}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <button onClick={() => setQty(t.id, qty(t.id) - 1)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: C.bg, border: `1px solid ${C.line}` }}><Minus size={13} color={C.ivory} /></button>
-                <span className="w-4 text-center text-[14px] font-semibold" style={{ color: C.ivory }}>{qty(t.id)}</span>
-                <button onClick={() => setQty(t.id, qty(t.id) + 1)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: C.gold }}><Plus size={13} color="#1A1408" /></button>
+        {loading && <p className="text-[13px] py-6 text-center" style={{ color: C.muted }}>Loading live ticket availability...</p>}
+        {!loading && !types.length && <p className="text-[13px] py-6 text-center" style={{ color: C.muted }}>{error || "No ticket types are currently available."}</p>}
+        {types.map((type) => {
+          const currentQty = qty(type.id);
+          const remaining = available(type);
+          return (
+            <div key={type.id} className="rounded-2xl p-4 mb-3" style={{ background: currentQty > 0 ? `linear-gradient(135deg, ${C.woodLight}33, ${C.card})` : C.card, border: `1px solid ${currentQty > 0 ? C.gold + "77" : C.line}` }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[14px] font-semibold" style={{ color: C.ivory }}>{type.name}</p>
+                  <p className="text-[13px] font-semibold mt-0.5" style={{ color: C.goldSoft }}>{money(type.price)}</p>
+                  <p className="text-[11px] mt-0.5" style={{ color: C.muted }}>{remaining} available · max {type.maximum_per_customer} per customer</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button disabled={currentQty === 0 || busy} onClick={() => setQty(type, currentQty - 1)} className="w-8 h-8 rounded-full flex items-center justify-center disabled:opacity-40" style={{ background: C.bg, border: `1px solid ${C.line}` }}><Minus size={13} color={C.ivory} /></button>
+                  <span className="w-4 text-center text-[14px] font-semibold" style={{ color: C.ivory }}>{currentQty}</span>
+                  <button disabled={busy || currentQty >= remaining || currentQty >= Number(type.maximum_per_customer || remaining)} onClick={() => setQty(type, currentQty + 1)} className="w-8 h-8 rounded-full flex items-center justify-center disabled:opacity-40" style={{ background: C.gold }}><Plus size={13} color="#1A1408" /></button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
+        <AuthMessage error={error} />
       </div>
       <div className="px-5 py-4 flex items-center gap-4" style={{ borderTop: `1px solid ${C.line}` }}>
         <div>
           <p className="text-[10.5px]" style={{ color: C.muted }}>{count} Ticket{count !== 1 ? "s" : ""}</p>
-          <p className="text-[16px] font-semibold" style={{ color: C.goldSoft }}>{money(total)}</p>
+          <p className="text-[12px]" style={{ color: C.muted }}>Price confirmed on server</p>
         </div>
-        <div className="flex-1"><GoldButton disabled={count === 0} onClick={() => nav.push("checkout", ev)}>Continue</GoldButton></div>
+        <div className="flex-1"><GoldButton disabled={busy || loading || count === 0 || !types.length} onClick={reserve}>{busy ? "Holding tickets..." : "Continue"}</GoldButton></div>
       </div>
     </Phone>
   );
 }
 
 /* ============================== CHECKOUT ============================== */
-function Checkout({ nav, data, cart }) {
-  const ev = data || EVENTS[0];
-  const types = { regular: { name: "Regular", price: 5000 }, vip: { name: "VIP", price: 15000 }, vvip: { name: "VVIP", price: 30000 } };
-  const lines = Object.entries(cart).filter(([, q]) => q > 0);
-  const subtotal = lines.reduce((s, [id, q]) => s + types[id].price * q, 0);
-  const fee = 1500, discount = 500;
-  const total = subtotal + fee - discount;
+function Checkout({ nav, data }) {
+  const { ev = EVENTS[0], reservation, items = [], types = [] } = data || {};
+  const typeById = Object.fromEntries(types.map((type) => [type.id, type]));
+  const expiresAt = reservation?.expires_at ? new Date(reservation.expires_at) : null;
+  const remainingMinutes = expiresAt ? Math.max(0, Math.ceil((expiresAt.getTime() - Date.now()) / 60000)) : 0;
   return (
     <Phone>
       <TopBack title="Checkout" onBack={nav.pop} />
@@ -798,35 +844,27 @@ function Checkout({ nav, data, cart }) {
         <p className="text-[12px] font-semibold mb-2" style={{ color: C.muted }}>ORDER SUMMARY</p>
         <div className="rounded-2xl p-4 mb-4" style={{ background: C.card }}>
           <p className="text-[13px] font-semibold mb-3" style={{ color: C.ivory }}>{ev.title}</p>
-          {lines.map(([id, q]) => (
-            <div key={id} className="flex justify-between text-[12.5px] py-1" style={{ color: C.muted }}>
-              <span>{types[id].name} ×{q}</span>
-              <span style={{ color: C.ivory }}>{money(types[id].price * q)}</span>
-            </div>
-          ))}
+          {items.map((item) => {
+            const type = typeById[item.ticket_type_id];
+            return <div key={item.ticket_type_id} className="flex justify-between text-[12.5px] py-1" style={{ color: C.muted }}><span>{type?.name || "Ticket"} ×{item.quantity}</span><span style={{ color: C.ivory }}>Server priced</span></div>;
+          })}
         </div>
-
-        <p className="text-[12px] font-semibold mb-2" style={{ color: C.muted }}>FEES</p>
+        <p className="text-[12px] font-semibold mb-2" style={{ color: C.muted }}>SERVER TOTAL</p>
         <div className="rounded-2xl p-4 mb-4" style={{ background: C.card }}>
-          <div className="flex justify-between text-[12.5px] py-1" style={{ color: C.muted }}><span>Service Fee</span><span style={{ color: C.ivory }}>{money(fee)}</span></div>
-          <div className="flex justify-between text-[12.5px] py-1" style={{ color: C.goldSoft }}><span>Discount</span><span>-{money(discount)}</span></div>
+          <div className="flex justify-between text-[12.5px] py-1" style={{ color: C.muted }}><span>Subtotal</span><span style={{ color: C.ivory }}>{money(reservation?.subtotal)}</span></div>
+          <div className="flex justify-between text-[12.5px] py-1" style={{ color: C.muted }}><span>Service fee</span><span style={{ color: C.ivory }}>{money(reservation?.service_fee)}</span></div>
+          <div className="flex justify-between text-[14px] font-semibold pt-2 mt-2" style={{ color: C.goldSoft, borderTop: `1px solid ${C.line}` }}><span>Total</span><span>{money(reservation?.total)}</span></div>
         </div>
-
+        <div className="rounded-2xl p-4 mb-6" style={{ background: `${C.wood}55`, border: `1px solid ${C.gold}55` }}>
+          <p className="text-[12px] font-semibold" style={{ color: C.goldSoft }}>Tickets held for {remainingMinutes} minute{remainingMinutes === 1 ? "" : "s"}</p>
+          <p className="text-[11px] mt-1" style={{ color: C.muted }}>Inventory and pricing were confirmed by Atizzy before checkout.</p>
+        </div>
         <p className="text-[12px] font-semibold mb-2" style={{ color: C.muted }}>BUYER INFORMATION</p>
-        <div className="flex items-center gap-3 rounded-2xl p-4 mb-6" style={{ background: C.card }}>
-          <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: C.wood }}><User size={16} color={C.goldSoft} /></div>
-          <div>
-            <p className="text-[12.5px] font-semibold" style={{ color: C.ivory }}>Renile Heritage</p>
-            <p className="text-[11px]" style={{ color: C.muted }}>renile@example.com · +234 803 123 4567</p>
-          </div>
-        </div>
+        <div className="flex items-center gap-3 rounded-2xl p-4 mb-6" style={{ background: C.card }}><div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: C.wood }}><User size={16} color={C.goldSoft} /></div><div><p className="text-[12.5px] font-semibold" style={{ color: C.ivory }}>Signed-in attendee</p><p className="text-[11px]" style={{ color: C.muted }}>Order ownership is enforced by Supabase.</p></div></div>
       </div>
       <div className="px-5 py-4" style={{ borderTop: `1px solid ${C.line}` }}>
-        <div className="flex justify-between items-center mb-3">
-          <span className="text-[13px]" style={{ color: C.muted }}>Total</span>
-          <span className="text-[19px] font-semibold" style={{ color: C.goldSoft }}>{money(total)}</span>
-        </div>
-        <GoldButton onClick={() => nav.push("payment", { ev, total })}>Continue to Payment</GoldButton>
+        <div className="flex justify-between items-center mb-3"><span className="text-[13px]" style={{ color: C.muted }}>Total</span><span className="text-[19px] font-semibold" style={{ color: C.goldSoft }}>{money(reservation?.total)}</span></div>
+        <GoldButton disabled={!reservation?.order_id || reservation?.status !== "ACTIVE"} onClick={() => nav.push("payment", { ev, reservation, items, types })}>Continue to Payment</GoldButton>
       </div>
     </Phone>
   );
@@ -834,84 +872,82 @@ function Checkout({ nav, data, cart }) {
 
 /* ============================== PAYMENT ============================== */
 function Payment({ nav, data }) {
-  const { ev, total } = data || { ev: EVENTS[0], total: 26500 };
+  const { ev = EVENTS[0], reservation } = data || {};
   const [method, setMethod] = useState("paystack");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
   const methods = [
     { id: "paystack", label: "Paystack (Card, Bank, USSD)", sub: "Recommended" },
     { id: "card", label: "Card", sub: "Visa, Mastercard, Verve" },
     { id: "bank", label: "Bank Transfer", sub: "Manual Transfer" },
     { id: "ussd", label: "USSD", sub: "" },
   ];
+  const initializePayment = async () => {
+    if (!reservation?.order_id) return;
+    setBusy(true); setError("");
+    const key = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `atizzy-payment-${Date.now()}`;
+    const { data: payment, error: paymentError } = await supabase.rpc("initialize_order_payment", { p_order_id: reservation.order_id, p_provider: method, p_idempotency_key: key });
+    setBusy(false);
+    if (paymentError) return setError(paymentError.message);
+    nav.push("processing", { ev, reservation, payment, items: data.items, types: data.types });
+  };
   return (
     <Phone>
       <TopBack title="Payment" onBack={nav.pop} />
       <div className="flex-1 overflow-y-auto px-5">
         <p className="text-[12px] font-semibold mb-3" style={{ color: C.muted }}>CHOOSE A PAYMENT METHOD</p>
-        {methods.map((m) => (
-          <button key={m.id} onClick={() => setMethod(m.id)} className="w-full flex items-center justify-between rounded-2xl p-4 mb-3" style={{ background: method === m.id ? `${C.wood}55` : C.card, border: `1.5px solid ${method === m.id ? C.gold : C.line}` }}>
-            <div className="text-left">
-              <p className="text-[13.5px] font-semibold" style={{ color: C.ivory }}>{m.label}</p>
-              {m.sub && <p className="text-[11px]" style={{ color: C.gold }}>{m.sub}</p>}
-            </div>
-            <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ border: `1.5px solid ${method === m.id ? C.gold : C.line}` }}>
-              {method === m.id && <div className="w-2.5 h-2.5 rounded-full" style={{ background: C.gold }} />}
-            </div>
-          </button>
-        ))}
+        {methods.map((m) => <button key={m.id} onClick={() => setMethod(m.id)} className="w-full flex items-center justify-between rounded-2xl p-4 mb-3" style={{ background: method === m.id ? `${C.wood}55` : C.card, border: `1.5px solid ${method === m.id ? C.gold : C.line}` }}><div className="text-left"><p className="text-[13.5px] font-semibold" style={{ color: C.ivory }}>{m.label}</p>{m.sub && <p className="text-[11px]" style={{ color: C.gold }}>{m.sub}</p>}</div><div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ border: `1.5px solid ${method === m.id ? C.gold : C.line}` }}>{method === m.id && <div className="w-2.5 h-2.5 rounded-full" style={{ background: C.gold }} />}</div></button>)}
+        <AuthMessage error={error} />
+        <div className="rounded-2xl p-4 mt-2" style={{ background: `${C.wood}44`, border: `1px solid ${C.gold}44` }}><p className="text-[12px] font-semibold" style={{ color: C.goldSoft }}>Secure payment handoff</p><p className="text-[11px] mt-1" style={{ color: C.muted }}>Atizzy creates a server-side payment attempt first. The order is not marked paid from this screen.</p></div>
       </div>
-      <div className="px-5 py-4" style={{ borderTop: `1px solid ${C.line}` }}>
-        <GoldButton onClick={() => nav.push("processing", { ev, total })}>Pay {money(total)}</GoldButton>
-      </div>
+      <div className="px-5 py-4" style={{ borderTop: `1px solid ${C.line}` }}><GoldButton disabled={busy || !reservation?.order_id} onClick={initializePayment}>{busy ? "Initializing..." : `Pay ${money(reservation?.total)}`}</GoldButton></div>
     </Phone>
   );
 }
 
 function Processing({ nav, data }) {
-  const [pct, setPct] = useState(10);
+  const [status, setStatus] = useState(data?.payment?.status || "INITIALIZED");
+  const [error, setError] = useState("");
   useEffect(() => {
-    const t = setInterval(() => {
-      setPct((p) => {
-        if (p >= 100) { clearInterval(t); setTimeout(() => nav.replace("success", data), 400); return 100; }
-        return p + 15;
-      });
-    }, 250);
-    return () => clearInterval(t);
-  }, []);
-  return (
-    <Phone>
-      <div className="flex-1 flex flex-col items-center justify-center px-8">
-        <div className="relative w-32 h-32 mb-8">
-          <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-            <circle cx="50" cy="50" r="44" fill="none" stroke={C.card} strokeWidth="7" />
-            <circle cx="50" cy="50" r="44" fill="none" stroke={C.gold} strokeWidth="7" strokeLinecap="round" strokeDasharray={276} strokeDashoffset={276 - (276 * pct) / 100} style={{ transition: "stroke-dashoffset 0.25s" }} />
-          </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-[20px] font-semibold" style={{ color: C.ivory }}>{pct}%</span>
-          </div>
-        </div>
-        <p className="text-[16px] font-semibold mb-2" style={{ color: C.ivory }}>Processing Payment</p>
-        <p className="text-[13px] text-center" style={{ color: C.muted }}>Please wait while we confirm your payment.</p>
-      </div>
-    </Phone>
-  );
+    let mounted = true;
+    let attempts = 0;
+    const poll = async () => {
+      if (!data?.payment?.payment_id) return;
+      const { data: payment, error: paymentError } = await supabase.from("payments").select("id,order_id,status,provider,amount,currency,verified_at").eq("id", data.payment.payment_id).maybeSingle();
+      if (!mounted) return;
+      if (paymentError) { setError(paymentError.message); return; }
+      if (payment) setStatus(payment.status);
+      if (payment?.status === "VERIFIED_SUCCESS") {
+        const { data: ticket } = await supabase.from("tickets").select("id,order_id,ticket_type_id,status,checked_in_at,created_at,ticket_types(name,events(id,title,city,starts_at,cover_url,venues(name)))").eq("order_id", payment.order_id).maybeSingle();
+        if (mounted) nav.replace("success", { ...data, payment, order: { id: payment.order_id, total: payment.amount }, ticket });
+        return;
+      }
+      if (["FAILED", "EXPIRED", "REFUNDED"].includes(payment?.status)) return;
+      attempts += 1;
+      if (attempts < 30) setTimeout(poll, 2000);
+    };
+    poll();
+    return () => { mounted = false; };
+  }, [data?.payment?.payment_id]);
+  const terminal = ["FAILED", "EXPIRED", "REFUNDED"].includes(status);
+  return <Phone><div className="flex-1 flex flex-col items-center justify-center px-8"><div className="w-24 h-24 rounded-full flex items-center justify-center mb-8" style={{ background: terminal ? `${C.red}33` : `${C.gold}22`, border: `1px solid ${terminal ? C.red : C.gold}66` }}><Loader2 size={38} color={terminal ? C.red : C.gold} className={terminal ? "" : "animate-spin"} /></div><p className="text-[16px] font-semibold mb-2" style={{ color: C.ivory }}>{terminal ? `Payment ${status.toLowerCase()}` : "Waiting for payment verification"}</p><p className="text-[13px] text-center" style={{ color: C.muted }}>{error || (terminal ? "No ticket was issued for this payment attempt." : "Atizzy will issue tickets only after the provider or webhook confirms payment.")}</p>{terminal && <button onClick={nav.pop} className="mt-6 text-[13px] font-semibold" style={{ color: C.goldSoft }}>Return to payment</button>}</div></Phone>;
 }
 
 function PaymentSuccess({ nav, data }) {
-  const { total } = data || { total: 26500 };
+  const { ev = EVENTS[0], reservation, order } = data || {};
+  const total = reservation?.total ?? order?.total;
   return (
     <Phone>
       <div className="flex-1 flex flex-col items-center justify-center px-8">
-        <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6" style={{ background: `${C.greenLight}` }}>
-          <Check size={36} color={C.gold} strokeWidth={2.5} />
-        </div>
+        <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6" style={{ background: `${C.greenLight}` }}><Check size={36} color={C.gold} strokeWidth={2.5} /></div>
         <p className="text-[19px] font-semibold mb-1" style={{ color: C.ivory }}>Payment Successful!</p>
-        <p className="text-[13px] text-center mb-6" style={{ color: C.muted }}>Your ticket(s) have been booked.</p>
+        <p className="text-[13px] text-center mb-6" style={{ color: C.muted }}>Your verified order is ready for ticket issuance.</p>
         <div className="w-full rounded-2xl p-5 mb-6" style={{ background: C.card }}>
           <Row label="Total Paid" value={money(total)} big />
-          <Row label="Order ID" value="EVT-89231" />
-          <Row label="Event" value="Wizkid Live In Concert" last />
+          <Row label="Order ID" value={order?.id || reservation?.order_id || "Pending"} />
+          <Row label="Event" value={ev.title} last />
         </div>
-        <GoldButton onClick={() => nav.push("digitalTicket")}>View Tickets</GoldButton>
+        <GoldButton disabled={!data?.ticket} onClick={() => nav.push("digitalTicket", data.ticket)}>View Ticket</GoldButton>
         <button onClick={() => nav.reset("home")} className="w-full text-center py-4 text-[13.5px] font-medium" style={{ color: C.muted }}>Back to Home</button>
       </div>
     </Phone>
@@ -928,42 +964,22 @@ function Row({ label, value, big, last }) {
 }
 
 /* ============================== DIGITAL TICKET ============================== */
-function DigitalTicket({ nav }) {
+function DigitalTicket({ nav, data }) {
+  const ticket = data;
+  const event = ticket?.ticket_types?.events || ticket?.event || {};
+  const typeName = ticket?.ticket_types?.name || ticket?.typeName || "Ticket";
+  const start = event.starts_at ? new Date(event.starts_at) : null;
+  const ticketId = ticket?.id || "Ticket pending";
   return (
     <Phone>
-      <TopBack title="Wizkid Live In Concert" onBack={nav.pop} />
+      <TopBack title={event.title || "Digital Ticket"} onBack={nav.pop} />
       <div className="flex-1 flex items-center justify-center px-6">
         <div className="w-full rounded-3xl overflow-hidden" style={{ background: `linear-gradient(160deg, ${C.wood}, ${C.card2})`, border: `1px solid ${C.gold}44` }}>
-          <div className="p-5 pb-4" style={{ background: "#00000030" }}>
-            <div className="flex justify-between items-start mb-1">
-              <span className="text-[11px] font-semibold px-2 py-1 rounded-full" style={{ background: C.gold, color: "#1A1408" }}>VIP</span>
-              <QrCode size={16} color={C.goldSoft} />
-            </div>
-            <p className="ev-display text-[17px] mt-2" style={{ color: C.ivory }}>Wizkid Live In Concert</p>
-            <p className="text-[11.5px]" style={{ color: C.muted }}>Renile Heritage</p>
-          </div>
-          <div className="flex items-center justify-center py-6" style={{ borderTop: `1px dashed ${C.gold}55`, borderBottom: `1px dashed ${C.gold}55` }}>
-            <div className="w-36 h-36 rounded-xl grid grid-cols-6 grid-rows-6 gap-1 p-2" style={{ background: "#F3EEE3" }}>
-              {Array.from({ length: 36 }).map((_, i) => (
-                <div key={i} style={{ background: [3,5,7,9,12,14,18,20,22,25,27,29,31,33].includes(i) ? "#0B0A08" : "transparent" }} />
-              ))}
-            </div>
-          </div>
-          <div className="p-5 grid grid-cols-2 gap-4">
-            <Ticket2 label="Ticket ID" value="EVT8231" />
-            <Ticket2 label="Gate" value="A" />
-            <Ticket2 label="Row" value="12" />
-            <Ticket2 label="Seat" value="25" />
-            <Ticket2 label="Date" value="14 Sep 2026" />
-            <Ticket2 label="Time" value="7:00 PM" />
-          </div>
-          <div className="px-5 pb-5">
-            <p className="text-[11px]" style={{ color: C.muted }}>ABC Event Centre, Ado-Ekiti, Nigeria</p>
-          </div>
+          <div className="p-5 pb-4" style={{ background: "#00000030" }}><div className="flex justify-between items-start mb-1"><span className="text-[11px] font-semibold px-2 py-1 rounded-full" style={{ background: C.gold, color: "#1A1408" }}>{typeName}</span><QrCode size={16} color={C.goldSoft} /></div><p className="ev-display text-[17px] mt-2" style={{ color: C.ivory }}>{event.title || "Atizzy ticket"}</p><p className="text-[11.5px]" style={{ color: C.muted }}>Issued by Atizzy · {ticket?.status || "PENDING"}</p></div>
+          <div className="flex items-center justify-center py-6" style={{ borderTop: `1px dashed ${C.gold}55`, borderBottom: `1px dashed ${C.gold}55` }}><div className="w-36 h-36 rounded-xl flex flex-col items-center justify-center gap-2" style={{ background: "#F3EEE3", color: C.bg }}><QrCode size={92} strokeWidth={1.2} /><span className="text-[9px] font-semibold tracking-widest">SERVER VERIFIED</span></div></div>
+          <div className="p-5 grid grid-cols-2 gap-4"><Ticket2 label="Ticket ID" value={ticketId} /><Ticket2 label="Order ID" value={ticket?.order_id || "Pending"} /><Ticket2 label="Date" value={start ? start.toLocaleDateString("en-NG", { dateStyle: "medium" }) : "Pending"} /><Ticket2 label="Time" value={start ? start.toLocaleTimeString("en-NG", { timeStyle: "short" }) : "Pending"} /><Ticket2 label="Venue" value={event.venues?.name || event.city || "Pending"} /><Ticket2 label="Entry" value={ticket?.checked_in_at ? "Checked in" : "Valid"} /></div>
+          <div className="px-5 pb-5"><p className="text-[11px]" style={{ color: C.muted }}>The QR validation token is controlled server-side and is not exposed in the client.</p></div>
         </div>
-      </div>
-      <div className="px-6 pb-6 pt-2 text-center">
-        <span className="text-[11px]" style={{ color: C.muted }}>1 of 1</span>
       </div>
     </Phone>
   );
@@ -980,35 +996,51 @@ function Ticket2({ label, value }) {
 /* ============================== MY TICKETS ============================== */
 function MyTickets({ nav, player }) {
   const [tab, setTab] = useState("Upcoming");
-  const tickets = [
-    { title: "Wizkid Live In Concert", date: "14 Sep 2026 · 7:00 PM", venue: "ABC Event Centre", type: "VIP · 1 Ticket" },
-    { title: "Afrobeats Night", date: "21 Sep 2026 · 8:00 PM", venue: "Freedom Park", type: "Regular · 2 Tickets" },
-    { title: "The Vibes Fest", date: "3 Oct 2026 · 2:00 PM", venue: "Freedom Park", type: "VIP · 1 Ticket" },
-  ];
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let mounted = true;
+    const loadTickets = async () => {
+      const { data, error: queryError } = await supabase
+        .from("tickets")
+        .select("id,order_id,ticket_type_id,status,checked_in_at,created_at,ticket_types(name,events(id,title,city,starts_at,cover_url,venues(name)))")
+        .order("created_at", { ascending: false });
+      if (!mounted) return;
+      if (queryError) setError(queryError.message);
+      setTickets((data || []).map((ticket) => ({
+        ...ticket,
+        typeName: ticket.ticket_types?.name || "Ticket",
+        event: ticket.ticket_types?.events || null,
+      })));
+      setLoading(false);
+    };
+    loadTickets();
+    return () => { mounted = false; };
+  }, []);
+
+  const filtered = tickets.filter((ticket) => {
+    const eventDate = ticket.event?.starts_at ? new Date(ticket.event.starts_at).getTime() : 0;
+    if (tab === "Cancelled") return ["CANCELLED", "REFUNDED", "EXPIRED"].includes(ticket.status);
+    if (tab === "Past") return eventDate > 0 && eventDate < Date.now() && !["CANCELLED", "REFUNDED", "EXPIRED"].includes(ticket.status);
+    return (eventDate === 0 || eventDate >= Date.now()) && !["CANCELLED", "REFUNDED", "EXPIRED"].includes(ticket.status);
+  });
+
   return (
     <Phone>
-      <div className="px-5 pt-1 pb-3">
-        <h1 className="ev-display text-[22px] mb-3" style={{ color: C.ivory }}>My Tickets</h1>
-        <div className="flex gap-2">
-          {["Upcoming", "Past", "Cancelled"].map((t) => <Pill key={t} active={tab === t} onClick={() => setTab(t)}>{t}</Pill>)}
-        </div>
-      </div>
+      <div className="px-5 pt-1 pb-3"><h1 className="ev-display text-[22px] mb-3" style={{ color: C.ivory }}>My Tickets</h1><div className="flex gap-2">{["Upcoming", "Past", "Cancelled"].map((t) => <Pill key={t} active={tab === t} onClick={() => setTab(t)}>{t}</Pill>)}</div></div>
       <div className="flex-1 overflow-y-auto px-5">
-        {tickets.map((t, idx) => (
-          <button key={idx} onClick={() => nav.push("digitalTicket")} className="w-full flex gap-3 rounded-2xl p-3 mb-3 text-left" style={{ background: C.card }}>
-            <div className="w-16 h-16 rounded-xl flex-shrink-0" style={{ background: EVENTS[idx % EVENTS.length].img }} />
-            <div className="flex-1">
-              <p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{t.title}</p>
-              <p className="text-[11px] mt-0.5" style={{ color: C.muted }}>{t.date}</p>
-              <p className="text-[11px]" style={{ color: C.muted }}>{t.venue}</p>
-              <p className="text-[11px] mt-1" style={{ color: C.goldSoft }}>{t.type}</p>
-            </div>
-            <span className="self-center text-[11px] font-semibold" style={{ color: C.gold }}>View</span>
-          </button>
-        ))}
+        {loading && <p className="text-[13px] py-8 text-center" style={{ color: C.muted }}>Loading your tickets...</p>}
+        {!loading && error && <AuthMessage error={error} />}
+        {!loading && !error && !filtered.length && <p className="text-[13px] py-8 text-center" style={{ color: C.muted }}>No {tab.toLowerCase()} tickets yet.</p>}
+        {filtered.map((ticket) => {
+          const event = ticket.event || {};
+          const start = event.starts_at ? new Date(event.starts_at) : null;
+          return <button key={ticket.id} onClick={() => nav.push("digitalTicket", ticket)} className="w-full flex gap-3 rounded-2xl p-3 mb-3 text-left" style={{ background: C.card }}><div className="w-16 h-16 rounded-xl flex-shrink-0" style={{ background: event.cover_url || `linear-gradient(160deg, ${C.wood}, ${C.green})` }} /><div className="flex-1"><p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{event.title || "Atizzy ticket"}</p><p className="text-[11px] mt-0.5" style={{ color: C.muted }}>{start ? start.toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" }) : "Date pending"}</p><p className="text-[11px]" style={{ color: C.muted }}>{event.venues?.name || event.city || "Venue pending"}</p><p className="text-[11px] mt-1" style={{ color: C.goldSoft }}>{ticket.typeName} · {ticket.status}</p></div><span className="self-center text-[11px] font-semibold" style={{ color: C.gold }}>View</span></button>;
+        })}
       </div>
-      <MiniPlayer song={player.song} playing={player.playing} onToggle={player.toggle} onOpen={() => nav.push("musicPlayer")} />
-      <BottomNav current="tickets" go={nav.tab} />
+      <MiniPlayer song={player.song} playing={player.playing} onToggle={player.toggle} onOpen={() => nav.push("musicPlayer")} /><BottomNav current="tickets" go={nav.tab} />
     </Phone>
   );
 }
@@ -1227,7 +1259,6 @@ export default function EventVerseApp() {
     const completed = typeof window !== "undefined" && window.localStorage.getItem("eventverse:onboarding-complete") === "1";
     return [{ screen: completed ? "login" : "onboarding", data: null }];
   });
-  const [cart, setCart] = useState({});
   const [song, setSong] = useState(null);
   const [playing, setPlaying] = useState(false);
   const [authReady, setAuthReady] = useState(false);
@@ -1322,12 +1353,12 @@ export default function EventVerseApp() {
     explore: <Explore nav={nav} player={player} catalog={catalog} />,
     search: <SearchScreen nav={nav} catalog={catalog} />,
     eventDetail: <EventDetail nav={nav} data={current.data} />,
-    tickets: <TicketSelection nav={nav} data={current.data} cart={cart} setCart={setCart} />,
-    checkout: <Checkout nav={nav} data={current.data} cart={cart} />,
+    tickets: <TicketSelection nav={nav} data={current.data} />,
+    checkout: <Checkout nav={nav} data={current.data} />,
     payment: <Payment nav={nav} data={current.data} />,
     processing: <Processing nav={nav} data={current.data} />,
     success: <PaymentSuccess nav={nav} data={current.data} />,
-    digitalTicket: <DigitalTicket nav={nav} />,
+    digitalTicket: <DigitalTicket nav={nav} data={current.data} />,
     myTickets: <MyTickets nav={nav} player={player} />,
     tickets_tab: null,
     profile: <Profile nav={nav} player={player} />,

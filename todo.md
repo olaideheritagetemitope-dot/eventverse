@@ -131,6 +131,22 @@
 
 - [x] Audit every app, web, favicon, splash, adaptive-icon, and metadata branding reference
 - [x] Install the supplied Atizzy logo in every required branding location
-- [ ] Remove stale EventVerse icon and logo references where they represent the app identity
+- [x] Remove stale EventVerse icon and logo references where they represent the app identity
 - [x] Build and verify complete Atizzy logo coverage without changing UI design
-- [ ] Deploy the complete Atizzy logo update and confirm production readiness
+- [x] Deploy the complete Atizzy logo update and confirm production readiness
+
+- [ ] Open and extract every requirement from the supplied ChatGPT directive
+- [ ] Convert the directive into a complete auditable implementation checklist
+- [ ] Audit the Atizzy app against every directive requirement
+- [ ] Implement all feasible directive requirements without changing protected design decisions
+- [ ] Validate functionality, responsive behavior, security, and production readiness
+- [ ] Deploy the completed directive implementation and document any user-required actions
+
+- [x] Replace simulated ticket selection with live ticket-type and inventory queries
+- [x] Implement server-authoritative ticket reservation with idempotency and expiry
+- [x] Create reservation-backed order drafts with server-calculated subtotal, fee, and total
+- [x] Replace hardcoded My Tickets and Digital Ticket data with authenticated Supabase queries
+- [x] Add server-side payment-attempt initialization with idempotency and order state transition
+- [x] Replace simulated payment progress with verified payment-status polling
+- [ ] Supply Paystack credentials and implement provider redirect/webhook verification
+- [ ] Issue tickets only after verified payment and implement secure QR check-in
