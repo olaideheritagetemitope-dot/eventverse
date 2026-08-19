@@ -260,7 +260,6 @@ function Onboarding({ nav }) {
 function Login({ nav }) {
   return (
     <Phone>
-      <StatusBar />
       <div className="flex-1 px-6 pt-8 overflow-y-auto">
         <span className="ev-display tracking-[0.15em] text-[13px]" style={{ color: C.goldSoft }}>EVENTVERSE</span>
         <h1 className="ev-display text-[26px] mt-6 mb-1" style={{ color: C.ivory }}>Welcome Back</h1>
@@ -291,7 +290,6 @@ function Login({ nav }) {
 function Signup({ nav }) {
   return (
     <Phone>
-      <StatusBar />
       <TopBack onBack={nav.pop} />
       <div className="flex-1 px-6 overflow-y-auto">
         <h1 className="ev-display text-[26px] mb-1" style={{ color: C.ivory }}>Create Account</h1>
@@ -314,7 +312,6 @@ function Verify({ nav }) {
   const [code, setCode] = useState(["2", "4", "8", "7", "", ""]);
   return (
     <Phone>
-      <StatusBar />
       <TopBack onBack={nav.pop} />
       <div className="flex-1 px-6 pt-4">
         <h1 className="ev-display text-[24px] mb-1" style={{ color: C.ivory }}>Verify Email</h1>
@@ -336,7 +333,6 @@ function AttendeeHome({ nav, player }) {
   const [cat, setCat] = useState("All");
   return (
     <Phone>
-      <StatusBar />
       <div className="flex items-center justify-between px-5 pt-1 pb-3">
         <button className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: C.card }}><Menu size={17} color={C.ivory} /></button>
         <div className="text-center">
@@ -404,7 +400,6 @@ function Explore({ nav, player }) {
   const [cat, setCat] = useState("All");
   return (
     <Phone>
-      <StatusBar />
       <div className="px-5 pt-1 pb-3">
         <h1 className="ev-display text-[22px] mb-3" style={{ color: C.ivory }}>Explore</h1>
         <button onClick={() => nav.push("search")} className="w-full flex items-center gap-2 rounded-2xl px-4 py-3 mb-3" style={{ background: C.card, border: `1px solid ${C.line}` }}>
@@ -458,7 +453,6 @@ function SearchScreen({ nav }) {
   const [tab, setTab] = useState("All");
   return (
     <Phone>
-      <StatusBar />
       <div className="flex items-center gap-3 px-5 pt-1 pb-3">
         <button onClick={nav.pop}><ChevronLeft size={20} color={C.ivory} /></button>
         <div className="flex-1 flex items-center gap-2 rounded-xl px-3 py-2.5" style={{ background: C.card, border: `1px solid ${C.gold}55` }}>
@@ -582,7 +576,6 @@ function TicketSelection({ nav, data, cart, setCart }) {
   const count = types.reduce((s, t) => s + qty(t.id), 0);
   return (
     <Phone>
-      <StatusBar />
       <TopBack title="Select Tickets" onBack={nav.pop} />
       <div className="flex-1 overflow-y-auto px-5">
         <p className="text-[13px] font-semibold mb-4" style={{ color: C.ivory }}>{ev.title}</p>
@@ -624,7 +617,6 @@ function Checkout({ nav, data, cart }) {
   const total = subtotal + fee - discount;
   return (
     <Phone>
-      <StatusBar />
       <TopBack title="Checkout" onBack={nav.pop} />
       <div className="flex-1 overflow-y-auto px-5">
         <p className="text-[12px] font-semibold mb-2" style={{ color: C.muted }}>ORDER SUMMARY</p>
@@ -676,7 +668,6 @@ function Payment({ nav, data }) {
   ];
   return (
     <Phone>
-      <StatusBar />
       <TopBack title="Payment" onBack={nav.pop} />
       <div className="flex-1 overflow-y-auto px-5">
         <p className="text-[12px] font-semibold mb-3" style={{ color: C.muted }}>CHOOSE A PAYMENT METHOD</p>
@@ -712,7 +703,6 @@ function Processing({ nav, data }) {
   }, []);
   return (
     <Phone>
-      <StatusBar />
       <div className="flex-1 flex flex-col items-center justify-center px-8">
         <div className="relative w-32 h-32 mb-8">
           <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
@@ -734,7 +724,6 @@ function PaymentSuccess({ nav, data }) {
   const { total } = data || { total: 26500 };
   return (
     <Phone>
-      <StatusBar />
       <div className="flex-1 flex flex-col items-center justify-center px-8">
         <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6" style={{ background: `${C.greenLight}` }}>
           <Check size={36} color={C.gold} strokeWidth={2.5} />
@@ -766,7 +755,6 @@ function Row({ label, value, big, last }) {
 function DigitalTicket({ nav }) {
   return (
     <Phone>
-      <StatusBar />
       <TopBack title="Wizkid Live In Concert" onBack={nav.pop} />
       <div className="flex-1 flex items-center justify-center px-6">
         <div className="w-full rounded-3xl overflow-hidden" style={{ background: `linear-gradient(160deg, ${C.wood}, ${C.card2})`, border: `1px solid ${C.gold}44` }}>
@@ -823,7 +811,6 @@ function MyTickets({ nav, player }) {
   ];
   return (
     <Phone>
-      <StatusBar />
       <div className="px-5 pt-1 pb-3">
         <h1 className="ev-display text-[22px] mb-3" style={{ color: C.ivory }}>My Tickets</h1>
         <div className="flex gap-2">
@@ -855,7 +842,6 @@ function Profile({ nav, player }) {
   const items = ["My Tickets", "Music Library", "Preferences", "Notifications", "Security", "Help & Support"];
   return (
     <Phone>
-      <StatusBar />
       <div className="px-5 pt-2 pb-4 flex flex-col items-center">
         <div className="w-20 h-20 rounded-full mb-3" style={{ background: `linear-gradient(135deg, ${C.wood}, ${C.green})` }} />
         <p className="text-[16px] font-semibold" style={{ color: C.ivory }}>Renile Heritage</p>
@@ -925,7 +911,6 @@ function ArtistProfile({ nav, data }) {
 function MusicHome({ nav, player }) {
   return (
     <Phone>
-      <StatusBar />
       <div className="px-5 pt-1 pb-3">
         <h1 className="ev-display text-[22px]" style={{ color: C.ivory }}>Good evening</h1>
       </div>
@@ -1025,7 +1010,6 @@ function Booking({ nav, data }) {
   const a = data || ARTISTS[0];
   return (
     <Phone>
-      <StatusBar />
       <TopBack title="Book Artist" onBack={nav.pop} />
       <div className="flex-1 overflow-y-auto px-5">
         <div className="flex items-center gap-3 rounded-2xl p-4 mb-5" style={{ background: C.card }}>

@@ -20,8 +20,14 @@
 - [ ] Retry the live Vercel deployment and inspect Supabase readiness
 - [ ] Report connected-service status and live access result
 
-- [ ] Remove the simulated phone frame and any visual device chrome
-- [ ] Convert the root to a full viewport AppViewport using responsive and safe-area CSS
-- [ ] Preserve all existing screens, routes, navigation, and approved visual tokens
-- [ ] Validate mobile, tablet, desktop, and production build behavior
-- [ ] Deploy the viewport correction and verify the live URL
+- [x] Remove the simulated phone frame and any visual device chrome
+- [x] Convert the root to a full viewport AppViewport using responsive and safe-area CSS
+- [x] Preserve all existing screens, routes, navigation, and approved visual tokens
+- [x] Validate mobile, tablet, desktop, and production build behavior
+- [x] Deploy the viewport correction and verify the live URL
+
+- [ ] Reproduce the regression in local and live EventVerse builds
+- [ ] Identify the regression source introduced by the viewport refactor
+- [ ] Apply the smallest compatible regression fix
+- [ ] Validate responsive layouts and production build after the fix
+- [ ] Deploy the regression fix and verify the live result
