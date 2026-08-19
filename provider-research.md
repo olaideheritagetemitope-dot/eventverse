@@ -36,3 +36,12 @@ Sources:
 - Supabase PKCE flow: https://supabase.com/docs/guides/auth/sessions/pkce-flow
 - Supabase implicit flow: https://supabase.com/docs/guides/auth/sessions/implicit-flow
 - Supabase JavaScript signInWithOAuth reference: https://supabase.com/docs/reference/javascript/auth-signinwithoauth
+
+
+## Persistent Spotify regression evidence — 2026-08-19
+
+The second screen recording `/home/ubuntu/upload/Screen_Recording_20260819_140616.mp4` was analyzed with `manus-analyze-video`. At approximately 00:04 the user tapped Spotify; the app showed “Loading EventVerse…”, then by approximately 00:05 returned to the EventVerse Login screen. The visible URL remained `eventverse-eight.vercel.app` with no visible `?code=`, `#access_token=`, or `?error=` parameters and no visible error message.
+
+The active Vite Supabase client uses `persistSession: true`, `autoRefreshToken: true`, `detectSessionInUrl: true`, and `flowType: "implicit"`. The Spotify provider is enabled in Supabase and displays callback URL `https://blalvoelllndmbppbkcy.supabase.co/auth/v1/callback`. Supabase URL Configuration has Site URL `https://eventverse-eight.vercel.app` and allowed redirects `https://eventverse-eight.vercel.app` plus `https://eventverse-eight.vercel.app/**`.
+
+The latest pushed fix commit is `898d85766efb3c6f3552bdc64a70868fcaeac3e8`, titled `Fix Spotify OAuth session event race`. Vercel reports it READY for production at `https://eventverse-3a7bj4z5d-olaideheritagetemitope-dots-projects.vercel.app`. The fix subscribes to `supabase.auth.onAuthStateChange` before calling session restore and handles `INITIAL_SESSION`, `SIGNED_IN`, and `TOKEN_REFRESHED`, preventing an implicit-flow event from being missed before the app routes away from Login.

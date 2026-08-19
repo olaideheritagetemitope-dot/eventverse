@@ -1246,20 +1246,32 @@ export default function EventVerseApp() {
       try {
         const url = new URL(window.location.href);
         const code = url.searchParams.get("code");
-        const callbackError = url.searchParams.get("error_description") || url.searchParams.get("error");
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+        const callbackError = url.searchParams.get("error_description") || url.searchParams.get("error") || hashParams.get("error_description") || hashParams.get("error");
         if (code) {
           const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
           if (exchangeError) console.error("EventVerse OAuth callback exchange failed", exchangeError);
           url.searchParams.delete("code");
           url.searchParams.delete("state");
-          window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+        } else if (hashParams.get("access_token") && hashParams.get("refresh_token")) {
+          // Supabase normally consumes this fragment automatically for implicit flow.
+          // Some mobile handoffs race client initialization, so explicitly hand the
+          // returned token pair to Supabase before asking for the restored session.
+          const { error: fragmentError } = await supabase.auth.setSession({
+            access_token: hashParams.get("access_token"),
+            refresh_token: hashParams.get("refresh_token"),
+          });
+          if (fragmentError) console.error("EventVerse implicit callback restore failed", fragmentError);
         }
         if (callbackError) console.error("EventVerse OAuth callback returned an error", callbackError);
+        if (code || hashParams.get("access_token")) {
+          window.history.replaceState({}, document.title, `${url.pathname}${url.search}`);
+        }
         const { data } = await supabase.auth.getSession();
         if (mounted && data.session) {
           window.localStorage.setItem("eventverse:onboarding-complete", "1");
-          await ensureUserProfile(data.session.user);
           setStack([{ screen: "home", data: null }]);
+          void ensureUserProfile(data.session.user);
         }
       } catch (restoreError) {
         console.error("EventVerse auth restore failed", restoreError);

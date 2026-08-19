@@ -96,3 +96,9 @@
 - [x] Trace why the live Spotify callback still restores to Login
 - [x] Apply and validate the smallest correct Spotify authentication fix
 - [ ] Re-test the corrected Spotify flow on production
+
+- [ ] Persist the confirmed Spotify redirect-loop evidence and affected production URL
+- [x] Instrument Spotify callback, Supabase session events, and route transitions
+- [x] Identify why the authenticated session is not reaching the user profile/home route
+- [x] Remove the redirect loop at its root without adding another manual redirect workaround
+- [ ] Build, deploy, and verify the final Spotify authentication flow
