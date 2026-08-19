@@ -198,3 +198,14 @@
 - [x] Implement missing workflow transitions and role-gated actions without changing the approved visual structure
 - [x] Add explicit loading, empty, error, cancellation, retry, and success states for every workflow branch
 - [x] Validate the complete workflow with production build, tests, responsive checks, and security boundaries
+
+# Artist End-to-End Workflow
+
+- [x] Extract and persist all artist workflow steps and acceptance conditions from pasted_content.txt
+- [x] Audit the existing artists, songs, event_artists, artist_followers, artist_booking_requests, storage, and role contracts
+- [x] Implement artist-first role resolution and a complete artist workspace dashboard with persistent zero-state cards
+- [x] Implement persistent artist profile editing using only existing schema fields
+- [x] Implement artist public profile, follower counts, follow/unfollow, events, and event details
+- [x] Implement persistent music management, statistics, uploads where storage contracts support it, and soft unpublish behavior
+- [x] Implement booking inbox, request details, accept, decline, response, and live status transitions
+- [x] Validate artist authorization, RLS, responsive states, build, tests, and deployment readiness

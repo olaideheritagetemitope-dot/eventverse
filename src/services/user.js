@@ -144,3 +144,43 @@ export async function updateProfile(userId, updates) {
   if (error) throw error;
   return data;
 }
+
+export async function loadArtistWorkspace(userId) {
+  if (!userId) throw new Error("Sign in to open the artist workspace.");
+  const { data: artist, error: artistError } = await supabase.from("artists").select("id,user_id,name,bio,verified,follower_count,image_url,created_at,updated_at").eq("user_id", userId).maybeSingle();
+  if (artistError) throw artistError;
+  if (!artist) return { artist: null, songs: [], events: [], bookings: [] };
+  const [songsResult, eventLinksResult, bookingsResult] = await Promise.all([
+    supabase.from("songs").select("id,artist_id,title,duration_seconds,audio_url,cover_url,play_count,created_at").eq("artist_id", artist.id).order("created_at", { ascending: false }),
+    supabase.from("event_artists").select("event_id,events(id,title,description,city,starts_at,ends_at,cover_url,status,venue_id,venues(name,address,capacity))").eq("artist_id", artist.id),
+    supabase.from("artist_booking_requests").select("id,requester_id,artist_id,event_name,event_type,event_date,expected_audience,budget,message,status,created_at,updated_at").eq("artist_id", artist.id).order("created_at", { ascending: false }),
+  ]);
+  const firstError = [songsResult, eventLinksResult, bookingsResult].find((result) => result.error)?.error;
+  if (firstError) throw firstError;
+  return { artist, songs: songsResult.data || [], events: (eventLinksResult.data || []).map((row) => row.events).filter(Boolean), bookings: bookingsResult.data || [] };
+}
+
+export async function updateArtistProfile(artistId, userId, updates) {
+  if (!artistId || !userId) throw new Error("Artist profile access is required.");
+  const payload = { name: updates?.name?.trim(), bio: updates?.bio?.trim() || null, image_url: updates?.image_url?.trim() || null, updated_at: new Date().toISOString() };
+  if (!payload.name) throw new Error("Artist name is required.");
+  const { data, error } = await supabase.from("artists").update(payload).eq("id", artistId).eq("user_id", userId).select("id,user_id,name,bio,verified,follower_count,image_url,created_at,updated_at").single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateArtistSong(songId, artistId, updates) {
+  if (!songId || !artistId) throw new Error("Artist song access is required.");
+  const payload = { title: updates?.title?.trim(), cover_url: updates?.cover_url?.trim() || null };
+  if (!payload.title) throw new Error("Song title is required.");
+  const { data, error } = await supabase.from("songs").update(payload).eq("id", songId).eq("artist_id", artistId).select("id,artist_id,title,duration_seconds,audio_url,cover_url,play_count,created_at").single();
+  if (error) throw error;
+  return data;
+}
+
+export async function artistUpdateBookingStatus(bookingId, status) {
+  if (!bookingId || !status) throw new Error("Booking status is required.");
+  const { data, error } = await supabase.rpc("artist_update_booking_status", { p_booking_id: bookingId, p_status: status });
+  if (error) throw error;
+  return data;
+}
