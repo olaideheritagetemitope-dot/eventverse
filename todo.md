@@ -51,3 +51,13 @@
 - [ ] Implement artist booking, music library, playlists, playback history, and player persistence
 - [ ] Implement admin, venue manager, and event staff interfaces
 - [x] Add validation, loading/error/empty states, auditability, automated tests, and responsive verification
+
+- [ ] Replace localhost email confirmation links with production-safe email code verification
+- [ ] Configure production redirect URLs and auth callback handling
+- [ ] Enable Google authentication and add its login button
+- [ ] Enable Facebook authentication and add its login button
+- [ ] Enable Spotify authentication and add its login button
+- [ ] Verify email-code and social-login flows in production
+
+- [x] Add branded Google, Facebook, Spotify, and Apple provider icons/buttons to the login UI
+- [x] Keep Google active and clearly mark Facebook, Spotify, and Apple unavailable until independent credentials are configured

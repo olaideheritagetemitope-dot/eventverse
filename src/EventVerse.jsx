@@ -273,6 +273,12 @@ function AuthMessage({ message, error }) {
   return <p className="text-[12px] mt-3" style={{ color: error ? "#E98979" : C.goldSoft }}>{message || error}</p>;
 }
 
+function ProviderIcon({ provider }) {
+  const colors = { google: "#4285F4", facebook: "#1877F2", spotify: "#1DB954", apple: C.ivory };
+  const letter = { google: "G", facebook: "f", spotify: "●", apple: "●" }[provider];
+  return <span className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[12px] font-bold" style={{ color: provider === "apple" ? C.bg : "#fff", background: colors[provider] }}>{letter}</span>;
+}
+
 function Login({ nav }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -286,6 +292,19 @@ function Login({ nav }) {
     setBusy(false);
     if (authError) return setError(authError.message);
     nav.replace("home");
+  };
+
+  const sendEmailCode = async () => {
+    if (!email.trim()) return setError("Enter your email first.");
+    setBusy(true); setError(""); setMessage("");
+    const { error: authError } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: { shouldCreateUser: false },
+    });
+    setBusy(false);
+    if (authError) return setError(authError.message);
+    setMessage("A 6-digit sign-in code was sent to your email.");
+    nav.push("verify", { email: email.trim(), mode: "login" });
   };
 
   const recover = async () => {
@@ -303,6 +322,13 @@ function Login({ nav }) {
     if (authError) setError(authError.message);
   };
 
+  const providers = [
+    { label: "Google", provider: "google", enabled: true },
+    { label: "Facebook", provider: "facebook", enabled: false },
+    { label: "Spotify", provider: "spotify", enabled: false },
+    { label: "Apple", provider: "apple", enabled: false },
+  ];
+
   return (
     <Phone>
       <div className="flex-1 px-6 pt-8 overflow-y-auto">
@@ -313,17 +339,28 @@ function Login({ nav }) {
         <Field label="Password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
         <button onClick={recover} disabled={busy} className="text-[12.5px] font-medium mb-6" style={{ color: C.gold }}>Forgot Password?</button>
         <GoldButton disabled={busy || !email || !password} onClick={login}>{busy ? "Signing in..." : "Login"}</GoldButton>
+        <button onClick={sendEmailCode} disabled={busy || !email} className="w-full py-3.5 text-[13px] font-medium" style={{ color: C.goldSoft }}>{busy ? "Sending code..." : "Login with email code"}</button>
         <AuthMessage message={message} error={error} />
-        <div className="flex items-center gap-3 my-6">
+        <div className="flex items-center gap-3 my-5">
           <div className="flex-1 h-px" style={{ background: C.line }} />
           <span className="text-[11px]" style={{ color: C.muted }}>or continue with</span>
           <div className="flex-1 h-px" style={{ background: C.line }} />
         </div>
-        <div className="flex gap-3 mb-6">
-          {[['Google','google'], ['Apple','apple'], ['Facebook','facebook']].map(([label, provider]) => (
-            <button key={provider} onClick={() => oauth(provider)} className="flex-1 py-3 rounded-xl text-[12px] font-medium" style={{ background: C.card, color: C.ivory, border: `1px solid ${C.line}` }}>{label}</button>
+        <div className="grid grid-cols-2 gap-2 mb-2">
+          {providers.map(({ label, provider, enabled }) => (
+            <button
+              key={provider}
+              disabled={!enabled || busy}
+              onClick={() => enabled ? oauth(provider) : setError(`${label} sign-in is not configured yet.`)}
+              className="flex items-center justify-center gap-2 py-3 rounded-xl text-[11px] font-medium disabled:opacity-50"
+              style={{ background: C.card, color: C.ivory, border: `1px solid ${C.line}` }}
+            >
+              <ProviderIcon provider={provider} />
+              <span>{label}</span>
+            </button>
           ))}
         </div>
+        <p className="text-center text-[10px] mb-6" style={{ color: C.muted }}>Google is enabled. Other providers will appear here when their credentials are configured.</p>
         <p className="text-center text-[13px]" style={{ color: C.muted }}>
           Don't have an account?{" "}
           <button onClick={() => nav.push("signup")} className="font-semibold" style={{ color: C.gold }}>Sign up</button>
@@ -343,10 +380,16 @@ function Signup({ nav }) {
     if (form.password.length < 8) return setError("Password must be at least 8 characters.");
     if (form.password !== form.confirm) return setError("Passwords do not match.");
     setBusy(true);
-    const { data, error: authError } = await supabase.auth.signUp({ email: form.email.trim(), password: form.password, options: { data: { full_name: form.name.trim() } } });
+    const { error: authError } = await supabase.auth.signInWithOtp({
+      email: form.email.trim(),
+      options: {
+        shouldCreateUser: true,
+        data: { full_name: form.name.trim() },
+      },
+    });
     setBusy(false);
     if (authError) return setError(authError.message);
-    nav.push("verify", { email: form.email.trim(), userId: data.user?.id });
+    nav.push("verify", { email: form.email.trim(), mode: "signup", password: form.password });
   };
   return (
     <Phone>
@@ -376,13 +419,23 @@ function Verify({ nav, data }) {
   const email = data?.email || "your email address";
   const verify = async () => {
     setBusy(true); setError("");
-    const { error: authError } = await supabase.auth.verifyOtp({ email, token: code.trim(), type: "signup" });
+    const { error: authError } = await supabase.auth.verifyOtp({ email, token: code.trim(), type: "email" });
+    if (authError) {
+      setBusy(false);
+      return setError(authError.message);
+    }
+    if (data?.password) {
+      const { error: passwordError } = await supabase.auth.updateUser({ password: data.password });
+      if (passwordError) {
+        setBusy(false);
+        return setError(passwordError.message);
+      }
+    }
     setBusy(false);
-    if (authError) return setError(authError.message);
     nav.replace("home");
   };
   const resend = async () => {
-    const { error: authError } = await supabase.auth.resend({ type: "signup", email });
+    const { error: authError } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: data?.mode === "signup" } });
     if (authError) setError(authError.message);
   };
   return (
