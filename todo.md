@@ -85,3 +85,14 @@
 - [x] Trace Spotify-specific Supabase provider redirect and session exchange behavior
 - [x] Fix Spotify authentication so a successful provider return reaches EventVerse Home
 - [ ] Validate Spotify authentication on the production deployment
+
+- [x] Verify Supabase Site URL is the canonical EventVerse Vercel URL
+- [x] Verify Supabase allowed redirect URL includes the canonical EventVerse wildcard
+- [x] Verify Spotify callback URI and client redirectTo alignment
+- [x] Confirm the Spotify button uses only signInWithOAuth and session-driven routing
+- [ ] Rebuild, redeploy, and re-test Spotify authentication
+
+- [x] Analyze the second Spotify failure recording for the exact return URL and session state
+- [x] Trace why the live Spotify callback still restores to Login
+- [x] Apply and validate the smallest correct Spotify authentication fix
+- [ ] Re-test the corrected Spotify flow on production

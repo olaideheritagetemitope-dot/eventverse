@@ -1267,18 +1267,21 @@ export default function EventVerseApp() {
         if (mounted) setAuthReady(true);
       }
     };
-    load(); restore();
+    // Subscribe before restoring the session. With implicit OAuth, Supabase can emit
+    // INITIAL_SESSION/SIGNED_IN during URL-fragment processing; subscribing afterward
+    // can miss the event and leave the user on Login even though the provider succeeded.
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted || !session) return;
       // Defer profile I/O outside Supabase's auth event callback to avoid re-entrant locks.
       setTimeout(() => ensureUserProfile(session.user), 0);
-      if (["SIGNED_IN", "TOKEN_REFRESHED"].includes(event)) {
+      if (["INITIAL_SESSION", "SIGNED_IN", "TOKEN_REFRESHED"].includes(event)) {
         setStack((currentStack) => {
           const active = currentStack[currentStack.length - 1]?.screen;
           return ["onboarding", "login", "signup", "verify"].includes(active) ? [{ screen: "home", data: null }] : currentStack;
         });
       }
     });
+    load(); restore();
     return () => { mounted = false; listener.subscription.unsubscribe(); };
   }, []);
 
