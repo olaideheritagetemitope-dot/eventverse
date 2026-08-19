@@ -1,0 +1,1934 @@
+
+EVENTVERSE — COMPLETE PRODUCTION IMPLEMENTATION DIRECTIVE FOR MANUS AI
+
+Mission
+
+You are responsible for transforming the existing EventVerse frontend prototype into a complete, production-ready, responsive, secure, multi-role event, ticketing, artist-booking and music platform.
+
+The existing frontend must be treated as the visual and interaction contract.
+
+Do not redesign the product arbitrarily.
+
+Do not replace existing workflows with generic alternatives.
+
+Do not build a disconnected backend.
+
+Instead:
+
+> Read the frontend → identify every screen → identify every component → identify every button → identify every input → identify every state → identify every navigation path → identify the data required → identify the business rule → design the backend → connect the frontend → test the complete workflow.
+
+
+
+Every visible user action must eventually have a real production implementation behind it.
+
+
+---
+
+PART 0 — NON-NEGOTIABLE IMPLEMENTATION RULES
+
+Before beginning implementation, follow these rules.
+
+Rule 1 — Frontend is the product contract
+
+The uploaded EventVerse.jsx is not merely a visual reference.
+
+It is the starting functional specification.
+
+For every existing frontend feature, determine:
+
+1. What does it display?
+
+
+2. What data does it require?
+
+
+3. Who owns that data?
+
+
+4. Who is allowed to modify it?
+
+
+5. What action does the user perform?
+
+
+6. What backend operation must happen?
+
+
+7. What validation is required?
+
+
+8. What happens on success?
+
+
+9. What happens on failure?
+
+
+10. What notification/audit event is generated?
+
+
+
+
+---
+
+Rule 2 — Remove mock functionality
+
+Do not leave production functionality dependent on:
+
+const EVENTS = [...]
+const ARTISTS = [...]
+const SONGS = [...]
+
+or similar hard-coded datasets.
+
+The current frontend contains mock event and artist records. 
+
+Replace those with real backend data.
+
+
+---
+
+Rule 3 — No fake successful workflows
+
+Do not leave code such as:
+
+nav.replace("home")
+
+as a substitute for authentication.
+
+Do not leave:
+
+setTimeout(...)
+
+as a substitute for payment confirmation.
+
+Do not leave:
+
+nav.pop()
+
+as a substitute for creating a booking request.
+
+Do not leave locally generated ticket data as a substitute for issued tickets.
+
+Every production workflow must be backed by persistent data and server-side validation.
+
+
+---
+
+Rule 4 — Never trust the frontend
+
+The frontend is untrusted.
+
+Never trust:
+
+price
+
+total
+
+discount
+
+ticket availability
+
+user role
+
+payment status
+
+ticket ownership
+
+event ownership
+
+booking status
+
+organizer permissions
+
+admin permissions
+
+
+The server/database must be authoritative.
+
+
+---
+
+Rule 5 — Preserve the visual language
+
+The existing design system uses:
+
+dark background
+
+charcoal cards
+
+wood/premium surfaces
+
+green music surfaces
+
+gold accent
+
+ivory primary text
+
+muted secondary text
+
+Fraunces display typography
+
+Inter body typography
+
+
+These design tokens are explicitly defined in the frontend. 
+
+Do not casually replace this design system.
+
+
+---
+
+PHASE 1 — FRONTEND FORENSIC AUDIT AND ARCHITECTURE
+
+Objective
+
+Before writing substantial backend code, perform a complete forensic analysis of the existing frontend.
+
+Create a document called:
+
+EVENTVERSE_FRONTEND_SPECIFICATION.md
+
+It must contain every frontend screen and interaction.
+
+
+---
+
+1.1 Build the screen inventory
+
+At minimum, document:
+
+Onboarding
+Login
+Signup
+Verify
+Home
+Explore
+Search
+Event Detail
+Ticket Selection
+Checkout
+Payment
+Processing
+Payment Success
+Digital Ticket
+My Tickets
+Profile
+Artist Profile
+Artist Booking
+Music Home
+Full Music Player
+
+These screens are explicitly represented in the application router. 
+
+
+---
+
+1.2 Build the button inventory
+
+For every button, record:
+
+Screen	Button	Current behavior	Required backend behavior
+
+Login	Login	Local navigation	Authenticate
+Login	Forgot Password	UI only	Password recovery
+Login	Google	UI only	OAuth
+Login	Apple	UI only	OAuth
+Login	Facebook	UI only	OAuth
+Signup	Sign Up	Navigate	Create account
+Verify	Verify & Continue	Navigate	Verify identity
+Event	Favorite	UI	Persist favorite
+Event	Share	UI	Generate/share deep link
+Event	Get Tickets	Navigate	Start reservation
+Ticket	+	Local state	Validate inventory
+Checkout	Continue	Navigate	Create/confirm order
+Payment	Pay	UI	Initialize payment
+Artist	Follow	UI	Persist follow
+Artist	Book Artist	Navigate	Create booking request
+Music	Play	Local state	Music playback/session
+Music	Add Playlist	UI	Persist playlist relationship
+
+
+Do this for every button in the repository, not only the obvious major buttons.
+
+
+---
+
+1.3 Build the input inventory
+
+Document:
+
+email
+
+phone
+
+password
+
+confirmation password
+
+verification code
+
+event name
+
+event type
+
+booking date
+
+audience size
+
+budget
+
+booking message
+
+payment information
+
+search
+
+ticket quantities
+
+
+The signup and verification flows explicitly contain these fields.  
+
+For each input define:
+
+required?
+format?
+minimum?
+maximum?
+server validation?
+client validation?
+error message?
+sanitization?
+
+
+---
+
+PHASE 1.4 — RESPONSIVE FRONTEND RECONSTRUCTION
+
+The current app is explicitly constrained to:
+
+width: 390px
+height: 780px
+
+inside a phone frame. 
+
+This must be removed for production.
+
+Implement three responsive targets.
+
+Mobile
+
+Approximately:
+
+320–767px
+
+Requirements:
+
+bottom navigation
+
+horizontal content carousels
+
+mobile ticket purchase
+
+mobile checkout
+
+mobile payment
+
+sticky purchase CTA where appropriate
+
+touch-friendly controls
+
+safe-area handling
+
+scrollable content
+
+no horizontal overflow
+
+
+Tablet
+
+Approximately:
+
+768–1199px
+
+Requirements:
+
+larger cards
+
+two-column layouts where appropriate
+
+expanded navigation
+
+adaptive grids
+
+better use of available space
+
+
+Desktop
+
+Approximately:
+
+1200px+
+
+Requirements:
+
+desktop navigation
+
+sidebar/top navigation where appropriate
+
+event grids
+
+multi-column event details
+
+desktop checkout
+
+organizer dashboard
+
+admin dashboard
+
+analytics
+
+data tables
+
+management interfaces
+
+
+Do not simply stretch the 390px UI.
+
+Create actual responsive layouts while preserving the existing design language.
+
+
+---
+
+PHASE 2 — AUTHENTICATION, USERS AND RBAC
+
+Objective
+
+Replace the prototype authentication system with real authentication.
+
+The frontend currently supports:
+
+Email/Phone
+Password
+Google
+Apple
+Facebook
+Signup
+Email verification
+Forgot password
+
+The login screen explicitly contains those pathways. 
+
+
+---
+
+2.1 User lifecycle
+
+Implement:
+
+Anonymous
+ ↓
+Signup
+ ↓
+Account created
+ ↓
+Verification pending
+ ↓
+Email/phone verified
+ ↓
+Active account
+ ↓
+Authenticated session
+
+
+---
+
+2.2 User roles
+
+Implement RBAC with at least:
+
+ATTENDEE
+ARTIST
+ORGANIZER
+VENUE_MANAGER
+EVENT_STAFF
+ADMIN
+SUPER_ADMIN
+
+Important:
+
+The current frontend does not contain complete screens for all these roles.
+
+Therefore, Manus must create the missing management interfaces required for a complete production system.
+
+
+---
+
+2.3 Permissions
+
+Do not simply check:
+
+role === "admin"
+
+everywhere.
+
+Create explicit permission concepts such as:
+
+events.create
+events.update
+events.publish
+events.delete
+
+tickets.create
+tickets.manage
+tickets.scan
+
+orders.view
+orders.refund
+
+artists.manage
+artists.verify
+
+venues.manage
+
+users.manage
+
+payments.view
+payments.refund
+
+reports.view
+
+
+---
+
+PHASE 3 — DATABASE AND CORE DOMAIN
+
+Build the persistent data model around actual workflows.
+
+At minimum, design these domains.
+
+
+---
+
+Users
+
+users
+user_profiles
+roles
+permissions
+user_roles
+sessions
+verification_tokens
+password_reset_tokens
+
+
+---
+
+Artists
+
+artists
+artist_profiles
+artist_verifications
+artist_followers
+artist_social_links
+artist_availability
+
+
+---
+
+Organizers
+
+organizers
+organizer_profiles
+organizer_verifications
+organizer_members
+
+
+---
+
+Venues
+
+venues
+venue_profiles
+venue_spaces
+venue_capacity
+venue_availability
+venue_media
+
+
+---
+
+Events
+
+events
+event_categories
+categories
+event_artists
+event_media
+event_schedules
+event_status_history
+
+
+---
+
+Tickets
+
+ticket_types
+ticket_inventory
+ticket_reservations
+tickets
+ticket_scans
+check_ins
+
+
+---
+
+Orders
+
+carts
+cart_items
+orders
+order_items
+discounts
+order_discounts
+refunds
+
+
+---
+
+Payments
+
+payments
+payment_attempts
+transactions
+payment_webhooks
+settlements
+payouts
+
+
+---
+
+Music
+
+songs
+albums
+audio_assets
+playlists
+playlist_items
+user_music_library
+favorites
+play_history
+
+
+---
+
+Bookings
+
+artist_booking_requests
+booking_messages
+booking_status_history
+booking_contracts
+
+
+---
+
+Social
+
+event_favorites
+artist_followers
+reviews
+ratings
+notifications
+
+
+---
+
+Platform
+
+reports
+disputes
+audit_logs
+system_settings
+
+
+---
+
+PHASE 4 — EVENT DISCOVERY AND MARKETPLACE
+
+Connect the frontend's Home, Explore and Search screens to real data.
+
+The current Home/Explore experience is built around events, categories, artists and discovery. 
+
+Implement:
+
+Event listing
+
+Filters:
+
+category
+city
+location
+date
+price
+artist
+venue
+availability
+
+Sorting
+
+recommended
+trending
+nearest
+date
+price
+rating
+
+Search
+
+Search across:
+
+events
+artists
+songs
+albums
+venues
+
+The current Search UI explicitly has these categories. 
+
+Implement:
+
+search query
+filters
+pagination
+empty state
+loading state
+error state
+
+
+---
+
+PHASE 5 — EVENT MANAGEMENT
+
+Organizer workflow
+
+Build the complete workflow:
+
+Organizer
+ ↓
+Create Event
+ ↓
+Save Draft
+ ↓
+Configure Venue
+ ↓
+Add Artists
+ ↓
+Configure Ticket Types
+ ↓
+Set Pricing
+ ↓
+Upload Media
+ ↓
+Preview
+ ↓
+Submit for Review
+ ↓
+Admin Review
+ ↓
+Approved
+ ↓
+Published
+ ↓
+Ticket Sales
+ ↓
+Event Day
+ ↓
+Event Completed
+ ↓
+Settlement
+
+Event states:
+
+DRAFT
+PENDING_REVIEW
+CHANGES_REQUESTED
+APPROVED
+PUBLISHED
+SOLD_OUT
+LIVE
+COMPLETED
+CANCELLED
+REJECTED
+
+Never allow arbitrary state changes from the client.
+
+
+---
+
+PHASE 6 — TICKETING AND CHECKOUT
+
+This is one of the highest-priority phases.
+
+The frontend already contains:
+
+Event Detail
+ ↓
+Ticket Selection
+ ↓
+Checkout
+ ↓
+Payment
+ ↓
+Processing
+ ↓
+Success
+ ↓
+Digital Ticket
+
+The ticket-selection UI supports multiple ticket classes and quantity changes. 
+
+
+---
+
+6.1 Ticket inventory
+
+Every ticket type needs:
+
+capacity
+sold
+reserved
+available
+price
+sales_start
+sales_end
+maximum_per_customer
+
+Availability should be calculated server-side.
+
+
+---
+
+6.2 Reservation
+
+When the user selects tickets:
+
+User
+ ↓
+Select ticket quantity
+ ↓
+Server validates availability
+ ↓
+Create temporary reservation
+ ↓
+Lock inventory
+ ↓
+Return reservation
+ ↓
+Checkout
+
+Reservations must expire.
+
+Example:
+
+reservation
+status = ACTIVE
+expires_at = timestamp
+
+After expiry:
+
+ACTIVE → EXPIRED
+
+and inventory becomes available again.
+
+
+---
+
+6.3 Prevent overselling
+
+Use database-level transactional logic.
+
+Never:
+
+SELECT available
+then
+UPDATE available
+
+as two unprotected operations.
+
+Use an atomic transaction/locking strategy.
+
+
+---
+
+PHASE 7 — ORDERS AND PAYMENTS
+
+The current checkout displays ticket subtotal, service fee, discount and total. 
+
+The production implementation must calculate those values server-side.
+
+
+---
+
+Order lifecycle
+
+CART
+ ↓
+RESERVED
+ ↓
+PENDING_PAYMENT
+ ↓
+PAID
+ ↓
+FULFILLED
+
+Alternative states:
+
+PAYMENT_FAILED
+CANCELLED
+EXPIRED
+REFUNDED
+PARTIALLY_REFUNDED
+
+
+---
+
+Payment lifecycle
+
+Order created
+ ↓
+Payment initialized
+ ↓
+Provider checkout
+ ↓
+Customer pays
+ ↓
+Provider webhook
+ ↓
+Server verifies transaction
+ ↓
+Payment marked successful
+ ↓
+Order marked paid
+ ↓
+Tickets issued
+
+Never issue tickets merely because the frontend returned from a payment page.
+
+The payment provider/server must confirm the transaction.
+
+
+---
+
+PHASE 8 — DIGITAL TICKETS AND EVENT ENTRY
+
+The frontend expects digital tickets containing ticket identity and QR information. 
+
+Implement:
+
+Ticket ID
+QR token
+Event
+Ticket type
+Customer
+Gate
+Seat/row if applicable
+Status
+
+Ticket states:
+
+ISSUED
+ACTIVE
+CHECKED_IN
+CANCELLED
+REFUNDED
+EXPIRED
+
+
+---
+
+QR workflow
+
+Staff scans QR
+ ↓
+Backend validates token
+ ↓
+Validate event
+ ↓
+Validate ticket
+ ↓
+Validate status
+ ↓
+Check duplicate entry
+ ↓
+Mark checked-in
+ ↓
+Return success
+
+If already scanned:
+
+DENIED — TICKET ALREADY USED
+
+Do not perform ticket validation entirely in the browser.
+
+
+---
+
+PHASE 9 — ARTIST + MUSIC + BOOKING
+
+Artist workflow
+
+The frontend already has:
+
+artist profile
+
+verified badge
+
+followers
+
+songs
+
+albums
+
+events
+
+about
+
+Follow
+
+Share
+
+Book Artist
+
+
+The artist profile explicitly contains these concepts. 
+
+Implement:
+
+Artist
+ ↓
+Artist Profile
+ ↓
+Follow
+ ↓
+Music
+ ↓
+Events
+ ↓
+Book Artist
+
+
+---
+
+Artist booking
+
+The current form asks for:
+
+Event Name
+
+Event Type
+
+Date
+
+Expected Audience
+
+Budget
+
+Message
+
+
+
+
+Production workflow:
+
+Customer
+ ↓
+Artist profile
+ ↓
+Book Artist
+ ↓
+Booking request
+ ↓
+Artist notified
+ ↓
+Artist reviews
+ ↓
+Accept / Reject / Request changes
+ ↓
+Negotiation if required
+ ↓
+Confirmed booking
+ ↓
+Agreement
+ ↓
+Payment
+ ↓
+Completed
+
+Booking states:
+
+DRAFT
+SUBMITTED
+REVIEWING
+NEGOTIATING
+ACCEPTED
+REJECTED
+CANCELLED
+CONFIRMED
+COMPLETED
+
+
+---
+
+MUSIC WORKFLOW
+
+The music frontend includes recently played songs, popular songs, artists, playback controls and a full player. 
+
+Implement:
+
+Browse music
+ ↓
+Play
+ ↓
+Playback session
+ ↓
+Record history
+ ↓
+Favorite
+ ↓
+Playlist
+ ↓
+Library
+
+The player must support:
+
+play
+pause
+seek
+next
+previous
+shuffle
+repeat
+queue
+playlist
+favorite
+
+The current frontend already visually exposes shuffle, previous, play/pause, next and repeat. 
+
+
+---
+
+PHASE 10 — ADMIN, SECURITY, TESTING AND PRODUCTION HARDENING
+
+This phase turns the system from "working" into "production-ready."
+
+
+---
+
+Admin
+
+Build:
+
+Dashboard
+Users
+Organizers
+Artists
+Venues
+Events
+Tickets
+Orders
+Payments
+Refunds
+Reports
+Reviews
+Disputes
+Moderation
+Audit logs
+System settings
+
+
+---
+
+SECTION 18 — FRONTEND GAPS: COMPLETE IMPLEMENTATION REQUIREMENTS
+
+This section is especially important.
+
+These are the prototype gaps that must not remain in production.
+
+
+---
+
+GAP 1 — Authentication is fake
+
+Current:
+
+Login button → home
+
+Production:
+
+Submit credentials
+ ↓
+Server authentication
+ ↓
+Credential validation
+ ↓
+Session/token
+ ↓
+Load user
+ ↓
+Load roles
+ ↓
+Route according to permissions
+
+Wrong password:
+
+Stay on login
+ ↓
+Display useful error
+
+Unverified user:
+
+Authenticate
+ ↓
+Detect unverified account
+ ↓
+Send to verification
+
+
+---
+
+GAP 2 — Signup doesn't create an actual account
+
+Current frontend only routes to verification.
+
+Production:
+
+Signup
+ ↓
+Validate fields
+ ↓
+Check email/phone uniqueness
+ ↓
+Hash/store credentials through auth provider
+ ↓
+Create profile
+ ↓
+Assign default ATTENDEE role
+ ↓
+Create verification challenge
+ ↓
+Send verification
+ ↓
+Verification screen
+
+Duplicate email:
+
+409 / appropriate application error
+
+Weak password:
+
+validation error
+
+Password mismatch:
+
+validation error
+
+
+---
+
+GAP 3 — Verification is simulated
+
+Current code contains a hard-coded verification code state. 
+
+Production:
+
+Generate secure OTP
+ ↓
+Store hashed challenge
+ ↓
+Set expiration
+ ↓
+Send OTP
+ ↓
+User enters OTP
+ ↓
+Verify
+ ↓
+Mark contact verified
+ ↓
+Invalidate OTP
+
+Implement:
+
+expiry
+
+retry limit
+
+resend cooldown
+
+brute-force protection
+
+audit logging
+
+
+
+---
+
+GAP 4 — Forgot Password doesn't work
+
+Production:
+
+Forgot password
+ ↓
+Enter email/phone
+ ↓
+Generate recovery challenge
+ ↓
+Send recovery link/code
+ ↓
+Verify
+ ↓
+Set new password
+ ↓
+Invalidate previous sessions where appropriate
+
+Never reveal whether a sensitive account exists through overly specific responses.
+
+
+---
+
+GAP 5 — Social login buttons are decorative
+
+Current buttons for Google, Apple and Facebook do not perform authentication. 
+
+Production:
+
+Google/Apple/Facebook
+ ↓
+OAuth provider
+ ↓
+Callback
+ ↓
+Find/create user
+ ↓
+Assign appropriate default role
+ ↓
+Create session
+ ↓
+Application
+
+
+---
+
+GAP 6 — Search is static
+
+Current Search displays hard-coded content such as Wizkid and mock songs/events. 
+
+Production:
+
+Search query
+ ↓
+Backend search
+ ↓
+Search events
+artists
+songs
+albums
+venues
+ ↓
+Rank results
+ ↓
+Return categorized response
+
+Implement debouncing on frontend.
+
+Implement pagination/infinite loading.
+
+
+---
+
+GAP 7 — Event data is static
+
+The prototype contains hard-coded events with prices, dates, venues, ratings, etc. 
+
+Production:
+
+Database
+ ↓
+Event API
+ ↓
+Frontend
+
+Every event card must come from the backend.
+
+
+---
+
+GAP 8 — Favorite button does nothing
+
+The event detail screen contains Heart and Share controls. 
+
+Implement:
+
+POST /event/:id/favorite
+DELETE /event/:id/favorite
+GET /me/favorites
+
+or the equivalent architecture.
+
+Favorite state must persist across devices.
+
+
+---
+
+GAP 9 — Share button is incomplete
+
+Implement deep links:
+
+/event/{slug}
+
+and optionally:
+
+/artist/{slug}
+
+Share should open the platform's native share mechanism where available.
+
+
+---
+
+GAP 10 — Ticket availability is fake
+
+Current availability is based on local/mock values.
+
+Production must track:
+
+capacity
+reserved
+sold
+remaining
+
+and handle concurrency.
+
+
+---
+
+GAP 11 — Checkout calculations are not authoritative
+
+The frontend currently calculates:
+
+subtotal
+service fee
+discount
+total
+
+
+
+Production:
+
+Frontend sends:
+ticket selections
+coupon code
+
+Backend calculates:
+ticket prices
+inventory
+fees
+discount
+tax if applicable
+total
+
+The frontend displays the backend response.
+
+
+---
+
+GAP 12 — Payment is simulated
+
+Current payment processing is visual.
+
+Production:
+
+Order
+ ↓
+Payment intent
+ ↓
+Provider
+ ↓
+Webhook
+ ↓
+Verification
+ ↓
+Payment success
+ ↓
+Order paid
+
+Do not trust a frontend success callback.
+
+
+---
+
+GAP 13 — Payment success does not actually issue tickets
+
+Production must enforce:
+
+payment confirmed
+AND
+order valid
+AND
+inventory reserved
+
+then:
+
+create tickets
+
+This must happen transactionally/idempotently.
+
+
+---
+
+GAP 14 — Digital ticket is not authoritative
+
+Production QR codes must contain a secure token.
+
+Do not encode sensitive personal information directly into an easily forgeable QR.
+
+Use:
+
+random ticket token
+
+or a securely signed token.
+
+
+---
+
+GAP 15 — My Tickets is hard-coded
+
+The current screen has hard-coded tickets such as "Wizkid Live In Concert" and "Afrobeats Night." 
+
+Production:
+
+GET current user's tickets
+
+Tabs:
+
+Upcoming
+Past
+Cancelled
+
+must query actual ticket status/event date.
+
+
+---
+
+GAP 16 — Profile is only a stub
+
+The code explicitly labels Profile:
+
+> "stub, phase 1"
+
+
+
+and lists:
+
+My Tickets
+Music Library
+Preferences
+Notifications
+Security
+Help & Support
+
+
+
+Implement every item.
+
+My Tickets
+
+Real ticket query.
+
+Music Library
+
+Favorites, playlists, saved music.
+
+Preferences
+
+language
+location
+notification preferences
+theme preferences
+content preferences
+
+Notifications
+
+ticket purchase
+payment
+event reminder
+event changes
+booking updates
+promotions
+
+Security
+
+password
+sessions
+2FA if supported
+login history
+account deletion
+
+Help & Support
+
+FAQs
+support tickets
+contact support
+
+
+---
+
+GAP 17 — Artist Follow is fake
+
+Current artist profile displays a Follow button. 
+
+Production:
+
+follow
+unfollow
+followers count
+following list
+notifications
+
+If an artist publishes a new event/song, followers may receive notifications according to notification preferences.
+
+
+---
+
+GAP 18 — Artist booking doesn't persist
+
+The current booking form ends with:
+
+Send Booking Request
+
+but the prototype simply navigates back. 
+
+Production:
+
+POST booking request
+ ↓
+Create booking
+ ↓
+Notify artist
+ ↓
+Notify requester
+ ↓
+Show booking status
+
+
+---
+
+GAP 19 — Music is mock data
+
+Current songs/artists are hard-coded.
+
+Production:
+
+Artist
+ ↓
+Album
+ ↓
+Song
+ ↓
+Audio asset
+
+Playback history should be persisted.
+
+
+---
+
+GAP 20 — Music player state is local only
+
+Current player state is stored with React state:
+song
+playing
+�
+EventVerse.jsx
+Production should separate:
+UI playback state
+playing
+currentTime
+volume
+queue
+from:
+persistent user state
+favorites
+playlists
+history
+recently played
+GAP 21 — No real error states
+Every API-driven screen must support:
+loading
+success
+empty
+error
+retry
+unauthorized
+forbidden
+not found
+conflict
+offline/retry where appropriate
+Never leave a blank screen.
+GAP 22 — No authorization model
+A user must never be able to modify another user's:
+tickets
+orders
+profile
+bookings
+playlists
+payments
+Similarly:
+An organizer must not be able to edit another organizer's event.
+An artist must not manage another artist's profile.
+An event staff member must only scan/check in tickets for assigned events.
+An admin should have privileged moderation access.
+GAP 23 — No audit trail
+For important operations, record:
+who
+what
+when
+resource
+old value
+new value
+IP/device where appropriate
+Examples:
+event approved
+event cancelled
+ticket refunded
+payment refunded
+user suspended
+role changed
+artist verified
+venue approved
+GAP 24 — No notification system
+Build a centralized notification system.
+Events:
+ACCOUNT_CREATED
+EMAIL_VERIFIED
+ORDER_CREATED
+PAYMENT_SUCCESS
+PAYMENT_FAILED
+TICKET_ISSUED
+EVENT_UPDATED
+EVENT_CANCELLED
+EVENT_REMINDER
+BOOKING_RECEIVED
+BOOKING_ACCEPTED
+BOOKING_REJECTED
+REFUND_COMPLETED
+Channels:
+in-app
+email
+push
+depending on user preferences.
+GAP 25 — No cancellation/refund workflow
+Production must handle:
+User requests cancellation
+ ↓
+Check event/refund policy
+ ↓
+Determine eligibility
+ ↓
+Create refund
+ ↓
+Payment provider
+ ↓
+Refund confirmed
+ ↓
+Ticket cancelled
+ ↓
+Inventory restored if policy allows
+ ↓
+Notify user
+Organizer/admin cancellations must trigger appropriate customer notifications.
+GAP 26 — No event lifecycle
+Events must not simply be "published or not."
+Implement the full lifecycle described earlier.
+Prevent:
+completed → published
+cancelled → live
+unless an authorized administrative recovery workflow explicitly allows it.
+GAP 27 — No event capacity enforcement
+The venue and event must work together.
+Example:
+Venue capacity = 5,000
+
+Ticket allocations:
+VIP = 500
+Regular = 4,000
+VVIP = 500
+
+Total = 5,000
+The system must not permit allocation above venue/event capacity unless explicitly configured and authorized.
+GAP 28 — ******(null)
+GAP 29 — No accessibility contract
+Implement:
+keyboard navigation
+focus states
+semantic buttons
+accessible form labels
+screen-reader labels
+sufficient contrast
+reduced motion support
+appropriate touch targets
+accessible modals
+accessible error messages
+Do not rely solely on icons.
+GAP 30 — No production observability
+Implement:
+structured logs
+error tracking
+performance monitoring
+API metrics
+payment monitoring
+failed job monitoring
+audit logs
+Never log:
+passwords
+full payment credentials
+secret tokens
+private keys
+FINAL PRODUCTION WORKFLOW
+The finished EventVerse platform should work like this:
+                         EVENTVERSE
+                             │
+             ┌───────────────┼────────────────┐
+             │               │                │
+          ATTENDEE         ARTIST          ORGANIZER
+             │               │                │
+             │               │                │
+        Discover          Profile         Dashboard
+             │               │                │
+          Search           Music          Create Event
+             │               │                │
+         Event Detail    Follow/Book      Configure
+             │               │                │
+       Ticket Selection     Booking        Submit
+             │                              │
+          Checkout                       Approval
+             │                              │
+          Payment                       Published
+             │                              │
+          Success                       Ticket Sales
+             │                              │
+       Digital Ticket                   Event Day
+             │                              │
+          Check-in ◄──────── EVENT STAFF ───┘
+             │
+          History
+             │
+          Profile
+             │
+       Music Library
+And above all of them:
+                         ADMIN
+                           │
+       ┌───────────────────┼────────────────────┐
+       │                   │                    │
+     Users               Events              Payments
+       │                   │                    │
+     Artists             Venues              Refunds
+       │                   │                    │
+   Organizers          Moderation            Reports
+       │                   │                    │
+    Security           Approvals             Audit
+REQUIRED MANUS DEVELOPMENT LOOP
+For every phase, Manus must follow:
+1. Inspect existing implementation
+2. Document current behavior
+3. Identify missing behavior
+4. Design data model
+5. Design permissions
+6. Design API/service
+7. Implement backend
+8. Implement frontend integration
+9. Add loading/error/empty states
+10. Add validation
+11. Add security rules
+12. Add automated tests
+13. Run migrations
+14. Seed development data
+15. Test complete workflow
+16. Test unauthorized workflow
+17. Test failure workflow
+18. Test responsive UI
+19. Fix issues
+20. Only then mark phase complete
+DEFINITION OF DONE
+Do not consider EventVerse complete because:
+the page loads,
+buttons visually work,
+APIs return 200,
+database tables exist,
+or a happy-path demo works.
+A feature is complete only when:
+Frontend
++
+Backend
++
+Database
++
+Validation
++
+Authorization
++
+Error handling
++
+Loading states
++
+Persistence
++
+Auditability
++
+Automated tests
++
+Responsive behavior
++
+Security
+all work together.
+CRITICAL IMPLEMENTATION PRINCIPLE FOR MANUS
+Do not build Phase 1–10 as ten disconnected projects.
+Each phase must extend the same production architecture.
+For example:
+Phase 1
+User
+ ↓
+Phase 2
+User + Role
+ ↓
+Phase 3
+User + Role + Event
+ ↓
+Phase 4
+User + Role + Event + Discovery
+ ↓
+Phase 5
+User + Event + Ticket Inventory
+ ↓
+Phase 6
+Order + Payment
+ ↓
+Phase 7
+Ticket + Check-in
+ ↓
+Phase 8
+Artist + Booking + Music
+ ↓
+Phase 9
+Organizer + Admin
+ ↓
+Phase 10
+Production hardening
+The end result must be one coherent EventVerse platform, not a collection of demos.
+FINAL INSTRUCTION TO MANUS
+Start by thoroughly inspecting the entire repository and the supplied EventVerse frontend. Do not begin by blindly creating database tables. First produce the frontend specification, screen/action matrix, role matrix, data-flow map, API contract, database model and implementation plan. Then implement Phase 1 through Phase 10 sequentially.
+Every frontend action must be traced to a real backend operation. Every backend operation must have validation, authorization, persistence and error handling. Every transaction involving money, inventory, tickets or permissions must be server-authoritative and idempotent where necessary.
+Replace all mock data and simulated workflows. Do not leave fake authentication, fake payments, fake tickets, fake inventory, fake bookings or fake user data in production.
+Preserve the existing EventVerse visual identity while converting the fixed 390×780 prototype into a genuinely responsive mobile/tablet/desktop application.
+Where the existing frontend does not provide screens for Organizer, Admin, Venue Manager or Event Staff, create the necessary production interfaces based on the workflows specified in this directive. Clearly distinguish those newly created interfaces from functionality that was explicitly present in the original frontend.
+Do not declare a phase complete until its frontend, backend, database, security, permissions, error states, tests and responsive behavior have been verified end-to-end.
+The ultimate objective is not to make the prototype look functional. The objective is to turn EventVerse into a complete production system in which the frontend is a real client of a secure, persistent, role-aware backend.
+

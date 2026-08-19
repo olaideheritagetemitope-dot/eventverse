@@ -36,6 +36,18 @@
 - [x] Verify login page navigation and post-login flow
 - [x] Redeploy and verify the login regression fix
 
-- [ ] Resolve Vercel production deployment block
-- [ ] Promote the corrected build to the canonical EventVerse URL
-- [ ] Verify the canonical URL reaches the login page after onboarding
+- [x] Resolve Vercel production deployment block
+- [x] Promote the corrected build to the canonical EventVerse URL
+- [x] Verify the canonical URL reaches the login page after onboarding
+
+- [x] Create and maintain frontend specification from the attached directive
+- [x] Replace mock discovery, artist, and music data with persistent backend data
+- [x] Implement server-backed authentication, verification, recovery, and OAuth pathways
+- [ ] Implement role and permission foundations for all required roles
+- [ ] Implement persistent event discovery, search, favorites, sharing, and artist flows
+- [ ] Implement organizer event lifecycle and management interfaces
+- [ ] Implement server-authoritative ticket inventory, reservations, orders, and checkout
+- [ ] Implement verified payment lifecycle, ticket issuance, digital tickets, and check-in
+- [ ] Implement artist booking, music library, playlists, playback history, and player persistence
+- [ ] Implement admin, venue manager, and event staff interfaces
+- [x] Add validation, loading/error/empty states, auditability, automated tests, and responsive verification

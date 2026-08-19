@@ -5,6 +5,7 @@ import {
   Clock, Minus, Plus, Check, ShieldCheck, Home, Compass, Music2,
   Ticket, User, X, QrCode, Shuffle, Repeat, ListMusic, ChevronDown,
 } from "lucide-react";
+import { supabase } from "./lib/supabase";
 
 /* ============================== DESIGN TOKENS ==============================
    Black (bg)        #0B0A08  — dominant surface
@@ -64,7 +65,13 @@ const SONGS = [
 
 const CATEGORIES = ["All", "Concerts", "Parties", "Sports", "Comedy", "Festivals"];
 
-const money = (n) => `\u20A6${n.toLocaleString()}`;
+const money = (n) => `\u20A6${Number(n || 0).toLocaleString()}`;
+const formatFollowers = (n) => {
+  const value = Number(n || 0);
+  if (value >= 1000000) return `${(value / 1000000).toFixed(1).replace(/\\.0$/, "")}M`;
+  if (value >= 1000) return `${(value / 1000).toFixed(1).replace(/\\.0$/, "")}K`;
+  return String(value);
+};
 
 /* ============================== SHARED UI ============================== */
 function Phone({ children }) {
@@ -225,7 +232,11 @@ const SLIDES = [
 function Onboarding({ nav }) {
   const [i, setI] = useState(0);
   const s = SLIDES[i];
-  const next = () => (i < 3 ? setI(i + 1) : nav.push("login"));
+  const next = () => {
+    if (i < 3) return setI(i + 1);
+    window.localStorage.setItem("eventverse:onboarding-complete", "1");
+    nav.push("login");
+  };
   return (
     <Phone>
       <div className="flex-1 flex flex-col justify-end relative" style={{ background: s.bg }}>
@@ -257,25 +268,60 @@ function Onboarding({ nav }) {
 }
 
 /* ============================== AUTH ============================== */
+function AuthMessage({ message, error }) {
+  if (!message && !error) return null;
+  return <p className="text-[12px] mt-3" style={{ color: error ? "#E98979" : C.goldSoft }}>{message || error}</p>;
+}
+
 function Login({ nav }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  const login = async () => {
+    setBusy(true); setError(""); setMessage("");
+    const { error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    setBusy(false);
+    if (authError) return setError(authError.message);
+    nav.replace("home");
+  };
+
+  const recover = async () => {
+    if (!email.trim()) return setError("Enter your email first.");
+    setBusy(true); setError("");
+    const { error: authError } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin });
+    setBusy(false);
+    if (authError) return setError(authError.message);
+    setMessage("Password recovery instructions sent.");
+  };
+
+  const oauth = async (provider) => {
+    setError("");
+    const { error: authError } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: window.location.origin } });
+    if (authError) setError(authError.message);
+  };
+
   return (
     <Phone>
       <div className="flex-1 px-6 pt-8 overflow-y-auto">
         <span className="ev-display tracking-[0.15em] text-[13px]" style={{ color: C.goldSoft }}>EVENTVERSE</span>
         <h1 className="ev-display text-[26px] mt-6 mb-1" style={{ color: C.ivory }}>Welcome Back</h1>
         <p className="text-[13px] mb-8" style={{ color: C.muted }}>Login to your account</p>
-        <Field label="Email or Phone" placeholder="renile@example.com" />
-        <Field label="Password" type="password" placeholder="••••••••" />
-        <button className="text-[12.5px] font-medium mb-6" style={{ color: C.gold }}>Forgot Password?</button>
-        <GoldButton onClick={() => nav.replace("home")}>Login</GoldButton>
+        <Field label="Email" type="email" placeholder="renile@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <Field label="Password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <button onClick={recover} disabled={busy} className="text-[12.5px] font-medium mb-6" style={{ color: C.gold }}>Forgot Password?</button>
+        <GoldButton disabled={busy || !email || !password} onClick={login}>{busy ? "Signing in..." : "Login"}</GoldButton>
+        <AuthMessage message={message} error={error} />
         <div className="flex items-center gap-3 my-6">
           <div className="flex-1 h-px" style={{ background: C.line }} />
           <span className="text-[11px]" style={{ color: C.muted }}>or continue with</span>
           <div className="flex-1 h-px" style={{ background: C.line }} />
         </div>
         <div className="flex gap-3 mb-6">
-          {["Google", "Apple", "Facebook"].map((p) => (
-            <button key={p} className="flex-1 py-3 rounded-xl text-[12px] font-medium" style={{ background: C.card, color: C.ivory, border: `1px solid ${C.line}` }}>{p}</button>
+          {[['Google','google'], ['Apple','apple'], ['Facebook','facebook']].map(([label, provider]) => (
+            <button key={provider} onClick={() => oauth(provider)} className="flex-1 py-3 rounded-xl text-[12px] font-medium" style={{ background: C.card, color: C.ivory, border: `1px solid ${C.line}` }}>{label}</button>
           ))}
         </div>
         <p className="text-center text-[13px]" style={{ color: C.muted }}>
@@ -288,17 +334,32 @@ function Login({ nav }) {
 }
 
 function Signup({ nav }) {
+  const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "" });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const update = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+  const signup = async () => {
+    setError("");
+    if (form.password.length < 8) return setError("Password must be at least 8 characters.");
+    if (form.password !== form.confirm) return setError("Passwords do not match.");
+    setBusy(true);
+    const { data, error: authError } = await supabase.auth.signUp({ email: form.email.trim(), password: form.password, options: { data: { full_name: form.name.trim() } } });
+    setBusy(false);
+    if (authError) return setError(authError.message);
+    nav.push("verify", { email: form.email.trim(), userId: data.user?.id });
+  };
   return (
     <Phone>
       <TopBack onBack={nav.pop} />
       <div className="flex-1 px-6 overflow-y-auto">
         <h1 className="ev-display text-[26px] mb-1" style={{ color: C.ivory }}>Create Account</h1>
         <p className="text-[13px] mb-7" style={{ color: C.muted }}>Sign up to get started</p>
-        <Field label="Full Name" placeholder="Renile Heritage" />
-        <Field label="Email or Phone" placeholder="renile@example.com" />
-        <Field label="Password" type="password" placeholder="••••••••" />
-        <Field label="Confirm Password" type="password" placeholder="••••••••" />
-        <GoldButton onClick={() => nav.push("verify")}>Sign Up</GoldButton>
+        <Field label="Full Name" placeholder="Renile Heritage" value={form.name} onChange={update("name")} />
+        <Field label="Email" type="email" placeholder="renile@example.com" value={form.email} onChange={update("email")} />
+        <Field label="Password" type="password" placeholder="At least 8 characters" value={form.password} onChange={update("password")} />
+        <Field label="Confirm Password" type="password" placeholder="Repeat your password" value={form.confirm} onChange={update("confirm")} />
+        <GoldButton disabled={busy || !form.name || !form.email || !form.password || !form.confirm} onClick={signup}>{busy ? "Creating account..." : "Sign Up"}</GoldButton>
+        <AuthMessage error={error} />
         <p className="text-center text-[13px] mt-6 pb-6" style={{ color: C.muted }}>
           Already have an account?{" "}
           <button onClick={() => nav.pop()} className="font-semibold" style={{ color: C.gold }}>Login</button>
@@ -308,29 +369,42 @@ function Signup({ nav }) {
   );
 }
 
-function Verify({ nav }) {
-  const [code, setCode] = useState(["2", "4", "8", "7", "", ""]);
+function Verify({ nav, data }) {
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const email = data?.email || "your email address";
+  const verify = async () => {
+    setBusy(true); setError("");
+    const { error: authError } = await supabase.auth.verifyOtp({ email, token: code.trim(), type: "signup" });
+    setBusy(false);
+    if (authError) return setError(authError.message);
+    nav.replace("home");
+  };
+  const resend = async () => {
+    const { error: authError } = await supabase.auth.resend({ type: "signup", email });
+    if (authError) setError(authError.message);
+  };
   return (
     <Phone>
       <TopBack onBack={nav.pop} />
       <div className="flex-1 px-6 pt-4">
         <h1 className="ev-display text-[24px] mb-1" style={{ color: C.ivory }}>Verify Email</h1>
-        <p className="text-[13px] mb-8" style={{ color: C.muted }}>We sent a 6-digit code to<br />renile@example.com</p>
-        <div className="flex gap-2 mb-6">
-          {code.map((c, idx) => (
-            <div key={idx} className="flex-1 aspect-square rounded-xl flex items-center justify-center text-[18px] font-semibold" style={{ background: C.card, color: C.ivory, border: `1.5px solid ${c ? C.gold : C.line}` }}>{c}</div>
-          ))}
-        </div>
-        <p className="text-[12.5px] mb-8" style={{ color: C.muted }}>Resend code (00:45) · <span style={{ color: C.gold }}>Resend</span></p>
-        <GoldButton onClick={() => nav.replace("home")}>Verify & Continue</GoldButton>
+        <p className="text-[13px] mb-8" style={{ color: C.muted }}>We sent a 6-digit code to<br />{email}</p>
+        <Field label="Verification code" placeholder="123456" value={code} onChange={(e) => setCode(e.target.value.replace(/\\D/g, "").slice(0, 6))} />
+        <button onClick={resend} className="text-[12.5px] mb-8" style={{ color: C.gold }}>Resend code</button>
+        <GoldButton disabled={busy || code.length !== 6} onClick={verify}>{busy ? "Verifying..." : "Verify & Continue"}</GoldButton>
+        <AuthMessage error={error} />
       </div>
     </Phone>
   );
 }
 
 /* ============================== HOME ============================== */
-function AttendeeHome({ nav, player }) {
+function AttendeeHome({ nav, player, catalog }) {
   const [cat, setCat] = useState("All");
+  const events = catalog?.events?.length ? catalog.events : EVENTS;
+  const artists = catalog?.artists?.length ? catalog.artists : ARTISTS;
   return (
     <Phone>
       <div className="flex items-center justify-between px-5 pt-1 pb-3">
@@ -367,7 +441,7 @@ function AttendeeHome({ nav, player }) {
             <button onClick={() => nav.push("explore")} className="text-[12px]" style={{ color: C.gold }}>See all</button>
           </div>
           <div className="flex gap-3 px-5 overflow-x-auto no-scrollbar">
-            {EVENTS.slice(1, 5).map((ev) => <EventCard key={ev.id} ev={ev} onClick={() => nav.push("eventDetail", ev)} />)}
+            {events.slice(1, 5).map((ev) => <EventCard key={ev.id} ev={ev} onClick={() => nav.push("eventDetail", ev)} />)}
           </div>
         </div>
 
@@ -377,7 +451,7 @@ function AttendeeHome({ nav, player }) {
             <button className="text-[12px]" style={{ color: C.gold }}>See all</button>
           </div>
           <div className="flex gap-4 px-5 overflow-x-auto no-scrollbar">
-            {ARTISTS.map((a) => (
+            {artists.map((a) => (
               <button key={a.id} onClick={() => nav.push("artist", a)} className="flex-shrink-0 flex flex-col items-center gap-1.5 w-16">
                 <div className="w-16 h-16 rounded-full relative" style={{ background: a.img }}>
                   {a.verified && <span className="absolute bottom-0 right-0 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: C.gold }}><Check size={9} color="#1A1408" strokeWidth={3} /></span>}
@@ -396,8 +470,9 @@ function AttendeeHome({ nav, player }) {
 }
 
 /* ============================== EXPLORE ============================== */
-function Explore({ nav, player }) {
+function Explore({ nav, player, catalog }) {
   const [cat, setCat] = useState("All");
+  const events = catalog?.events?.length ? catalog.events : EVENTS;
   return (
     <Phone>
       <div className="px-5 pt-1 pb-3">
@@ -413,10 +488,10 @@ function Explore({ nav, player }) {
 
       <div className="flex-1 overflow-y-auto">
         <Section title="Trending Events" nav={nav}>
-          {EVENTS.slice(0, 3).map((ev) => <EventCard key={ev.id} ev={ev} onClick={() => nav.push("eventDetail", ev)} />)}
+          {events.slice(0, 3).map((ev) => <EventCard key={ev.id} ev={ev} onClick={() => nav.push("eventDetail", ev)} />)}
         </Section>
         <Section title="Events Near You" nav={nav}>
-          {EVENTS.filter((e) => e.tag === "Near You").concat(EVENTS[3]).map((ev) => <EventCard key={ev.id} ev={ev} onClick={() => nav.push("eventDetail", ev)} />)}
+          {events.filter((e) => e.tag === "Near You").concat(events[3] ? [events[3]] : []).map((ev) => <EventCard key={ev.id} ev={ev} onClick={() => nav.push("eventDetail", ev)} />)}
         </Section>
         <Section title="Popular Venues" nav={nav} last>
           {["ABC Event Centre, Ado-Ekiti", "Eko Convention Centre, Lagos", "Freedom Park, Lagos"].map((v, idx) => (
@@ -449,8 +524,10 @@ function Section({ title, children, last }) {
 }
 
 /* ============================== SEARCH ============================== */
-function SearchScreen({ nav }) {
+function SearchScreen({ nav, catalog }) {
   const [tab, setTab] = useState("All");
+  const artists = catalog?.artists?.length ? catalog.artists : ARTISTS;
+  const songs = catalog?.songs?.length ? catalog.songs : SONGS;
   return (
     <Phone>
       <div className="flex items-center gap-3 px-5 pt-1 pb-3">
@@ -474,7 +551,7 @@ function SearchScreen({ nav }) {
         </button>
 
         <p className="text-[12px] font-semibold mt-4 mb-2" style={{ color: C.muted }}>SONGS</p>
-        {SONGS.slice(0, 2).map((s) => (
+        {songs.slice(0, 2).map((s) => (
           <div key={s.id} className="flex items-center gap-3 py-2.5">
             <div className="w-11 h-11 rounded-lg" style={{ background: `linear-gradient(135deg, ${C.wood}, ${C.green})` }} />
             <div className="flex-1">
@@ -840,6 +917,13 @@ function MyTickets({ nav, player }) {
 /* ============================== PROFILE (stub, phase 1) ============================== */
 function Profile({ nav, player }) {
   const items = ["My Tickets", "Music Library", "Preferences", "Notifications", "Security", "Help & Support"];
+  const [busy, setBusy] = useState(false);
+  const signOut = async () => {
+    setBusy(true);
+    await supabase.auth.signOut();
+    setBusy(false);
+    nav.reset("login");
+  };
   return (
     <Phone>
       <div className="px-5 pt-2 pb-4 flex flex-col items-center">
@@ -854,6 +938,9 @@ function Profile({ nav, player }) {
             <ChevronRight size={15} color={C.muted} />
           </button>
         ))}
+      </div>
+      <div className="px-5 pb-3">
+        <button onClick={signOut} disabled={busy} className="w-full py-3 rounded-2xl text-[13px] font-semibold" style={{ background: C.card, color: busy ? C.muted : "#E98979", border: `1px solid ${C.line}` }}>{busy ? "Signing out..." : "Log out"}</button>
       </div>
       <MiniPlayer song={player.song} playing={player.playing} onToggle={player.toggle} onOpen={() => nav.push("musicPlayer")} />
       <BottomNav current="profile" go={nav.tab} />
@@ -908,7 +995,9 @@ function ArtistProfile({ nav, data }) {
 }
 
 /* ============================== MUSIC HOME ============================== */
-function MusicHome({ nav, player }) {
+function MusicHome({ nav, player, catalog }) {
+  const songs = catalog?.songs?.length ? catalog.songs : SONGS;
+  const artists = catalog?.artists?.length ? catalog.artists : ARTISTS;
   return (
     <Phone>
       <div className="px-5 pt-1 pb-3">
@@ -916,7 +1005,7 @@ function MusicHome({ nav, player }) {
       </div>
       <div className="flex-1 overflow-y-auto">
         <Section title="Recently Played">
-          {SONGS.slice(0, 3).map((s) => (
+          {songs.slice(0, 3).map((s) => (
             <button key={s.id} onClick={() => player.play(s)} className="flex-shrink-0 w-28 text-left">
               <div className="w-28 h-28 rounded-xl mb-2" style={{ background: `linear-gradient(135deg, ${C.wood}, ${C.green})` }} />
               <p className="text-[12px] font-semibold truncate" style={{ color: C.ivory }}>{s.title}</p>
@@ -929,7 +1018,7 @@ function MusicHome({ nav, player }) {
             <span className="text-[14px] font-semibold" style={{ color: C.ivory }}>Popular Songs</span>
           </div>
           <div className="px-5">
-            {SONGS.map((s) => (
+            {songs.map((s) => (
               <button key={s.id} onClick={() => player.play(s)} className="w-full flex items-center gap-3 py-2">
                 <div className="w-10 h-10 rounded-lg flex-shrink-0" style={{ background: `linear-gradient(135deg, ${C.wood}, ${C.green})` }} />
                 <div className="flex-1 text-left">
@@ -942,7 +1031,7 @@ function MusicHome({ nav, player }) {
           </div>
         </div>
         <Section title="Popular Artists" last>
-          {ARTISTS.map((a) => (
+          {artists.map((a) => (
             <button key={a.id} onClick={() => nav.push("artist", a)} className="flex-shrink-0 flex flex-col items-center gap-1.5 w-16">
               <div className="w-16 h-16 rounded-full" style={{ background: a.img }} />
               <span className="text-[11px] truncate w-full text-center" style={{ color: C.ivory }}>{a.name}</span>
@@ -1035,10 +1124,51 @@ function Booking({ nav, data }) {
 
 /* ============================== APP SHELL / ROUTER ============================== */
 export default function EventVerseApp() {
-  const [stack, setStack] = useState([{ screen: "onboarding", data: null }]);
+  const [stack, setStack] = useState(() => {
+    const completed = typeof window !== "undefined" && window.localStorage.getItem("eventverse:onboarding-complete") === "1";
+    return [{ screen: completed ? "login" : "onboarding", data: null }];
+  });
   const [cart, setCart] = useState({});
   const [song, setSong] = useState(null);
   const [playing, setPlaying] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
+  const [catalog, setCatalog] = useState({ events: EVENTS, artists: ARTISTS, songs: SONGS });
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      const [eventResult, artistResult, songResult] = await Promise.all([
+        supabase.from("events").select("*, venues(name), ticket_types(price)").in("status", ["PUBLISHED", "SOLD_OUT", "LIVE", "COMPLETED"]).order("starts_at"),
+        supabase.from("artists").select("*").order("follower_count", { ascending: false }),
+        supabase.from("songs").select("*, artists(name)").order("play_count", { ascending: false }),
+      ]);
+      if (!mounted) return;
+      const events = (eventResult.data || []).map((e, index) => ({
+        id: e.id, title: e.title, venue: e.venues?.name || e.city, city: e.city,
+        date: new Date(e.starts_at).toLocaleDateString("en-NG", { day: "numeric", month: "short" }),
+        time: new Date(e.starts_at).toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit" }),
+        price: Number(e.ticket_types?.[0]?.price || 0), rating: Number(e.rating || 0), reviews: e.review_count || 0,
+        img: e.cover_url || `linear-gradient(160deg, ${C.wood}, ${C.green})`, tag: index === 0 ? "Featured" : index === 1 ? "Trending" : "Near You",
+      }));
+      const artists = (artistResult.data || []).map((a) => ({ id: a.id, name: a.name, followers: formatFollowers(a.follower_count), verified: a.verified, img: a.image_url || `linear-gradient(160deg, ${C.wood}, ${C.green})` }));
+      const songs = (songResult.data || []).map((s) => ({ id: s.id, title: s.title, artist: s.artists?.name || "EventVerse Artist", duration: `${Math.floor(s.duration_seconds / 60)}:${String(s.duration_seconds % 60).padStart(2, "0")}`, plays: formatFollowers(s.play_count) }));
+      if (events.length || artists.length || songs.length) setCatalog({ events: events.length ? events : EVENTS, artists: artists.length ? artists : ARTISTS, songs: songs.length ? songs : SONGS });
+    };
+    const restore = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (mounted && data.session) setStack([{ screen: "home", data: null }]);
+      if (mounted) setAuthReady(true);
+    };
+    load(); restore();
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted || !session) return;
+      setStack((currentStack) => {
+        const active = currentStack[currentStack.length - 1]?.screen;
+        return ["onboarding", "login", "signup", "verify"].includes(active) ? [{ screen: "home", data: null }] : currentStack;
+      });
+    });
+    return () => { mounted = false; listener.subscription.unsubscribe(); };
+  }, []);
 
   const current = stack[stack.length - 1];
 
@@ -1061,10 +1191,10 @@ export default function EventVerseApp() {
     onboarding: <Onboarding nav={nav} />,
     login: <Login nav={nav} />,
     signup: <Signup nav={nav} />,
-    verify: <Verify nav={nav} />,
-    home: <AttendeeHome nav={nav} player={player} />,
-    explore: <Explore nav={nav} player={player} />,
-    search: <SearchScreen nav={nav} />,
+    verify: <Verify nav={nav} data={current.data} />,
+    home: <AttendeeHome nav={nav} player={player} catalog={catalog} />,
+    explore: <Explore nav={nav} player={player} catalog={catalog} />,
+    search: <SearchScreen nav={nav} catalog={catalog} />,
     eventDetail: <EventDetail nav={nav} data={current.data} />,
     tickets: <TicketSelection nav={nav} data={current.data} cart={cart} setCart={setCart} />,
     checkout: <Checkout nav={nav} data={current.data} cart={cart} />,
@@ -1077,11 +1207,13 @@ export default function EventVerseApp() {
     profile: <Profile nav={nav} player={player} />,
     artist: <ArtistProfile nav={nav} data={current.data} />,
     booking: <Booking nav={nav} data={current.data} />,
-    music: <MusicHome nav={nav} player={player} />,
+    music: <MusicHome nav={nav} player={player} catalog={catalog} />,
     musicPlayer: <FullPlayer nav={nav} player={player} />,
   };
   // "tickets" tab in bottom nav should show MyTickets, not ticket selector — route it explicitly.
   if (current.screen === "tickets" && !current.data) screens.tickets = <MyTickets nav={nav} player={player} />;
+
+  if (!authReady) return <div className="ev-app-viewport flex min-h-screen items-center justify-center" style={{ background: C.bg, color: C.goldSoft }}>Loading EventVerse...</div>;
 
   return (
     <div className="ev-app-viewport flex min-h-screen w-full items-stretch justify-stretch overflow-hidden" style={{ background: C.bg, minHeight: "100dvh", width: "100dvw" }}>
