@@ -6,6 +6,9 @@ import {
   Ticket, User, X, QrCode, Shuffle, Repeat, ListMusic, ChevronDown,
 } from "lucide-react";
 import { supabase } from "./lib/supabase";
+import { loadCatalog, loadEventDetail, searchCatalog, formatFollowers } from "./services/catalog";
+import CheckInScreen from "./components/CheckInScreen";
+import { loadCurrentUser, loadFavoriteState, toggleEventFavorite, toggleArtistFollow, toggleMusicFavorite, loadMusicFavorites, recordPlay, loadPlaylists, createPlaylist, submitBooking, loadRoleDashboard, checkInTicket } from "./services/user";
 
 /* ============================== DESIGN TOKENS ==============================
    Black (bg)        #0B0A08  — dominant surface
@@ -30,6 +33,7 @@ const C = {
   ivory: "#F3EEE3",
   muted: "#8B8577",
   line: "#2A2419",
+  red: "#E98979",
 };
 
 async function ensureUserProfile(user) {
@@ -48,40 +52,13 @@ const font = `
   .ev-display { font-family: 'Fraunces', serif; }
 `;
 
-/* ============================== MOCK DATA ============================== */
-const EVENTS = [
-  { id: 1, title: "Wizkid Live In Concert", venue: "ABC Event Centre, Ado-Ekiti", city: "Ado-Ekiti", date: "14 Sep 2025", time: "7:00 PM", price: 5000, rating: 4.8, reviews: 130, img: "linear-gradient(160deg,#3A2A1B,#16261D)", tag: "Featured" },
-  { id: 2, title: "Burna Boy — The Summit", venue: "Eko Convention Centre", city: "Lagos", date: "2 Sep 2025", time: "8:00 PM", price: 7500, rating: 4.9, reviews: 340, img: "linear-gradient(160deg,#4A3624,#1E3327)", tag: "Trending" },
-  { id: 3, title: "The Vibes Fest", venue: "Freedom Park", city: "Lagos", date: "10 Sep 2025", time: "3:00 PM", price: 4000, rating: 4.6, reviews: 88, img: "linear-gradient(160deg,#16261D,#0B0A08)", tag: "Weekend" },
-  { id: 4, title: "Odi Aviction Live", venue: "Terra Kulture", city: "Lagos", date: "18 Sep 2025", time: "6:00 PM", price: 6000, rating: 4.5, reviews: 52, img: "linear-gradient(160deg,#3A2A1B,#12141C)", tag: "New" },
-  { id: 5, title: "Ayra Starr — Solar", city: "Abuja", venue: "Julius Berger Hall", date: "22 Sep 2025", time: "7:30 PM", price: 8000, rating: 4.7, reviews: 210, img: "linear-gradient(160deg,#1E3327,#3A2A1B)", tag: "Near You" },
-  { id: 6, title: "Phyno — Live In Enugu", city: "Enugu", venue: "Nike Lake Resort", date: "26 Sep 2025", time: "5:00 PM", price: 5500, rating: 4.4, reviews: 63, img: "linear-gradient(160deg,#12141C,#16261D)", tag: "Near You" },
-];
-
-const ARTISTS = [
-  { id: 1, name: "Wizkid", followers: "5.3M", verified: true, img: "linear-gradient(160deg,#3A2A1B,#16261D)" },
-  { id: 2, name: "Asake", followers: "3.1M", verified: true, img: "linear-gradient(160deg,#1E3327,#12141C)" },
-  { id: 3, name: "Tems", followers: "4.0M", verified: true, img: "linear-gradient(160deg,#4A3624,#0B0A08)" },
-  { id: 4, name: "Rema", followers: "6.1M", verified: true, img: "linear-gradient(160deg,#16261D,#3A2A1B)" },
-];
-
-const SONGS = [
-  { id: 1, title: "Mood", artist: "Wizkid", duration: "3:45", plays: "12.5M" },
-  { id: 2, title: "Last Last", artist: "Burna Boy", duration: "3:12", plays: "20.1M" },
-  { id: 3, title: "Rush", artist: "Ayra Starr", duration: "2:58", plays: "9.3M" },
-  { id: 4, title: "Calm Down", artist: "Rema", duration: "3:30", plays: "31.4M" },
-  { id: 5, title: "Love Nwantiti", artist: "CKay", duration: "3:05", plays: "44.2M" },
-];
-
-const CATEGORIES = ["All", "Concerts", "Parties", "Sports", "Comedy", "Festivals"];
+/* ============================== LIVE DATA HELPERS ============================== */
+const EMPTY_CATALOG = { events: [], artists: [], songs: [], categories: [], venues: [] };
+const categoryLabel = (category) => category?.name || category?.slug || "Uncategorized";
+const imageStyle = (url, fallback = C.card) => url ? { backgroundImage: `url(${url})`, backgroundSize: "cover", backgroundPosition: "center" } : { background: fallback };
 
 const money = (n) => `\u20A6${Number(n || 0).toLocaleString()}`;
-const formatFollowers = (n) => {
-  const value = Number(n || 0);
-  if (value >= 1000000) return `${(value / 1000000).toFixed(1).replace(/\\.0$/, "")}M`;
-  if (value >= 1000) return `${(value / 1000).toFixed(1).replace(/\\.0$/, "")}K`;
-  return String(value);
-};
+const greeting = () => { const hour = new Date().getHours(); return hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"; };
 
 /* ============================== SHARED UI ============================== */
 function Phone({ children }) {
@@ -229,6 +206,26 @@ function MiniPlayer({ song, playing, onToggle, onOpen }) {
       <SkipForward size={15} color={C.muted} />
     </button>
   );
+}
+
+function AudioController({ song, playing, setPlaying, userId }) {
+  const audioRef = useRef(null);
+  useEffect(() => {
+    if (!song?.audioUrl) { if (audioRef.current) audioRef.current.pause(); return; }
+    const audio = new Audio(song.audioUrl);
+    audioRef.current = audio;
+    const ended = () => { setPlaying(false); void recordPlay(userId, song.id, Number(song.duration_seconds || 0)); };
+    audio.addEventListener("ended", ended);
+    if (playing) audio.play().catch(() => setPlaying(false));
+    return () => { audio.removeEventListener("ended", ended); audio.pause(); audioRef.current = null; };
+  }, [song?.id, song?.audioUrl]);
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (!song?.audioUrl) { setPlaying(false); return; }
+    if (playing) audio.play().catch(() => setPlaying(false)); else audio.pause();
+  }, [playing, song?.audioUrl]);
+  return null;
 }
 
 /* ============================== ONBOARDING ============================== */
@@ -443,7 +440,7 @@ function Signup({ nav }) {
       <div className="flex-1 px-6 overflow-y-auto">
         <h1 className="ev-display text-[26px] mb-1" style={{ color: C.ivory }}>Create Account</h1>
         <p className="text-[13px] mb-7" style={{ color: C.muted }}>Sign up to get started</p>
-        <Field label="Full Name" placeholder="Renile Heritage" value={form.name} onChange={update("name")} />
+        <Field label="Full Name" placeholder="Your full name" value={form.name} onChange={update("name")} />
         <Field label="Email" type="email" placeholder="renile@example.com" value={form.email} onChange={update("email")} />
         <Field label="Password" type="password" placeholder="At least 8 characters" value={form.password} onChange={update("password")} />
         <Field label="Confirm Password" type="password" placeholder="Repeat your password" value={form.confirm} onChange={update("confirm")} />
@@ -500,16 +497,18 @@ function Verify({ nav, data }) {
 }
 
 /* ============================== HOME ============================== */
-function AttendeeHome({ nav, player, catalog }) {
+function AttendeeHome({ nav, player, catalog, account, loading, error }) {
   const [cat, setCat] = useState("All");
-  const events = catalog?.events?.length ? catalog.events : EVENTS;
-  const artists = catalog?.artists?.length ? catalog.artists : ARTISTS;
+  const events = catalog?.events || [];
+  const artists = catalog?.artists || [];
+  const categories = [{ name: "All" }, ...(catalog?.categories || [])];
+  const displayName = account?.profile?.full_name || account?.user?.user_metadata?.full_name || account?.user?.email?.split("@")[0] || "there";
   return (
     <Phone>
       <div className="flex items-center justify-between px-5 pt-1 pb-3">
         <button className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: C.card }}><Menu size={17} color={C.ivory} /></button>
         <div className="text-center">
-          <p className="text-[13.5px] font-semibold" style={{ color: C.ivory }}>Good evening, Renile 👋</p>
+          <p className="text-[13.5px] font-semibold" style={{ color: C.ivory }}>Good evening, {displayName} 👋</p>
           <p className="text-[11px] flex items-center justify-center gap-1" style={{ color: C.muted }}><MapPin size={10} />Lagos, Nigeria</p>
         </div>
         <button className="w-9 h-9 rounded-full flex items-center justify-center relative" style={{ background: C.card }}>
@@ -527,11 +526,14 @@ function AttendeeHome({ nav, player, catalog }) {
         </div>
 
         <div className="flex gap-2 px-5 mb-5 overflow-x-auto no-scrollbar">
-          {CATEGORIES.map((c) => <Pill key={c} active={cat === c} onClick={() => setCat(c)}>{c}</Pill>)}
+          {categories.map((c) => <Pill key={c.name} active={cat === c.name} onClick={() => setCat(c.name)}>{categoryLabel(c)}</Pill>)}
         </div>
 
         <div className="px-5 mb-6">
-          <EventCard ev={EVENTS[0]} wide onClick={() => nav.push("eventDetail", EVENTS[0])} />
+          {loading && <p className="text-[13px] py-8 text-center" style={{ color: C.muted }}>Loading live events...</p>}
+          {!loading && error && <AuthMessage error={error} />}
+          {!loading && !error && !events.length && <p className="text-[13px] py-8 text-center" style={{ color: C.muted }}>No published events are available yet.</p>}
+          {!loading && events[0] && <EventCard ev={events[0]} wide onClick={() => nav.push("eventDetail", events[0])} />}
         </div>
 
         <div className="mb-6">
@@ -571,7 +573,7 @@ function AttendeeHome({ nav, player, catalog }) {
 /* ============================== EXPLORE ============================== */
 function Explore({ nav, player, catalog }) {
   const [cat, setCat] = useState("All");
-  const events = catalog?.events?.length ? catalog.events : EVENTS;
+  const events = catalog?.events || [];
   return (
     <Phone>
       <div className="px-5 pt-1 pb-3">
@@ -581,7 +583,7 @@ function Explore({ nav, player, catalog }) {
           <span className="text-[13px]" style={{ color: C.muted }}>Search events, artists, venues...</span>
         </button>
         <div className="flex gap-2 overflow-x-auto no-scrollbar">
-          {CATEGORIES.map((c) => <Pill key={c} active={cat === c} onClick={() => setCat(c)}>{c}</Pill>)}
+          {categories.map((c) => <Pill key={c.name} active={cat === c.name} onClick={() => setCat(c.name)}>{categoryLabel(c)}</Pill>)}
         </div>
       </div>
 
@@ -593,12 +595,12 @@ function Explore({ nav, player, catalog }) {
           {events.filter((e) => e.tag === "Near You").concat(events[3] ? [events[3]] : []).map((ev) => <EventCard key={ev.id} ev={ev} onClick={() => nav.push("eventDetail", ev)} />)}
         </Section>
         <Section title="Popular Venues" nav={nav} last>
-          {["ABC Event Centre, Ado-Ekiti", "Eko Convention Centre, Lagos", "Freedom Park, Lagos"].map((v, idx) => (
-            <div key={idx} className="flex-shrink-0 w-44 rounded-2xl overflow-hidden" style={{ background: C.card }}>
+          {(catalog?.venues || []).slice(0, 6).map((venue) => (
+            <div key={venue.id} className="flex-shrink-0 w-44 rounded-2xl overflow-hidden" style={{ background: C.card }}>
               <div style={{ height: 90, background: `linear-gradient(160deg, ${C.wood}, ${C.blue})` }} />
               <div className="p-3">
-                <p className="text-[12.5px] font-semibold" style={{ color: C.ivory }}>{v.split(",")[0]}</p>
-                <p className="text-[11px]" style={{ color: C.muted }}>{v.split(",")[1]}</p>
+                <p className="text-[12.5px] font-semibold" style={{ color: C.ivory }}>{venue.name}</p>
+                <p className="text-[11px]" style={{ color: C.muted }}>{venue.city || venue.address || "Location pending"}</p>
               </div>
             </div>
           ))}
@@ -625,65 +627,71 @@ function Section({ title, children, last }) {
 /* ============================== SEARCH ============================== */
 function SearchScreen({ nav, catalog }) {
   const [tab, setTab] = useState("All");
-  const artists = catalog?.artists?.length ? catalog.artists : ARTISTS;
-  const songs = catalog?.songs?.length ? catalog.songs : SONGS;
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState({ events: [], artists: [], songs: [], venues: [] });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (!query.trim()) { setResults({ events: [], artists: [], songs: [], venues: [] }); return; }
+      setLoading(true); setError("");
+      try { setResults(await searchCatalog(query)); } catch (searchError) { setError(searchError.message || "Search is unavailable."); } finally { setLoading(false); }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+  const artists = query ? results.artists : [];
+  const songs = query ? results.songs : [];
+  const events = query ? results.events : [];
+  const venues = query ? results.venues : [];
   return (
     <Phone>
       <div className="flex items-center gap-3 px-5 pt-1 pb-3">
         <button onClick={nav.pop}><ChevronLeft size={20} color={C.ivory} /></button>
         <div className="flex-1 flex items-center gap-2 rounded-xl px-3 py-2.5" style={{ background: C.card, border: `1px solid ${C.gold}55` }}>
           <Search size={15} color={C.gold} />
-          <span className="text-[13px]" style={{ color: C.ivory }}>wizkid</span>
+          <input autoFocus aria-label="Search Atizzy" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search events, artists, venues..." className="bg-transparent outline-none text-[13px] w-full" style={{ color: C.ivory }} />
         </div>
       </div>
       <div className="flex gap-2 px-5 pb-3 overflow-x-auto no-scrollbar">
-        {["All", "Events", "Artists", "Songs", "Albums", "Venues"].map((t) => <Pill key={t} active={tab === t} onClick={() => setTab(t)}>{t}</Pill>)}
+        {["All", "Events", "Artists", "Songs", "Venues"].map((t) => <Pill key={t} active={tab === t} onClick={() => setTab(t)}>{t}</Pill>)}
       </div>
       <div className="flex-1 overflow-y-auto px-5">
-        <p className="text-[12px] font-semibold mb-2" style={{ color: C.muted }}>ARTISTS</p>
-        <button onClick={() => nav.push("artist", ARTISTS[0])} className="w-full flex items-center gap-3 py-2.5">
-          <div className="w-11 h-11 rounded-full" style={{ background: ARTISTS[0].img }} />
-          <div className="flex-1 text-left">
-            <p className="text-[13px] font-semibold" style={{ color: C.ivory }}>Wizkid</p>
-            <p className="text-[11px]" style={{ color: C.muted }}>5.3M Followers</p>
-          </div>
-        </button>
-
-        <p className="text-[12px] font-semibold mt-4 mb-2" style={{ color: C.muted }}>SONGS</p>
-        {songs.slice(0, 2).map((s) => (
-          <div key={s.id} className="flex items-center gap-3 py-2.5">
-            <div className="w-11 h-11 rounded-lg" style={{ background: `linear-gradient(135deg, ${C.wood}, ${C.green})` }} />
-            <div className="flex-1">
-              <p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{s.title}</p>
-              <p className="text-[11px]" style={{ color: C.muted }}>{s.artist}</p>
-            </div>
-            <Play size={16} color={C.gold} />
-          </div>
-        ))}
-
-        <p className="text-[12px] font-semibold mt-4 mb-2 pb-6" style={{ color: C.muted }}>EVENTS</p>
-        <button onClick={() => nav.push("eventDetail", EVENTS[0])} className="w-full flex items-center gap-3 pb-6">
-          <div className="w-14 h-14 rounded-xl flex-shrink-0" style={{ background: EVENTS[0].img }} />
-          <div className="flex-1 text-left">
-            <p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{EVENTS[0].title}</p>
-            <p className="text-[11px]" style={{ color: C.muted }}>{EVENTS[0].date} · {EVENTS[0].venue}</p>
-          </div>
-        </button>
+        {loading && <p className="text-[13px] py-8 text-center" style={{ color: C.muted }}>Searching live catalog...</p>}
+        {!loading && error && <AuthMessage error={error} />}
+        {!loading && !error && query && !artists.length && !songs.length && !events.length && !venues.length && <p className="text-[13px] py-8 text-center" style={{ color: C.muted }}>No results for “{query}”.</p>}
+        {!!artists.length && <><p className="text-[12px] font-semibold mb-2" style={{ color: C.muted }}>ARTISTS</p>{artists.map((artist) => <button key={artist.id} onClick={() => nav.push("artist", artist)} className="w-full flex items-center gap-3 py-2.5"><div className="w-11 h-11 rounded-full" style={imageStyle(artist.img, C.card)} /><div className="flex-1 text-left"><p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{artist.name}</p><p className="text-[11px]" style={{ color: C.muted }}>{artist.followers} Followers</p></div></button>)}</>}
+        {!!songs.length && <><p className="text-[12px] font-semibold mt-4 mb-2" style={{ color: C.muted }}>SONGS</p>{songs.map((song) => <button key={song.id} onClick={() => nav.push("musicPlayer", song)} className="w-full flex items-center gap-3 py-2.5 text-left"><div className="w-11 h-11 rounded-lg" style={imageStyle(song.coverUrl, C.card)} /><div className="flex-1"><p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{song.title}</p><p className="text-[11px]" style={{ color: C.muted }}>{song.artist}</p></div><Play size={16} color={C.gold} /></button>)}</>}
+        {!!events.length && <><p className="text-[12px] font-semibold mt-4 mb-2" style={{ color: C.muted }}>EVENTS</p>{events.map((event) => <button key={event.id} onClick={() => nav.push("eventDetail", event)} className="w-full flex items-center gap-3 pb-4 text-left"><div className="w-14 h-14 rounded-xl flex-shrink-0" style={imageStyle(event.img, C.card)} /><div className="flex-1"><p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{event.title}</p><p className="text-[11px]" style={{ color: C.muted }}>{event.date} · {event.venue}</p></div></button>)}</>}
+        {!!venues.length && <><p className="text-[12px] font-semibold mt-4 mb-2" style={{ color: C.muted }}>VENUES</p>{venues.map((venue) => <div key={venue.id} className="flex items-center gap-3 py-2.5"><div className="w-11 h-11 rounded-lg" style={{ background: C.card }} /><div><p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{venue.name}</p><p className="text-[11px]" style={{ color: C.muted }}>{venue.city || venue.address || "Location pending"}</p></div></div>)}</>}
       </div>
     </Phone>
   );
 }
 
 /* ============================== EVENT DETAIL ============================== */
-function EventDetail({ nav, data }) {
-  const ev = data || EVENTS[0];
+function EventDetail({ nav, data, account }) {
+  const [event, setEvent] = useState(data || null);
+  const [favorite, setFavorite] = useState(false);
+  const [error, setError] = useState("");
+  const ev = event;
+  useEffect(() => {
+    if (!data?.id) return;
+    let mounted = true;
+    loadEventDetail(data.id).then((detail) => { if (mounted) setEvent(detail); }).catch((loadError) => { if (mounted) setError(loadError.message || "Unable to load event details."); });
+    if (account?.user?.id) loadFavoriteState(account.user.id, data.id, null).then((state) => { if (mounted) setFavorite(state.eventFavorite); }).catch(() => {});
+    return () => { mounted = false; };
+  }, [data?.id, account?.user?.id]);
+  if (!ev) return <Phone><div className="flex-1 flex items-center justify-center px-6 text-center" style={{ color: C.muted }}>{error || "Event details are unavailable."}</div></Phone>;
+  const setEventFavorite = async () => {
+    try { const next = !favorite; await toggleEventFavorite(account?.user?.id, ev.id, next); setFavorite(next); } catch (toggleError) { setError(toggleError.message || "Unable to update favorite."); }
+  };
   return (
     <Phone>
       <div style={{ height: 240, background: ev.img }} className="relative flex-shrink-0">
         <div className="flex items-center justify-between px-5 mt-2">
           <button onClick={nav.pop} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "#00000060" }}><ChevronLeft size={18} color="#fff" /></button>
           <div className="flex gap-2">
-            <button className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "#00000060" }}><Heart size={16} color="#fff" /></button>
+            <button onClick={setEventFavorite} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "#00000060" }}><Heart size={16} color="#fff" fill={favorite ? "#fff" : "none"} /></button>
             <button className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "#00000060" }}><Share2 size={16} color="#fff" /></button>
           </div>
         </div>
@@ -700,13 +708,12 @@ function EventDetail({ nav, data }) {
           <span className="text-[13px] font-semibold" style={{ color: C.ivory }}>{ev.rating}</span>
           <span className="text-[12px]" style={{ color: C.muted }}>({ev.reviews} reviews)</span>
         </div>
-        <p className="text-[13px] leading-relaxed mb-5" style={{ color: C.muted }}>
-          A night of unforgettable music and unmatched energy as {ev.title.split(" ")[0]} performs live in {ev.city}. Doors open an hour before showtime — arrive early to secure the best spot.
-        </p>
+        <p className="text-[13px] leading-relaxed mb-5" style={{ color: C.muted }}>{ev.description || "Event description will be published by the organizer."}</p>
+        {error && <AuthMessage error={error} />}
 
         <p className="text-[13px] font-semibold mb-3" style={{ color: C.ivory }}>Performing Artists</p>
         <div className="flex gap-4 mb-5">
-          {ARTISTS.slice(0, 3).map((a) => (
+          {(ev.artists || []).slice(0, 3).map((a) => (
             <div key={a.id} className="flex flex-col items-center gap-1">
               <div className="w-12 h-12 rounded-full" style={{ background: a.img }} />
               <span className="text-[10.5px]" style={{ color: C.muted }}>{a.name}</span>
@@ -722,7 +729,7 @@ function EventDetail({ nav, data }) {
           <div className="w-14 h-14 rounded-xl" style={{ background: `linear-gradient(135deg, ${C.wood}, ${C.blue})` }} />
           <div className="flex-1">
             <p className="text-[12.5px] font-semibold" style={{ color: C.ivory }}>{ev.venue}</p>
-            <p className="text-[11px]" style={{ color: C.muted }}>Capacity: 5,000</p>
+            <p className="text-[11px]" style={{ color: C.muted }}>Capacity: {ev.venueRecord?.capacity ? Number(ev.venueRecord.capacity).toLocaleString() : "Not provided"}</p>
           </div>
           <ChevronRight size={16} color={C.muted} />
         </div>
@@ -740,7 +747,7 @@ function EventDetail({ nav, data }) {
 
 /* ============================== TICKET SELECTION ============================== */
 function TicketSelection({ nav, data }) {
-  const ev = data || EVENTS[0];
+  const ev = data;
   const [types, setTypes] = useState([]);
   const [cart, setCart] = useState({});
   const [busy, setBusy] = useState(false);
@@ -767,6 +774,8 @@ function TicketSelection({ nav, data }) {
     loadTypes();
     return () => { mounted = false; };
   }, [ev?.id]);
+
+  if (!ev) return <Phone><div className="flex-1 flex items-center justify-center px-6 text-center" style={{ color: C.muted }}>Ticketing is unavailable because the event data is missing.</div></Phone>;
 
   const qty = (id) => cart[id] || 0;
   const available = (type) => Math.max(0, Number(type.capacity || 0) - Number(type.sold || 0) - Number(type.reserved || 0));
@@ -833,7 +842,8 @@ function TicketSelection({ nav, data }) {
 
 /* ============================== CHECKOUT ============================== */
 function Checkout({ nav, data }) {
-  const { ev = EVENTS[0], reservation, items = [], types = [] } = data || {};
+  const { ev, reservation, items = [], types = [] } = data || {};
+  if (!ev) return <Phone><div className="flex-1 flex items-center justify-center px-6 text-center" style={{ color: C.muted }}>Checkout is unavailable because the event data is missing.</div></Phone>;
   const typeById = Object.fromEntries(types.map((type) => [type.id, type]));
   const expiresAt = reservation?.expires_at ? new Date(reservation.expires_at) : null;
   const remainingMinutes = expiresAt ? Math.max(0, Math.ceil((expiresAt.getTime() - Date.now()) / 60000)) : 0;
@@ -872,7 +882,7 @@ function Checkout({ nav, data }) {
 
 /* ============================== PAYMENT ============================== */
 function Payment({ nav, data }) {
-  const { ev = EVENTS[0], reservation } = data || {};
+  const { ev, reservation } = data || {};
   const [method, setMethod] = useState("paystack");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -882,14 +892,33 @@ function Payment({ nav, data }) {
     { id: "bank", label: "Bank Transfer", sub: "Manual Transfer" },
     { id: "ussd", label: "USSD", sub: "" },
   ];
+  if (!ev) return <Phone><div className="flex-1 flex items-center justify-center px-6 text-center" style={{ color: C.muted }}>Payment is unavailable because the reservation is missing.</div></Phone>;
   const initializePayment = async () => {
     if (!reservation?.order_id) return;
+    if (method !== "paystack") return setError("Paystack is the only live payment provider currently enabled.");
     setBusy(true); setError("");
-    const key = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `atizzy-payment-${Date.now()}`;
-    const { data: payment, error: paymentError } = await supabase.rpc("initialize_order_payment", { p_order_id: reservation.order_id, p_provider: method, p_idempotency_key: key });
-    setBusy(false);
-    if (paymentError) return setError(paymentError.message);
-    nav.push("processing", { ev, reservation, payment, items: data.items, types: data.types });
+    try {
+      const [{ data: sessionData }, { data: userData }] = await Promise.all([supabase.auth.getSession(), supabase.auth.getUser()]);
+      const session = sessionData?.session;
+      const user = userData?.user;
+      if (!session?.access_token || !user?.email) throw new Error("A verified account email is required to start payment.");
+      const callbackUrl = `${window.location.origin}/?payment=callback`;
+      const response = await fetch("/api/paystack/initialize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ orderId: reservation.order_id, email: user.email, callbackUrl }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "Unable to initialize Paystack payment.");
+      const pendingPayment = { ev, reservation, payment: { payment_id: payload.paymentId, order_id: payload.orderId, status: "PROVIDER_PENDING", amount: payload.amount, currency: payload.currency, reference: payload.reference }, items: data.items, types: data.types };
+      window.localStorage.setItem("atizzy:pending-payment", JSON.stringify(pendingPayment));
+      nav.push("processing", pendingPayment);
+      window.location.assign(payload.authorizationUrl);
+    } catch (paymentError) {
+      setError(paymentError.message || "Unable to initialize payment.");
+    } finally {
+      setBusy(false);
+    }
   };
   return (
     <Phone>
@@ -934,7 +963,8 @@ function Processing({ nav, data }) {
 }
 
 function PaymentSuccess({ nav, data }) {
-  const { ev = EVENTS[0], reservation, order } = data || {};
+  const { ev, reservation, order } = data || {};
+  if (!ev) return <Phone><div className="flex-1 flex items-center justify-center px-6 text-center" style={{ color: C.muted }}>Order details are unavailable.</div></Phone>;
   const total = reservation?.total ?? order?.total;
   return (
     <Phone>
@@ -1045,8 +1075,23 @@ function MyTickets({ nav, player }) {
   );
 }
 
+/* ============================== ROLE CENTER ============================== */
+function RoleCenter({ nav, account }) {
+  const [dashboard, setDashboard] = useState(null);
+  const [error, setError] = useState("");
+  useEffect(() => { if (account?.user?.id) loadRoleDashboard(account.user.id, account.roles || []).then(setDashboard).catch((loadError) => setError(loadError.message || "Unable to load your workspace.")); }, [account?.user?.id, account?.roles]);
+  const roles = (account?.roles || []).map((role) => typeof role === "string" ? role : role.code).filter(Boolean);
+  if (!roles.length) return <Phone><TopBack title="Workspace" onBack={nav.pop} /><div className="flex-1 flex items-center justify-center px-6 text-center" style={{ color: C.muted }}>No operational role is assigned to this account.</div></Phone>;
+  const metrics = [{ label: "Events", value: dashboard?.events?.length || 0, visible: roles.some((role) => ["ORGANIZER", "ADMIN", "SUPER_ADMIN"].includes(role)) }, { label: "Bookings", value: dashboard?.bookings?.length || 0, visible: roles.some((role) => ["ARTIST", "ADMIN", "SUPER_ADMIN"].includes(role)) }, { label: "Venues", value: dashboard?.venues?.length || 0, visible: roles.some((role) => ["VENUE_MANAGER", "ADMIN", "SUPER_ADMIN"].includes(role)) }, { label: "Songs", value: dashboard?.songs?.length || 0, visible: roles.some((role) => ["ARTIST", "ADMIN", "SUPER_ADMIN"].includes(role)) }].filter((metric) => metric.visible);
+  return <Phone><TopBack title="Workspace" onBack={nav.pop} /><div className="px-5 pt-2 pb-3"><p className="text-[12px] uppercase tracking-[0.16em]" style={{ color: C.gold }}>Protected workspace</p><h1 className="ev-display text-[24px] mt-1" style={{ color: C.ivory }}>Your Atizzy operations</h1><p className="text-[12px] mt-2" style={{ color: C.muted }}>{roles.map((role) => role.replaceAll("_", " ")).join(" · ")}</p></div><div className="flex-1 overflow-y-auto px-5">{error && <AuthMessage error={error} />}{!dashboard && !error && <p className="py-8 text-center text-[13px]" style={{ color: C.muted }}>Loading workspace data...</p>}<div className="grid grid-cols-2 gap-3 mb-5">{metrics.map((metric) => <div key={metric.label} className="rounded-2xl p-4" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[24px] font-semibold" style={{ color: C.goldSoft }}>{metric.value}</p><p className="text-[11px] mt-1" style={{ color: C.muted }}>{metric.label} visible to you</p></div>)}</div><div className="rounded-2xl p-4 mb-5" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[14px] font-semibold mb-3" style={{ color: C.ivory }}>Role capabilities</p>{roles.map((role) => <div key={role} className="flex items-center justify-between py-2" style={{ borderBottom: `1px solid ${C.line}` }}><span className="text-[12px]" style={{ color: C.ivory }}>{role.replaceAll("_", " ")}</span><ShieldCheck size={15} color={C.gold} /></div>)}</div>{roles.includes("ORGANIZER") && <GoldButton onClick={() => nav.push("organizerEvents")}>Manage my events</GoldButton>}{roles.includes("ARTIST") && <div className="mt-3"><GhostButton onClick={() => nav.push("artistLibrary")}>Manage music library</GhostButton></div>}{roles.includes("VENUE_MANAGER") && <div className="mt-3"><GhostButton onClick={() => nav.push("venueManager")}>Manage venues</GhostButton></div>}{roles.some((role) => ["EVENT_STAFF", "VENUE_MANAGER", "ORGANIZER", "ADMIN", "SUPER_ADMIN"].includes(role)) && <div className="mt-3"><GhostButton onClick={() => nav.push("checkIn")}>Check in a ticket</GhostButton></div>}</div></Phone>;
+}
+
+function RoleResourceScreen({ nav, account, title, description, rows, emptyLabel, columns }) {
+  return <Phone><TopBack title={title} onBack={nav.pop} /><div className="px-5 pt-2 pb-3"><p className="text-[12px] uppercase tracking-[0.16em]" style={{ color: C.gold }}>Protected workspace</p><h1 className="ev-display text-[24px] mt-1" style={{ color: C.ivory }}>{title}</h1><p className="text-[12px] mt-2" style={{ color: C.muted }}>{description}</p></div><div className="flex-1 overflow-y-auto px-5">{!rows?.length ? <p className="py-10 text-center text-[13px]" style={{ color: C.muted }}>{emptyLabel}</p> : rows.map((row) => <div key={row.id} className="rounded-2xl p-4 mb-3" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[14px] font-semibold" style={{ color: C.ivory }}>{row[columns.title] || "Untitled"}</p><div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">{columns.meta.map((key) => <span key={key} className="text-[11px]" style={{ color: C.muted }}>{String(row[key] ?? "Not provided")}</span>)}</div></div>)}</div></Phone>;
+}
+
 /* ============================== PROFILE (stub, phase 1) ============================== */
-function Profile({ nav, player }) {
+function Profile({ nav, player, account }) {
   const items = ["My Tickets", "Music Library", "Preferences", "Notifications", "Security", "Help & Support"];
   const [busy, setBusy] = useState(false);
   const signOut = async () => {
@@ -1059,10 +1104,11 @@ function Profile({ nav, player }) {
     <Phone>
       <div className="px-5 pt-2 pb-4 flex flex-col items-center">
         <div className="w-20 h-20 rounded-full mb-3" style={{ background: `linear-gradient(135deg, ${C.wood}, ${C.green})` }} />
-        <p className="text-[16px] font-semibold" style={{ color: C.ivory }}>Renile Heritage</p>
-        <p className="text-[12px] flex items-center gap-1 mt-0.5" style={{ color: C.muted }}><MapPin size={11} />Lagos, Nigeria</p>
+        <p className="text-[16px] font-semibold" style={{ color: C.ivory }}>{account?.profile?.full_name || account?.user?.email || "Atizzy member"}</p>
+        <p className="text-[12px] flex items-center gap-1 mt-0.5" style={{ color: C.muted }}><MapPin size={11} />{account?.profile?.city || "Location not provided"}</p>
       </div>
       <div className="flex-1 overflow-y-auto px-5">
+        {account?.roles?.length > 0 && <button onClick={() => nav.push("roleCenter")} className="w-full flex items-center justify-between py-3.5" style={{ borderBottom: `1px solid ${C.line}` }}><span className="text-[13.5px]" style={{ color: C.goldSoft }}>Open workspace</span><ShieldCheck size={15} color={C.gold} /></button>}
         {items.map((it) => (
           <button key={it} className="w-full flex items-center justify-between py-3.5" style={{ borderBottom: `1px solid ${C.line}` }}>
             <span className="text-[13.5px]" style={{ color: C.ivory }}>{it}</span>
@@ -1080,9 +1126,14 @@ function Profile({ nav, player }) {
 }
 
 /* ============================== ARTIST PROFILE ============================== */
-function ArtistProfile({ nav, data }) {
-  const a = data || ARTISTS[0];
+function ArtistProfile({ nav, data, account, catalog }) {
+  const a = data;
+  const [following, setFollowing] = useState(false);
+  const [error, setError] = useState("");
   const [tab, setTab] = useState("Popular");
+  useEffect(() => { if (a?.id && account?.user?.id) loadFavoriteState(account.user.id, null, a.id).then((state) => setFollowing(state.artistFollowing)).catch(() => {}); }, [a?.id, account?.user?.id]);
+  if (!a) return <Phone><div className="flex-1 flex items-center justify-center px-6 text-center" style={{ color: C.muted }}>Artist details are unavailable.</div></Phone>;
+  const toggleFollow = async () => { try { const next = !following; await toggleArtistFollow(account?.user?.id, a.id, next); setFollowing(next); } catch (followError) { setError(followError.message || "Unable to update follow."); } };
   return (
     <Phone>
       <div style={{ height: 190, background: a.img }} className="relative flex-shrink-0">
@@ -1094,11 +1145,12 @@ function ArtistProfile({ nav, data }) {
           <p className="text-[19px] font-semibold" style={{ color: C.ivory }}>{a.name}</p>
           {a.verified && <ShieldCheck size={15} color={C.gold} fill={C.gold} />}
         </div>
-        <p className="text-[12px] mb-4" style={{ color: C.muted }}>{a.followers} Followers · Monthly Listeners</p>
+        <p className="text-[12px] mb-4" style={{ color: C.muted }}>{a.followers || 0} Followers</p>
         <div className="flex gap-3 mb-5">
-          <div className="flex-1"><GoldButton>Follow</GoldButton></div>
+          <div className="flex-1"><GoldButton onClick={toggleFollow}>{following ? "Following" : "Follow"}</GoldButton></div>
           <button className="px-5 rounded-2xl" style={{ background: C.card, border: `1px solid ${C.line}`, color: C.ivory }}>Share</button>
         </div>
+        {error && <AuthMessage error={error} />}
         <div className="flex gap-5 mb-4 overflow-x-auto no-scrollbar">
           {["Popular", "Songs", "Albums", "Events", "About"].map((t) => (
             <button key={t} onClick={() => setTab(t)} className="text-[13px] pb-2 whitespace-nowrap" style={{ color: tab === t ? C.gold : C.muted, borderBottom: tab === t ? `2px solid ${C.gold}` : "2px solid transparent" }}>{t}</button>
@@ -1106,7 +1158,7 @@ function ArtistProfile({ nav, data }) {
         </div>
       </div>
       <div className="flex-1 overflow-y-auto px-5">
-        {SONGS.slice(0, 4).map((s, i) => (
+        {(catalog?.songs || []).slice(0, 4).map((s, i) => (
           <div key={s.id} className="flex items-center gap-3 py-2.5">
             <span className="w-4 text-[12px]" style={{ color: C.muted }}>{i + 1}</span>
             <div className="w-10 h-10 rounded-lg" style={{ background: `linear-gradient(135deg, ${C.wood}, ${C.green})` }} />
@@ -1126,19 +1178,31 @@ function ArtistProfile({ nav, data }) {
 }
 
 /* ============================== MUSIC HOME ============================== */
-function MusicHome({ nav, player, catalog }) {
-  const songs = catalog?.songs?.length ? catalog.songs : SONGS;
-  const artists = catalog?.artists?.length ? catalog.artists : ARTISTS;
+function MusicHome({ nav, player, catalog, account }) {
+  const songs = catalog?.songs || [];
+  const artists = catalog?.artists || [];
+  const [favorites, setFavorites] = useState([]);
+  const [playlistName, setPlaylistName] = useState("");
+  const [playlistMessage, setPlaylistMessage] = useState("");
+  useEffect(() => { if (account?.user?.id) loadMusicFavorites(account.user.id).then(setFavorites).catch(() => {}); }, [account?.user?.id]);
+  const toggleSongFavorite = async (songId) => {
+    try { const next = !favorites.includes(songId); await toggleMusicFavorite(account?.user?.id, songId, next); setFavorites((current) => next ? [...current, songId] : current.filter((id) => id !== songId)); } catch (error) { setPlaylistMessage(error.message || "Sign in to save music."); }
+  };
+  const makePlaylist = async () => {
+    try { const playlist = await createPlaylist(account?.user?.id, playlistName); setPlaylistName(""); setPlaylistMessage(`Playlist “${playlist.name}” created.`); } catch (error) { setPlaylistMessage(error.message || "Unable to create playlist."); }
+  };
   return (
     <Phone>
       <div className="px-5 pt-1 pb-3">
-        <h1 className="ev-display text-[22px]" style={{ color: C.ivory }}>Good evening</h1>
+        <h1 className="ev-display text-[22px]" style={{ color: C.ivory }}>{greeting()}</h1>
+        <div className="flex gap-2 mt-3"><input value={playlistName} onChange={(event) => setPlaylistName(event.target.value)} placeholder="New playlist name" className="flex-1 rounded-xl px-3 py-2 text-[12px] outline-none" style={{ background: C.card, color: C.ivory, border: `1px solid ${C.line}` }} /><button disabled={!playlistName.trim()} onClick={makePlaylist} className="rounded-xl px-3 text-[12px] disabled:opacity-40" style={{ background: C.gold, color: "#1A1408" }}>Create</button></div>
+        {playlistMessage && <p className="text-[11px] mt-2" style={{ color: C.muted }}>{playlistMessage}</p>}
       </div>
       <div className="flex-1 overflow-y-auto">
         <Section title="Recently Played">
           {songs.slice(0, 3).map((s) => (
             <button key={s.id} onClick={() => player.play(s)} className="flex-shrink-0 w-28 text-left">
-              <div className="w-28 h-28 rounded-xl mb-2" style={{ background: `linear-gradient(135deg, ${C.wood}, ${C.green})` }} />
+              <div className="w-28 h-28 rounded-xl mb-2" style={imageStyle(s.coverUrl, `linear-gradient(135deg, ${C.wood}, ${C.green})`)} />
               <p className="text-[12px] font-semibold truncate" style={{ color: C.ivory }}>{s.title}</p>
               <p className="text-[10.5px] truncate" style={{ color: C.muted }}>{s.artist}</p>
             </button>
@@ -1151,12 +1215,12 @@ function MusicHome({ nav, player, catalog }) {
           <div className="px-5">
             {songs.map((s) => (
               <button key={s.id} onClick={() => player.play(s)} className="w-full flex items-center gap-3 py-2">
-                <div className="w-10 h-10 rounded-lg flex-shrink-0" style={{ background: `linear-gradient(135deg, ${C.wood}, ${C.green})` }} />
+                <div className="w-10 h-10 rounded-lg flex-shrink-0" style={imageStyle(s.coverUrl, `linear-gradient(135deg, ${C.wood}, ${C.green})`)} />
                 <div className="flex-1 text-left">
                   <p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{s.title}</p>
                   <p className="text-[11px]" style={{ color: C.muted }}>{s.artist}</p>
                 </div>
-                <span className="text-[11px]" style={{ color: C.muted }}>{s.duration}</span>
+                <span className="text-[11px]" style={{ color: C.muted }}>{s.duration}</span><span onClick={(event) => { event.stopPropagation(); toggleSongFavorite(s.id); }} className="px-1"><Heart size={15} color={favorites.includes(s.id) ? C.gold : C.muted} fill={favorites.includes(s.id) ? C.gold : "none"} /></span>
               </button>
             ))}
           </div>
@@ -1177,8 +1241,9 @@ function MusicHome({ nav, player, catalog }) {
 }
 
 /* ============================== FULL MUSIC PLAYER ============================== */
-function FullPlayer({ nav, player }) {
-  const song = player.song || SONGS[0];
+function FullPlayer({ nav, player, account }) {
+  const song = player.song;
+  if (!song) return <Phone><div className="flex-1 flex items-center justify-center px-6 text-center" style={{ color: C.muted }}>Choose a song from the live music library to start playback.</div></Phone>;
   return (
     <Phone>
       <div className="flex-1 flex flex-col px-6" style={{ background: `linear-gradient(180deg, ${C.green}, ${C.bg} 60%)` }}>
@@ -1188,7 +1253,7 @@ function FullPlayer({ nav, player }) {
           <button><ListMusic size={18} color={C.ivory} /></button>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center">
-          <div className="w-full aspect-square rounded-2xl mb-8" style={{ background: `linear-gradient(150deg, ${C.wood}, ${C.greenLight})`, boxShadow: `0 20px 60px -20px ${C.gold}33` }} />
+          <div className="w-full aspect-square rounded-2xl mb-8" style={imageStyle(song.coverUrl, `linear-gradient(150deg, ${C.wood}, ${C.greenLight})`)} />
           <div className="w-full flex items-center justify-between mb-6">
             <div>
               <p className="text-[19px] font-semibold" style={{ color: C.ivory }}>{song.title}</p>
@@ -1208,7 +1273,7 @@ function FullPlayer({ nav, player }) {
           <div className="w-full flex items-center justify-between mt-6">
             <Shuffle size={17} color={C.muted} />
             <SkipBack size={22} color={C.ivory} />
-            <button onClick={player.toggle} className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${C.goldSoft}, ${C.gold})` }}>
+              <button disabled={!song.audioUrl} onClick={player.toggle} className="w-16 h-16 rounded-full flex items-center justify-center disabled:opacity-40" style={{ background: `linear-gradient(135deg, ${C.goldSoft}, ${C.gold})` }}>
               {player.playing ? <Pause size={24} color="#1A1408" /> : <Play size={24} color="#1A1408" fill="#1A1408" />}
             </button>
             <SkipForward size={22} color={C.ivory} />
@@ -1226,8 +1291,17 @@ function FullPlayer({ nav, player }) {
 }
 
 /* ============================== ARTIST BOOKING (bonus, quick) ============================== */
-function Booking({ nav, data }) {
-  const a = data || ARTISTS[0];
+function Booking({ nav, data, account }) {
+  const a = data;
+  const [form, setForm] = useState({ event_name: "", event_type: "", event_date: "", expected_audience: "", budget: "", message: "" });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  if (!a) return <Phone><div className="flex-1 flex items-center justify-center px-6 text-center" style={{ color: C.muted }}>Artist details are unavailable.</div></Phone>;
+  const update = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }));
+  const submit = async () => {
+    setBusy(true); setError("");
+    try { await submitBooking(account?.user?.id, a.id, form); nav.pop(); } catch (bookingError) { setError(bookingError.message || "Unable to submit booking request."); } finally { setBusy(false); }
+  };
   return (
     <Phone>
       <TopBack title="Book Artist" onBack={nav.pop} />
@@ -1236,18 +1310,19 @@ function Booking({ nav, data }) {
           <div className="w-12 h-12 rounded-full" style={{ background: a.img }} />
           <div>
             <p className="text-[13.5px] font-semibold" style={{ color: C.ivory }}>{a.name}</p>
-            <p className="text-[11px]" style={{ color: C.muted }}>Booking fee from {money(800000)}</p>
+            <p className="text-[11px]" style={{ color: C.muted }}>Booking requests are reviewed by the artist team.</p>
           </div>
         </div>
-        <Field label="Event Name" placeholder="e.g. Company End-of-Year Party" />
-        <Field label="Event Type" placeholder="Corporate, Wedding, Concert..." />
-        <Field label="Date" placeholder="Select date" />
-        <Field label="Expected Audience" placeholder="e.g. 500" />
-        <Field label="Budget (₦)" placeholder="e.g. 1,000,000" />
-        <Field label="Message" placeholder="Tell us more about the event..." />
+        <Field label="Event Name" placeholder="e.g. Company End-of-Year Party" value={form.event_name} onChange={update("event_name")} />
+        <Field label="Event Type" placeholder="Corporate, Wedding, Concert..." value={form.event_type} onChange={update("event_type")} />
+        <Field label="Date" placeholder="Select date" value={form.event_date} onChange={update("event_date")} />
+        <Field label="Expected Audience" placeholder="e.g. 500" value={form.expected_audience} onChange={update("expected_audience")} />
+        <Field label="Budget (₦)" placeholder="e.g. 1,000,000" value={form.budget} onChange={update("budget")} />
+        <Field label="Message" placeholder="Tell us more about the event..." value={form.message} onChange={update("message")} />
+        <AuthMessage error={error} />
       </div>
       <div className="px-5 py-4" style={{ borderTop: `1px solid ${C.line}` }}>
-        <GoldButton onClick={() => nav.pop()}>Send Booking Request</GoldButton>
+        <GoldButton disabled={busy || !form.event_name || !form.event_date} onClick={submit}>{busy ? "Sending..." : "Send Booking Request"}</GoldButton>
       </div>
     </Phone>
   );
@@ -1262,27 +1337,24 @@ export default function EventVerseApp() {
   const [song, setSong] = useState(null);
   const [playing, setPlaying] = useState(false);
   const [authReady, setAuthReady] = useState(false);
-  const [catalog, setCatalog] = useState({ events: EVENTS, artists: ARTISTS, songs: SONGS });
+  const [catalog, setCatalog] = useState(EMPTY_CATALOG);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalogError, setCatalogError] = useState("");
+  const [account, setAccount] = useState({ user: null, profile: null, roles: [] });
+  const [roleDashboard, setRoleDashboard] = useState({ events: [], bookings: [], venues: [], songs: [], orders: [] });
 
   useEffect(() => {
     let mounted = true;
     const load = async () => {
-      const [eventResult, artistResult, songResult] = await Promise.all([
-        supabase.from("events").select("*, venues(name), ticket_types(price)").in("status", ["PUBLISHED", "SOLD_OUT", "LIVE", "COMPLETED"]).order("starts_at"),
-        supabase.from("artists").select("*").order("follower_count", { ascending: false }),
-        supabase.from("songs").select("*, artists(name)").order("play_count", { ascending: false }),
-      ]);
-      if (!mounted) return;
-      const events = (eventResult.data || []).map((e, index) => ({
-        id: e.id, title: e.title, venue: e.venues?.name || e.city, city: e.city,
-        date: new Date(e.starts_at).toLocaleDateString("en-NG", { day: "numeric", month: "short" }),
-        time: new Date(e.starts_at).toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit" }),
-        price: Number(e.ticket_types?.[0]?.price || 0), rating: Number(e.rating || 0), reviews: e.review_count || 0,
-        img: e.cover_url || `linear-gradient(160deg, ${C.wood}, ${C.green})`, tag: index === 0 ? "Featured" : index === 1 ? "Trending" : "Near You",
-      }));
-      const artists = (artistResult.data || []).map((a) => ({ id: a.id, name: a.name, followers: formatFollowers(a.follower_count), verified: a.verified, img: a.image_url || `linear-gradient(160deg, ${C.wood}, ${C.green})` }));
-      const songs = (songResult.data || []).map((s) => ({ id: s.id, title: s.title, artist: s.artists?.name || "Atizzy Artist", duration: `${Math.floor(s.duration_seconds / 60)}:${String(s.duration_seconds % 60).padStart(2, "0")}`, plays: formatFollowers(s.play_count) }));
-      if (events.length || artists.length || songs.length) setCatalog({ events: events.length ? events : EVENTS, artists: artists.length ? artists : ARTISTS, songs: songs.length ? songs : SONGS });
+      setCatalogLoading(true);
+      try {
+        const liveCatalog = await loadCatalog();
+        if (mounted) setCatalog(liveCatalog);
+      } catch (error) {
+        if (mounted) setCatalogError(error.message || "Unable to load live catalog.");
+      } finally {
+        if (mounted) setCatalogLoading(false);
+      }
     };
     const restore = async () => {
       try {
@@ -1298,9 +1370,15 @@ export default function EventVerseApp() {
         }
         if (callbackError) console.error("EventVerse OAuth callback returned an error", callbackError);
         const { data } = await supabase.auth.getSession();
+        const paymentCallback = url.searchParams.get("payment") === "callback";
+        const pendingPayment = paymentCallback ? JSON.parse(window.localStorage.getItem("atizzy:pending-payment") || "null") : null;
+        if (paymentCallback) {
+          url.searchParams.delete("payment");
+          window.history.replaceState({}, document.title, `${url.pathname}${url.search}`);
+        }
         if (mounted && data.session) {
           window.localStorage.setItem("eventverse:onboarding-complete", "1");
-          setStack([{ screen: "home", data: null }]);
+          setStack([{ screen: pendingPayment ? "processing" : "home", data: pendingPayment || null }]);
           void ensureUserProfile(data.session.user);
         }
       } catch (restoreError) {
@@ -1315,7 +1393,11 @@ export default function EventVerseApp() {
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted || !session) return;
       // Defer profile I/O outside Supabase's auth event callback to avoid re-entrant locks.
-      setTimeout(() => ensureUserProfile(session.user), 0);
+      setTimeout(async () => {
+        await ensureUserProfile(session.user);
+        const value = await loadCurrentUser().catch(() => null);
+        if (mounted && value) setAccount(value);
+      }, 0);
       if (["INITIAL_SESSION", "SIGNED_IN", "TOKEN_REFRESHED"].includes(event)) {
         setStack((currentStack) => {
           const active = currentStack[currentStack.length - 1]?.screen;
@@ -1323,9 +1405,16 @@ export default function EventVerseApp() {
         });
       }
     });
-    load(); restore();
+    load();
+    loadCurrentUser().then((value) => { if (mounted) setAccount(value); }).catch((error) => { if (mounted) setCatalogError(error.message || "Unable to load account."); });
+    restore();
     return () => { mounted = false; listener.subscription.unsubscribe(); };
   }, []);
+
+  useEffect(() => {
+    if (!account?.user?.id || !account?.roles?.length) { setRoleDashboard({ events: [], bookings: [], venues: [], songs: [], orders: [] }); return; }
+    loadRoleDashboard(account.user.id, account.roles).then(setRoleDashboard).catch((error) => setCatalogError(error.message || "Unable to load workspace data."));
+  }, [account?.user?.id, account?.roles]);
 
   const current = stack[stack.length - 1];
 
@@ -1341,7 +1430,7 @@ export default function EventVerseApp() {
     song,
     playing,
     play: (s) => { setSong(s); setPlaying(true); },
-    toggle: () => (song ? setPlaying((p) => !p) : (setSong(SONGS[0]), setPlaying(true))),
+    toggle: () => (song ? setPlaying((p) => !p) : null),
   };
 
   const screens = {
@@ -1349,23 +1438,28 @@ export default function EventVerseApp() {
     login: <Login nav={nav} />,
     signup: <Signup nav={nav} />,
     verify: <Verify nav={nav} data={current.data} />,
-    home: <AttendeeHome nav={nav} player={player} catalog={catalog} />,
-    explore: <Explore nav={nav} player={player} catalog={catalog} />,
+    home: <AttendeeHome nav={nav} player={player} catalog={catalog} account={account} loading={catalogLoading} error={catalogError} />,
+    explore: <Explore nav={nav} player={player} catalog={catalog} loading={catalogLoading} error={catalogError} />,
     search: <SearchScreen nav={nav} catalog={catalog} />,
-    eventDetail: <EventDetail nav={nav} data={current.data} />,
+    eventDetail: <EventDetail nav={nav} data={current.data} account={account} />,
     tickets: <TicketSelection nav={nav} data={current.data} />,
     checkout: <Checkout nav={nav} data={current.data} />,
     payment: <Payment nav={nav} data={current.data} />,
     processing: <Processing nav={nav} data={current.data} />,
     success: <PaymentSuccess nav={nav} data={current.data} />,
+    checkIn: <CheckInScreen nav={nav} />,
+    roleCenter: <RoleCenter nav={nav} account={account} />,
+    organizerEvents: <RoleResourceScreen nav={nav} account={account} title="My Events" description="Organizer-owned event records visible through Supabase RLS." rows={roleDashboard?.events || []} emptyLabel="No organizer events are available yet." columns={{ title: "title", meta: ["status", "city", "starts_at"] }} />,
+    artistLibrary: <RoleResourceScreen nav={nav} account={account} title="Music Library" description="Artist library records available to your role." rows={roleDashboard?.songs || []} emptyLabel="No songs are available for this artist workspace." columns={{ title: "title", meta: ["play_count", "audio_url"] }} />,
+    venueManager: <RoleResourceScreen nav={nav} account={account} title="Venues" description="Venue records owned by this account." rows={roleDashboard?.venues || []} emptyLabel="No venues are available for this account." columns={{ title: "name", meta: ["city", "capacity"] }} />,
     digitalTicket: <DigitalTicket nav={nav} data={current.data} />,
     myTickets: <MyTickets nav={nav} player={player} />,
     tickets_tab: null,
-    profile: <Profile nav={nav} player={player} />,
-    artist: <ArtistProfile nav={nav} data={current.data} />,
-    booking: <Booking nav={nav} data={current.data} />,
-    music: <MusicHome nav={nav} player={player} catalog={catalog} />,
-    musicPlayer: <FullPlayer nav={nav} player={player} />,
+    profile: <Profile nav={nav} player={player} account={account} />,
+    artist: <ArtistProfile nav={nav} data={current.data} account={account} catalog={catalog} />,
+    booking: <Booking nav={nav} data={current.data} account={account} />,
+    music: <MusicHome nav={nav} player={player} catalog={catalog} account={account} />,
+    musicPlayer: <FullPlayer nav={nav} player={player} account={account} />,
   };
   // "tickets" tab in bottom nav should show MyTickets, not ticket selector — route it explicitly.
   if (current.screen === "tickets" && !current.data) screens.tickets = <MyTickets nav={nav} player={player} />;
@@ -1376,6 +1470,7 @@ export default function EventVerseApp() {
     <div className="ev-app-viewport flex min-h-screen w-full items-stretch justify-stretch overflow-hidden" style={{ background: C.bg, minHeight: "100dvh", width: "100dvw" }}>
       <style>{font}</style>
       <style>{`.no-scrollbar::-webkit-scrollbar{display:none} .no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}`}</style>
+      <AudioController song={song} playing={playing} setPlaying={setPlaying} userId={account?.user?.id} />
       <div className="relative flex min-h-0 w-full flex-1 overflow-hidden" style={{ background: C.bg, minHeight: "100dvh", width: "100dvw" }}>
         {screens[current.screen] || screens.home}
       </div>

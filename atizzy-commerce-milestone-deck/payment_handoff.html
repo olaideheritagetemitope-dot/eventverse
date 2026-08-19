@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1280, initial-scale=1.0" />
+<title>Payment begins with a protected server-side attempt</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0}
+.slide-container{width:1280px;min-height:720px;background:#E3F2FD;color:#1A237E;font-family:Arial,sans-serif;border:2px solid #1A237E;padding-top:58px;padding-left:64px;padding-right:64px}
+.kicker{font:500 16px monospace;letter-spacing:2px;color:#FF6D00}
+.title{font:900 44px/1.04 Arial,sans-serif;letter-spacing:-1px;max-width:820px;margin-top:16px}
+.rule{width:175px;height:4px;background:#FF6D00;margin-top:12px}
+.main{display:grid;grid-template-columns:38% 62%;margin-top:22px;border-top:2px solid #1A237E;border-bottom:2px solid #1A237E;min-height:330px}
+.api{border-right:2px solid #1A237E;padding-top:18px;padding-left:28px;padding-right:28px}
+.api-label{font:500 15px monospace;color:#FF6D00;letter-spacing:1px}
+.api-name{font:900 34px/1.05 Arial;margin-top:22px;word-break:break-word}
+.api-note{font:500 15px/1.45 monospace;margin-top:16px;max-width:330px}
+.controls{display:grid;grid-template-columns:1fr 1fr}
+.control{padding-top:18px;padding-left:20px;padding-right:16px;border-bottom:2px solid #1A237E}
+.control:nth-child(odd){border-right:2px solid #1A237E}
+.control:nth-child(3),.control:nth-child(4){border-bottom:0}
+.number{font:900 34px Arial;color:#FF6D00}
+.label{font:500 14px monospace;color:#FF6D00;letter-spacing:1px;margin-top:12px}
+.text{font:900 22px/1.12 Arial;margin-top:8px}
+.detail{font:500 14px/1.4 monospace;margin-top:9px}
+.footer{font:500 14px/1.4 monospace;padding-top:12px;color:#1A237E}
+</style>
+</head>
+<body>
+<div class="slide-container">
+  <div class="kicker">04 / PAYMENT HANDOFF</div>
+  <div class="title">Payment begins with a protected server-side attempt.</div>
+  <div class="rule"></div>
+  <div class="main">
+    <section class="api">
+      <div class="api-label">DATABASE RPC</div>
+      <div class="api-name">initialize_<br/>order_payment</div>
+      <div class="api-note">The client requests an attempt. Supabase decides whether the order is eligible and records the payment state.</div>
+    </section>
+    <section class="controls">
+      <div class="control"><div class="number">01</div><div class="label">OWNERSHIP</div><div class="text">Authenticated user required.</div><div class="detail">The order must belong to the signed-in user.</div></div>
+      <div class="control"><div class="number">02</div><div class="label">IDEMPOTENCY</div><div class="text">Retries replay safely.</div><div class="detail">A unique key prevents duplicate payment attempts.</div></div>
+      <div class="control"><div class="number">03</div><div class="label">METHODS</div><div class="text">Paystack, card, bank, USSD.</div><div class="detail">The selected provider is recorded server-side.</div></div>
+      <div class="control"><div class="number">04</div><div class="label">STATE TRANSITION</div><div class="text">Order → PENDING_PAYMENT.</div><div class="detail">No client-generated success or checkout URL is trusted.</div></div>
+    </section>
+  </div>
+  <div class="footer">Implementation status: payment initialization is live; provider credentials and redirect/webhook verification remain the next release gate.</div>
+</div>
+</body>
+</html>

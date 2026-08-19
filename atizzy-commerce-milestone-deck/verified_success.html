@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1280, initial-scale=1.0" />
+<title>Success is now earned by payment verification</title>
+<style>
+*{box-sizing:border-box}
+.slide-container{width:1280px;min-height:720px;background:#E3F2FD;color:#1A237E;font-family:Arial,sans-serif;border:2px solid #1A237E;padding-top:58px;padding-left:64px;padding-right:64px}
+.kicker{font:500 16px/1.2 monospace;letter-spacing:2px;color:#FF6D00}
+.header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1A237E;padding-bottom:8px}
+.title{font:900 44px/1.04 Arial,sans-serif;letter-spacing:-1px;max-width:800px;margin-top:16px}
+.index{font:900 72px/1 Arial;color:#FF6D00}
+.main{display:grid;grid-template-columns:38% 62%;min-height:300px;border-bottom:2px solid #1A237E}
+.principle{border-right:2px solid #1A237E;padding-top:20px;padding-right:20px}
+.principle-label{font:500 15px monospace;color:#FF6D00;letter-spacing:1px}
+.principle-text{font:900 36px/1.06 Arial;letter-spacing:-1px;margin-top:8px}
+.rule{width:150px;height:4px;background:#FF6D00;margin-top:18px}
+.principle-note{font:500 15px/1.45 monospace;margin-top:12px;max-width:320px}
+.sequence{padding-top:12px;padding-left:20px;display:flex;flex-direction:column;gap:10px}
+.state{display:grid;grid-template-columns:64px 1fr;min-height:78px;padding-top:6px;border-top:2px solid transparent}
+.state + .state{border-top:2px solid #1A237E;padding-top:12px}
+.num{font:900 34px Arial;color:#FF6D00}
+.state-label{font:500 14px monospace;color:#FF6D00;letter-spacing:1px}
+.state-title{font:900 24px/1.12 Arial;margin-top:6px}
+.state-copy{font:500 14px/1.4 monospace;margin-top:6px;max-width:520px}
+.failures-inline{display:flex;gap:20px;align-items:flex-start;padding-top:8px}
+.fail-label{font:500 14px monospace;color:#FF6D00;letter-spacing:1px}
+.fail-copy{font:900 21px/1.16 Arial;padding-left:0}
+.fail-copy span{font:500 14px/1.4 monospace;display:block;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="slide-container">
+  <div class="kicker">05 / VERIFICATION GATE</div>
+  <div class="header"><div class="title">Success is now earned by payment verification.</div><div class="index">05</div></div>
+  <div class="main">
+    <section class="principle"><div class="principle-label">CORE CONTROL</div><div class="principle-text">No verified payment.<br/>No ticket.</div><div class="rule"></div><div class="principle-note">The processing screen polls the authenticated payment record instead of animating to a fabricated success state.</div></section>
+    <section class="sequence">
+      <div class="state"><div class="num">01</div><div><div class="state-label">INITIALIZED</div><div class="state-title">Payment attempt recorded.</div><div class="state-copy">The order moves to PENDING_PAYMENT and waits for provider confirmation.</div></div></div>
+      <div class="state"><div class="num">02</div><div><div class="state-label">VERIFIED_SUCCESS</div><div class="state-title">Provider confirmation unlocks the next step.</div><div class="state-copy">Only this state can trigger ticket retrieval and the success route.</div></div></div>
+      <div class="state"><div class="num">03</div><div><div class="state-label">TICKET ISSUED</div><div class="state-title">Issuance follows verification, not intention.</div><div class="state-copy">The client reads an owned ticket record created by the server.</div></div></div>
+      <div class="failures-inline"><div class="fail-label">TERMINAL STATES</div><div class="fail-copy">FAILED · EXPIRED · REFUNDED<span>These states remain visible and return the user to payment without issuing a ticket.</span></div></div>
+    </section>
+  </div>
+</div>
+</body>
+</html>

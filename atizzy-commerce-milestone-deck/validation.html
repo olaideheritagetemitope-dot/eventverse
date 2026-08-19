@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280, initial-scale=1.0">
+<title>Validation confirms the milestone is buildable and renderable</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0}
+.slide-container{width:1280px;min-height:720px;background:#E3F2FD;color:#1A237E;font-family:Arial,sans-serif;border:2px solid #1A237E;padding-top:48px;padding-left:64px;padding-right:64px;margin-top:-1px}
+.kicker{font:500 16px/1.2 monospace;letter-spacing:2px;color:#FF6D00}
+.header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1A237E;padding-bottom:12px}
+.title{font:900 43px/1.04 Arial,sans-serif;letter-spacing:-1px;max-width:850px;margin-top:16px}
+.index{font:900 72px/1 Arial;color:#FF6D00}
+.main{display:grid;grid-template-columns:39% 61%;min-height:auto}
+.pass{border-right:2px solid #1A237E;padding-top:28px;padding-right:24px}
+.pass-label{font:500 15px monospace;letter-spacing:1px;color:#FF6D00}
+.pass-word{font:900 112px/0.9 Arial;letter-spacing:-5px;margin-top:8px;color:#1A237E}
+.rule{width:180px;height:4px;background:#FF6D00;margin-top:12px}
+.pass-copy{font:500 16px/1.5 monospace;max-width:360px;margin-top:12px}
+.evidence{padding-top:24px;padding-left:40px;display:grid;grid-template-columns:1fr 1fr;gap:12px 24px}
+.item{display:flex;gap:12px;border-top:2px solid #1A237E;padding-top:10px;padding-bottom:10px}
+.item:last-child{border-bottom:2px solid #1A237E}
+.num{font:900 32px/1 Arial;color:#FF6D00;min-width:60px}
+.label{font:500 14px/1.2 monospace;letter-spacing:1px;color:#FF6D00}
+.value{font:900 22px/1.15 Arial;margin-top:6px}
+.detail{font:500 14px/1.4 monospace;margin-top:6px;max-width:260px}
+.footer{font:500 14px/1.4 monospace;border-top:2px solid #1A237E;padding-top:12px}
+</style>
+</head>
+<body>
+<div class="slide-container">
+  <div class="kicker">07 / VALIDATION</div>
+  <div class="header"><div class="title">Validation confirms the milestone is buildable and renderable.</div><div class="index">07</div></div>
+  <div class="main">
+    <section class="pass"><div class="pass-label">MILESTONE STATUS</div><div class="pass-word">PASS</div><div class="rule"></div><div class="pass-copy">The commerce refactor compiled, rendered in a browser, and was preserved in the Vercel-linked GitHub repository.</div></section>
+    <section class="evidence">
+      <div class="item"><div class="num">01</div><div><div class="label">PRODUCTION BUILD</div><div class="value">Vite build completed successfully.</div><div class="detail">The refactored React frontend generated a production bundle without compile or bundling errors.</div></div></div>
+      <div class="item"><div class="num">02</div><div><div class="label">BROWSER SMOKE TEST</div><div class="value">Atizzy onboarding rendered correctly.</div><div class="detail">The local browser showed the ATIZZY brand, Get Started action, and Login action with no blank screen or console runtime error.</div></div></div>
+      <div class="item"><div class="num">03</div><div><div class="label">SUPABASE</div><div class="value">Payment initialization migration applied.</div><div class="detail">The server-side payment RPC and authenticated execution policy are present in the active Atizzy project.</div></div></div>
+      <div class="item"><div class="num">04</div><div><div class="label">SOURCE CONTROL</div><div class="value">Commit 87da0f9 pushed to main.</div><div class="detail">The milestone is preserved in the GitHub repository connected to the deployment workflow.</div></div></div>
+    </section>
+  </div>
+  <div class="footer">SCOPE NOTE  /  Provider webhook verification and secure ticket issuance remain intentionally open release-gate items.</div>
+</div>
+</body>
+</html>

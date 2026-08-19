@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1280, initial-scale=1.0" />
+<title>My Tickets and Digital Ticket are connected to ownership data</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0}
+.slide-container{width:1280px;min-height:720px;background:#E3F2FD;color:#1A237E;font-family:Arial,sans-serif;border:2px solid #1A237E;padding-top:58px;padding-left:64px;padding-right:64px}
+.kicker{font:500 16px/1.2 monospace;letter-spacing:2px;color:#FF6D00}
+.header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1A237E;padding-bottom:22px}
+.title{font:900 43px/1.04 Arial,sans-serif;letter-spacing:-1px;max-width:850px;margin-top:16px}
+.index{font:900 72px/1 Arial;color:#FF6D00}
+.main{display:grid;grid-template-columns:42% 58%;min-height:360px}
+.ticket-mark{padding-top:24px;padding-left:28px;padding-right:20px;border-right:2px solid #1A237E}
+.mark-label{font:500 15px/1.2 monospace;color:#FF6D00;letter-spacing:1px}
+.ticket-code{font:900 76px/0.95 Arial;letter-spacing:-4px;margin-top:12px}
+.mark-rule{width:190px;height:4px;background:#FF6D00;margin-top:18px}
+.mark-copy{font:500 15px/1.5 monospace;max-width:360px;margin-top:12px}
+.stamp{border-top:2px solid #1A237E;border-bottom:2px solid #1A237E;margin-top:18px;padding-top:8px;padding-bottom:8px;font:900 17px/1.2 Arial;letter-spacing:1px}
+.facts{display:grid;grid-template-columns:1fr 1fr;padding-top:16px;padding-left:18px}
+.fact{padding-top:8px;padding-right:12px;padding-bottom:12px;border-top:2px solid #1A237E}
+.fact:nth-child(odd){border-right:2px solid #1A237E;padding-right:14px}
+.fact:nth-child(3),.fact:nth-child(4){padding-top:12px}
+.fact-num{font:900 34px/1 Arial;color:#FF6D00}
+.fact-label{font:500 14px/1.2 monospace;color:#FF6D00;letter-spacing:1px;margin-top:12px}
+.fact-title{font:900 22px/1.12 Arial;margin-top:8px}
+.fact-copy{font:500 14px/1.45 monospace;margin-top:8px;max-width:220px}
+.footer{border-top:2px solid #1A237E;padding-top:12px;font:500 14px/1.4 monospace}
+</style>
+</head>
+<body>
+<div class="slide-container">
+  <div class="kicker">05 / OWNED TICKETS</div>
+  <div class="header"><div class="title">My Tickets and Digital Ticket are connected to ownership data.</div><div class="index">05</div></div>
+  <div class="main">
+    <section class="ticket-mark">
+      <div class="mark-label">AUTHENTICATED RECORD</div>
+      <div class="ticket-code">MY<br/>TICKET</div>
+      <div class="mark-rule"></div>
+      <div class="mark-copy">The ticket view is no longer a static illustration. It is rendered from records owned by the signed-in user.</div>
+      <div class="stamp">OWNER → EVENT → ORDER → TICKET</div>
+    </section>
+    <section class="facts">
+      <div class="fact"><div class="fact-num">01</div><div class="fact-label">QUERY</div><div class="fact-title">Authenticated ownership</div><div class="fact-copy">My Tickets loads only the current user’s ticket records through Supabase relationships.</div></div>
+      <div class="fact"><div class="fact-num">02</div><div class="fact-label">CONTEXT</div><div class="fact-title">Live event details</div><div class="fact-copy">Event title, venue, ticket type, date, time, city, and order data come from related records.</div></div>
+      <div class="fact"><div class="fact-num">03</div><div class="fact-label">STATUS</div><div class="fact-title">Check-in visibility</div><div class="fact-copy">The digital ticket can reflect issued status and whether a check-in timestamp exists.</div></div>
+      <div class="fact"><div class="fact-num">04</div><div class="fact-label">SECURITY</div><div class="fact-title">Server-controlled validation</div><div class="fact-copy">The client does not mint or expose the QR validation secret; secure issuance remains tied to verified payment.</div></div>
+    </section>
+  </div>
+  <div class="footer">TAKEAWAY  /  Ticket presentation follows authenticated ownership and verified commerce state.</div>
+</div>
+</body>
+</html>

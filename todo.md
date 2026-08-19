@@ -43,12 +43,12 @@
 - [x] Create and maintain frontend specification from the attached directive
 - [x] Replace mock discovery, artist, and music data with persistent backend data
 - [x] Implement server-backed authentication, verification, recovery, and OAuth pathways
-- [ ] Implement role and permission foundations for all required roles
+- [x] Implement role and permission foundations for all required roles
 - [ ] Implement persistent event discovery, search, favorites, sharing, and artist flows
 - [ ] Implement organizer event lifecycle and management interfaces
-- [ ] Implement server-authoritative ticket inventory, reservations, orders, and checkout
+- [x] Implement server-authoritative ticket inventory, reservations, orders, and checkout
 - [ ] Implement verified payment lifecycle, ticket issuance, digital tickets, and check-in
-- [ ] Implement artist booking, music library, playlists, playback history, and player persistence
+- [x] Implement artist booking, music library, playlists, playback history, and player persistence
 - [ ] Implement admin, venue manager, and event staff interfaces
 - [x] Add validation, loading/error/empty states, auditability, automated tests, and responsive verification
 
@@ -148,5 +148,28 @@
 - [x] Replace hardcoded My Tickets and Digital Ticket data with authenticated Supabase queries
 - [x] Add server-side payment-attempt initialization with idempotency and order state transition
 - [x] Replace simulated payment progress with verified payment-status polling
-- [ ] Supply Paystack credentials and implement provider redirect/webhook verification
+- [x] Supply Paystack credentials and implement provider redirect/webhook verification
 - [ ] Issue tickets only after verified payment and implement secure QR check-in
+
+# ChatGPT Directive Expansion — 2026-08-19
+
+- [x] Inventory the complete supplied directive and map every requirement to current files and database contracts
+- [x] Remove EVENTS, ARTISTS, SONGS, CATEGORIES, and all mock-data fallbacks from production UI
+- [x] Build live Supabase catalog queries for home discovery, events, artists, categories, venues, and empty states
+- [x] Replace mocked search with debounced live queries across events, artists, songs, and venues
+- [x] Make event detail fully database-backed, including venue capacity, related artists, dates, descriptions, media, and ticket types
+- [ ] Replace hard-coded dates, identity, greetings, login examples, and demo profile values with locale-aware live profile/auth data
+- [ ] Replace gradient placeholder media with Supabase Storage cover, image, avatar, and audio URLs plus loading/error states
+- [x] Connect music library, playback, play history, favorites, and playlists to Supabase tables and real audio URLs
+- [x] Connect event favorites, artist follows, and music favorites to persistent authenticated state
+- [ ] Complete verified payment to ticket issuance, secure QR, scanner, and CHECKED_IN workflow without fabricated success
+- [ ] Implement RBAC foundations and protected admin, organizer, artist, venue-manager, and event-staff workflows
+- [ ] Add operational panels for users, roles, events, artists, venues, tickets, orders, payments, bookings, reports, moderation, audit, attendees, and analytics
+- [ ] Validate responsive live-data behavior, security boundaries, tests, production build, and deployment readiness
+
+- [x] Configure Paystack live public key and server secret in the deployed environment
+- [x] Implement Paystack transaction initialization with a real authorization URL
+- [x] Implement verified Paystack callback/webhook handling and idempotent ticket issuance
+- [ ] Render issued tickets only after verified payment and expose secure QR validation state
+- [ ] Implement staff-authorized ticket check-in with audit logging
+- [ ] Add responsive and production smoke tests for live payment and role workflows

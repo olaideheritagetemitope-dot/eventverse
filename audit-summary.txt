@@ -1,0 +1,76 @@
+STATUS
+ [31mM[m todo.md
+[31m??[m EVENTVERSE_DIRECTIVE.md
+[31m??[m audit-summary.txt
+SOURCE_FILES
+src/EventVerse.jsx
+src/lib/supabase.js
+src/main.jsx
+src/styles.css
+SUPABASE_FILES
+supabase/0001_eventverse_core.sql
+supabase/0002_eventverse_rls.sql
+supabase/0003_eventverse_security_hardening.sql
+supabase/0004_eventverse_catalog_seed.sql
+supabase/security-advisory.md
+SCRIPTS
+{
+  "dev": "vite --host 0.0.0.0",
+  "build": "vite build",
+  "preview": "vite preview --host 0.0.0.0",
+  "check": "tsc --noEmit"
+}
+MOCK_MARKERS
+src/EventVerse.jsx:52:const EVENTS = [
+src/EventVerse.jsx:61:const ARTISTS = [
+src/EventVerse.jsx:68:const SONGS = [
+src/EventVerse.jsx:505:  const events = catalog?.events?.length ? catalog.events : EVENTS;
+src/EventVerse.jsx:506:  const artists = catalog?.artists?.length ? catalog.artists : ARTISTS;
+src/EventVerse.jsx:534:          <EventCard ev={EVENTS[0]} wide onClick={() => nav.push("eventDetail", EVENTS[0])} />
+src/EventVerse.jsx:574:  const events = catalog?.events?.length ? catalog.events : EVENTS;
+src/EventVerse.jsx:628:  const artists = catalog?.artists?.length ? catalog.artists : ARTISTS;
+src/EventVerse.jsx:629:  const songs = catalog?.songs?.length ? catalog.songs : SONGS;
+src/EventVerse.jsx:643:        <p className="text-[12px] font-semibold mb-2" style={{ color: C.muted }}>ARTISTS</p>
+src/EventVerse.jsx:644:        <button onClick={() => nav.push("artist", ARTISTS[0])} className="w-full flex items-center gap-3 py-2.5">
+src/EventVerse.jsx:645:          <div className="w-11 h-11 rounded-full" style={{ background: ARTISTS[0].img }} />
+src/EventVerse.jsx:652:        <p className="text-[12px] font-semibold mt-4 mb-2" style={{ color: C.muted }}>SONGS</p>
+src/EventVerse.jsx:664:        <p className="text-[12px] font-semibold mt-4 mb-2 pb-6" style={{ color: C.muted }}>EVENTS</p>
+src/EventVerse.jsx:665:        <button onClick={() => nav.push("eventDetail", EVENTS[0])} className="w-full flex items-center gap-3 pb-6">
+src/EventVerse.jsx:666:          <div className="w-14 h-14 rounded-xl flex-shrink-0" style={{ background: EVENTS[0].img }} />
+src/EventVerse.jsx:668:            <p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{EVENTS[0].title}</p>
+src/EventVerse.jsx:669:            <p className="text-[11px]" style={{ color: C.muted }}>{EVENTS[0].date} · {EVENTS[0].venue}</p>
+src/EventVerse.jsx:679:  const ev = data || EVENTS[0];
+src/EventVerse.jsx:709:          {ARTISTS.slice(0, 3).map((a) => (
+src/EventVerse.jsx:743:  const ev = data || EVENTS[0];
+src/EventVerse.jsx:788:  const ev = data || EVENTS[0];
+src/EventVerse.jsx:837:  const { ev, total } = data || { ev: EVENTS[0], total: 26500 };
+src/EventVerse.jsx:874:        if (p >= 100) { clearInterval(t); setTimeout(() => nav.replace("success", data), 400); return 100; }
+src/EventVerse.jsx:999:            <div className="w-16 h-16 rounded-xl flex-shrink-0" style={{ background: EVENTS[idx % EVENTS.length].img }} />
+src/EventVerse.jsx:1052:  const a = data || ARTISTS[0];
+src/EventVerse.jsx:1077:        {SONGS.slice(0, 4).map((s, i) => (
+src/EventVerse.jsx:1098:  const songs = catalog?.songs?.length ? catalog.songs : SONGS;
+src/EventVerse.jsx:1099:  const artists = catalog?.artists?.length ? catalog.artists : ARTISTS;
+src/EventVerse.jsx:1149:  const song = player.song || SONGS[0];
+src/EventVerse.jsx:1198:  const a = data || ARTISTS[0];
+src/EventVerse.jsx:1234:  const [catalog, setCatalog] = useState({ events: EVENTS, artists: ARTISTS, songs: SONGS });
+src/EventVerse.jsx:1254:      if (events.length || artists.length || songs.length) setCatalog({ events: events.length ? events : EVENTS, artists: artists.length ? artists : ARTISTS, songs: songs.length ? songs : SONGS });
+src/EventVerse.jsx:1287:      setTimeout(() => ensureUserProfile(session.user), 0);
+src/EventVerse.jsx:1313:    toggle: () => (song ? setPlaying((p) => !p) : (setSong(SONGS[0]), setPlaying(true))),
+AUTH_CLIENT
+import { createClient } from "@supabase/supabase-js";
+
+// These are Supabase publishable client values. They are safe to expose in a browser
+// when Row Level Security is enabled on every application table.
+export const SUPABASE_URL = "https://blalvoelllndmbppbkcy.supabase.co";
+export const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_UPS5rb-O3q2hExK0RtPoBA_dn5X6aPf";
+
+// Keep the default Supabase browser flow (PKCE). It was the last known working
+// configuration for both Google and Spotify in EventVerse. The verifier is stored
+// by supabase-js in browser storage and is exchanged at the Supabase callback.
+export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
+});

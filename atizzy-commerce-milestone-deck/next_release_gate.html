@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280, initial-scale=1.0">
+<title>Provider verification and secure issuance are the next release gate</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0}
+.slide-container{width:1280px;min-height:720px;background:#E3F2FD;color:#1A237E;font-family:Arial,sans-serif;border-left:2px solid #1A237E;border-right:2px solid #1A237E;padding-top:58px;padding-left:64px;padding-right:64px}
+.kicker{font:500 16px/1.2 monospace;letter-spacing:2px;color:#FF6D00}
+.header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1A237E;padding-bottom:8px}
+.title{font:900 43px/1.04 Arial,sans-serif;letter-spacing:-1px;max-width:900px;margin-top:16px}
+.index{font:900 72px/1 Arial;color:#FF6D00}
+.intro{display:grid;grid-template-columns:34% 66%;min-height:136px;border-bottom:2px solid #1A237E}
+.next{border-right:2px solid #1A237E;padding-top:16px;padding-right:36px;font:900 68px/0.92 Arial;letter-spacing:-3px;color:#FF6D00}
+.message{padding-top:16px;padding-left:42px;font:900 27px/1.12 Arial;max-width:710px}
+.underline{width:160px;height:4px;background:#FF6D00;margin-top:18px}
+.roadmap{display:grid;grid-template-columns:repeat(4,1fr);min-height:300px;border-bottom:2px solid #1A237E}
+.gate{padding-top:16px;padding-left:22px;padding-right:22px;border-right:2px solid #1A237E}
+.gate:last-child{border-right:0}
+.num{font:900 42px/1 Arial;color:#FF6D00}
+.label{font:500 14px/1.2 monospace;letter-spacing:1px;color:#FF6D00;margin-top:17px}
+.gate-title{font:900 22px/1.13 Arial;margin-top:9px}
+.gate-copy{font:500 14px/1.45 monospace;margin-top:11px}
+.status{padding-top:12px;font:500 14px/1.45 monospace}
+.status strong{font:900 16px Arial;color:#FF6D00}
+</style>
+</head>
+<body>
+<div class="slide-container">
+  <div class="kicker">08 / NEXT RELEASE GATE</div>
+  <div class="header"><div class="title">Provider verification and secure issuance are the next release gate.</div><div class="index">08</div></div>
+  <div class="intro"><div class="next">NEXT<br/>GATE</div><div class="message">Connect the protected payment attempt to a verified provider result, then issue the ticket from the server.</div></div>
+  <div class="roadmap">
+    <section class="gate"><div class="num">01</div><div class="label">PROVIDER ACCESS</div><div class="gate-title">Supply Paystack credentials.</div><div class="gate-copy">Configure the live provider checkout or redirect handoff without placing secrets in the browser.</div></section>
+    <section class="gate"><div class="num">02</div><div class="label">WEBHOOK TRUST</div><div class="gate-title">Verify callbacks server-side.</div><div class="gate-copy">Validate signatures, prevent replay, and transition payment and order states only from trusted events.</div></section>
+    <section class="gate"><div class="num">03</div><div class="label">SECURE ISSUANCE</div><div class="gate-title">Issue tickets after success.</div><div class="gate-copy">Generate QR validation material server-side and expose only the ticket presentation needed by the attendee.</div></section>
+    <section class="gate"><div class="num">04</div><div class="label">OPERATIONS</div><div class="gate-title">Complete the control plane.</div><div class="gate-copy">Add refunds, organizer lifecycle controls, event staff check-in, and audit monitoring.</div></section>
+  </div>
+  <div class="status"><strong>RELEASE CONDITION  /  </strong>Payment attempts are implemented; ticket issuance remains intentionally blocked until provider verification is production-ready.</div>
+</div>
+</body>
+</html>

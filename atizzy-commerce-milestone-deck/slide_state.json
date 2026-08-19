@@ -1,0 +1,122 @@
+{
+  "project_info": {
+    "title": "Atizzy Commerce Engine",
+    "created": 1787155865.493,
+    "last_updated": 1787156228.577,
+    "total_slides": 10
+  },
+  "slides": [
+    {
+      "id": "cover",
+      "state": "edited",
+      "pageNum": 1
+    },
+    {
+      "id": "commerce_foundation",
+      "state": "edited",
+      "pageNum": 2
+    },
+    {
+      "id": "authoritative_flow",
+      "state": "edited",
+      "pageNum": 3
+    },
+    {
+      "id": "trusted_checkout",
+      "state": "edited",
+      "pageNum": 4
+    },
+    {
+      "id": "payment_handoff",
+      "state": "edited",
+      "pageNum": 5
+    },
+    {
+      "id": "verified_success",
+      "state": "edited",
+      "pageNum": 6
+    },
+    {
+      "id": "owned_tickets",
+      "state": "edited",
+      "pageNum": 7
+    },
+    {
+      "id": "validation",
+      "state": "edited",
+      "pageNum": 8
+    },
+    {
+      "id": "next_release_gate",
+      "state": "edited",
+      "pageNum": 9
+    },
+    {
+      "id": "closing",
+      "state": "edited",
+      "pageNum": 10
+    }
+  ],
+  "outline": [
+    {
+      "id": "cover",
+      "title": "Atizzy Commerce Engine",
+      "summary": "From simulated checkout to server-authoritative ticketing. August 2026 milestone review.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "commerce_foundation",
+      "title": "The milestone closes the gap between UI and real commerce",
+      "summary": "Live Supabase-backed catalog, reservations, orders, payment attempts, and owned tickets now replace simulated commerce state.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "authoritative_flow",
+      "title": "The commerce flow is now server-authoritative",
+      "summary": "Explain live ticket types, inventory locking, idempotent reservations, expiry, and cancellation through Supabase RPCs.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "trusted_checkout",
+      "title": "Checkout now reflects trusted financial values",
+      "summary": "Show how checkout renders server-returned monetary values and prevents client-side price or inventory manipulation.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "payment_handoff",
+      "title": "Payment begins with a protected server-side attempt",
+      "summary": "Describe initialize_order_payment, authenticated ownership checks, idempotency, supported methods, and order transition.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "verified_success",
+      "title": "Success is now earned by payment verification",
+      "summary": "Show polling-based payment verification and why failed or expired attempts do not issue tickets.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "owned_tickets",
+      "title": "My Tickets and Digital Ticket are connected to ownership data",
+      "summary": "Describe authenticated ticket queries, live event data, check-in status, and server-controlled QR validation framing.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "validation",
+      "title": "Validation confirms the milestone is buildable and renderable",
+      "summary": "Production build passed, browser smoke test rendered, Supabase migration applied, and GitHub commit 87da0f9 pushed.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "next_release_gate",
+      "title": "Provider verification and secure issuance are the next release gate",
+      "summary": "Outline Paystack credentials, webhook verification, secure QR issuance, refunds, organizer, and staff workflows.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "closing",
+      "title": "Atizzy now has a trustworthy commerce foundation",
+      "summary": "The next step is connecting provider verification to secure ticket issuance.",
+      "image_plan": "Use a suitable image if needed"
+    }
+  ]
+}

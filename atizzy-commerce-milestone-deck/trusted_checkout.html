@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280, initial-scale=1.0">
+<title>Checkout now reflects trusted financial values</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0}
+.slide-container{width:1280px;min-height:720px;background:#E3F2FD;color:#1A237E;font-family:Arial,sans-serif;border:2px solid #1A237E;padding-top:58px;padding-left:64px;padding-right:64px}
+.kicker{font:500 16px/1.2 monospace;letter-spacing:2px;color:#FF6D00}
+.header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1A237E;padding-bottom:16px}
+.title{font:900 44px/1.04 Arial,sans-serif;letter-spacing:-1px;max-width:760px;margin-top:16px}
+.index{font:900 72px/1 Arial;color:#FF6D00}
+.main{display:grid;grid-template-columns:45% 55%;min-height:400px}
+.total{border-right:2px solid #1A237E;padding-top:30px;padding-right:48px;padding-bottom:8px}
+.total-label{font:500 15px monospace;color:#FF6D00;letter-spacing:1px}
+.total-value{font:900 74px/1 Arial;letter-spacing:-3px;margin-top:18px}
+.total-note{font:500 16px/1.5 monospace;max-width:420px;margin-top:8px}
+.rule{width:170px;height:4px;background:#FF6D00;margin-top:16px}
+.protections{padding-top:12px;padding-left:54px}
+.item{border-top:2px solid #1A237E;padding-top:8px;padding-bottom:8px}
+.label{font:500 14px/1.2 monospace;color:#FF6D00;letter-spacing:1px}
+.item-title{font:900 25px/1.12 Arial;margin-top:9px}
+.item-copy{font:500 14px/1.45 monospace;max-width:560px;margin-top:8px}
+.footer{border-top:2px solid #1A237E;padding-top:12px;font:500 14px/1.35 monospace;color:#1A237E}
+</style>
+</head>
+<body>
+<div class="slide-container">
+  <div class="kicker">03 / CHECKOUT INTEGRITY</div>
+  <div class="header"><div class="title">Checkout now reflects trusted financial values.</div><div class="index">03</div></div>
+  <div class="main">
+    <section class="total"><div class="total-label">SERVER-RETURNED ORDER VALUE</div><div class="total-value">NGN<br>TRUSTED</div><div class="rule"></div><div class="total-note">The interface renders the subtotal, service fee, discount, total, currency, order ID, and reservation expiry returned by Supabase.</div></section>
+    <section class="protections">
+      <div class="item"><div class="label">01 / CALCULATION</div><div class="item-title">Prices are calculated in the database.</div><div class="item-copy">The browser cannot replace ticket unit prices or service-fee logic with local values.</div></div>
+      <div class="item"><div class="label">02 / INVENTORY</div><div class="item-title">Availability is checked before payment.</div><div class="item-copy">The reservation RPC locks inventory and returns the authoritative order state.</div></div>
+      <div class="item"><div class="label">03 / EXPIRY</div><div class="item-title">Inactive reservations cannot continue.</div><div class="item-copy">Expired or non-active reservations disable payment continuation and surface an error state.</div></div>
+    </section>
+  </div>
+  <div class="footer">TAKEAWAY  /  Checkout is a view of server truth, not a client-side calculator.</div>
+</div>
+</body>
+</html>
