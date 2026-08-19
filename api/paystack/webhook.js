@@ -23,6 +23,24 @@ async function supabaseRpc(name, args) {
   return payload;
 }
 
+async function findArtistTransactionByReference(reference) {
+  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/artist_fee_transactions?select=id,amount,status,transaction_type,user_id,artist_id&provider=eq.paystack&provider_reference=eq.${encodeURIComponent(reference)}&limit=1`, { headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}` } });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload?.message || "Unable to find artist transaction");
+  return payload?.[0] || null;
+}
+
+async function markArtistFailure(transaction) {
+  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const now = new Date().toISOString();
+  const transactionUrl = `${SUPABASE_URL}/rest/v1/artist_fee_transactions?id=eq.${encodeURIComponent(transaction.id)}`;
+  await fetch(transactionUrl, { method: "PATCH", headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}`, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ status: "FAILED", updated_at: now }) });
+  const table = transaction.transaction_type === "REGISTRATION" ? "artist_registrations" : "artist_verifications";
+  const key = transaction.transaction_type === "REGISTRATION" ? "transaction_id" : "transaction_id";
+  await fetch(`${SUPABASE_URL}/rest/v1/${table}?${key}=eq.${encodeURIComponent(transaction.id)}`, { method: "PATCH", headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}`, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ status: "FAILED", failure_reason: "Paystack reported a failed or disputed charge", updated_at: now }) });
+}
+
 async function findPaymentByReference(reference) {
   const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const response = await fetch(
@@ -58,6 +76,22 @@ export default async function handler(req, res) {
     const event = JSON.parse(rawBody);
     const reference = event?.data?.reference;
     if (!reference) return json(res, 200, { received: true, ignored: true });
+
+    const artistTransaction = await findArtistTransactionByReference(reference);
+    if (artistTransaction) {
+      const expectedKobo = Math.round(Number(artistTransaction.amount) * 100);
+      const receivedKobo = Number(event?.data?.amount);
+      if (event.event === "charge.success") {
+        if (event?.data?.status !== "success" || receivedKobo !== expectedKobo) return json(res, 400, { error: "Artist payment amount or status mismatch" });
+        const result = await supabaseRpc("activate_artist_fee_transaction", { p_transaction_id: artistTransaction.id, p_provider_reference: reference });
+        return json(res, 200, { received: true, result });
+      }
+      if (["charge.failed", "charge.dispute.create"].includes(event.event)) {
+        await markArtistFailure(artistTransaction);
+        return json(res, 200, { received: true, failed: true });
+      }
+      return json(res, 200, { received: true, ignored: true });
+    }
 
     const payment = await findPaymentByReference(reference);
     if (!payment) return json(res, 200, { received: true, ignored: true });

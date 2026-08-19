@@ -209,3 +209,40 @@
 - [x] Implement persistent music management, statistics, uploads where storage contracts support it, and soft unpublish behavior
 - [x] Implement booking inbox, request details, accept, decline, response, and live status transitions
 - [x] Validate artist authorization, RLS, responsive states, build, tests, and deployment readiness
+
+# New Attached Document Implementation — Untitleddocument.docx
+
+- [x] Extract and implement all requirements from the newly attached Untitleddocument.docx
+- [x] Audit the current Atizzy UI, Supabase contracts, RBAC, and payment workflows against Untitleddocument.docx
+- [x] Validate the document-driven implementation with build, tests, and responsive smoke checks
+
+# Reattached Untitleddocument.docx Reconciliation
+
+- [x] Re-read the reattached document and compare it with the current checkpoint implementation
+- [x] Implement any remaining document-driven gaps discovered in the reconciliation
+- [x] Re-run production validation and record deployment readiness
+
+# Artist Onboarding and Monetization Architecture Pass
+
+- [x] Audit the existing Artist Workspace and current onboarding, role, pricing, verification, and payment contracts
+- [x] Complete any missing onboarding, monetization, verification, and Super Admin workflows without removing existing Artist UI
+- [x] Validate preserved Artist UI, server-authoritative transitions, security boundaries, and production build
+
+# Artist Acceptance Checklist — GitHub Now
+
+- [ ] Verify artist_registration_fee exists in GitHub code and live Supabase
+- [ ] Verify artist_verification_fee exists in GitHub code and live Supabase
+- [ ] Verify Become an Artist workflow is complete
+- [ ] Verify artist application/registration entity is complete
+- [ ] Verify registration payment workflow is complete
+- [ ] Verify server-side registration payment verification is complete
+- [ ] Verify automatic Artist role activation is complete
+- [ ] Verify registration webhook is complete
+- [ ] Verify duplicate registration protection is complete
+- [ ] Verify Super Admin Artist fee setting is complete
+- [ ] Verify Artist verification payment is complete
+- [ ] Verify server-side verification webhook is complete
+- [ ] Verify golden verification state is complete
+- [ ] Verify golden checkbox UI workflow is complete
+- [ ] Verify Super Admin verification fee is complete
+- [ ] Push and verify the completed implementation on GitHub main

@@ -8,7 +8,7 @@ import {
 import { supabase } from "./lib/supabase";
 import { loadCatalog, loadEventDetail, searchCatalog, formatFollowers } from "./services/catalog";
 import CheckInScreen from "./components/CheckInScreen";
-import { loadCurrentUser, loadFavoriteState, toggleEventFavorite, toggleArtistFollow, toggleMusicFavorite, loadMusicFavorites, recordPlay, loadPlaylists, createPlaylist, submitBooking, loadRoleDashboard, loadArtistWorkspace, updateArtistProfile, updateArtistSong, artistUpdateBookingStatus, issueTicketQrToken, updateProfile } from "./services/user";
+import { loadCurrentUser, loadFavoriteState, toggleEventFavorite, toggleArtistFollow, toggleMusicFavorite, loadMusicFavorites, recordPlay, loadPlaylists, createPlaylist, submitBooking, loadRoleDashboard, loadArtistWorkspace, updateArtistProfile, updateArtistSong, artistUpdateBookingStatus, issueTicketQrToken, updateProfile, loadArtistOnboarding, initializeArtistFeePayment, loadArtistFeeTransaction, loadArtistAdminOverview, updateArtistFee } from "./services/user";
 import QRCode from "qrcode";
 
 /* ============================== DESIGN TOKENS ==============================
@@ -1178,6 +1178,7 @@ function MyTickets({ nav, player }) {
 
 /* ============================== ARTIST WORKSPACE ============================== */
 function ArtistWorkspace({ nav, account }) {
+  const hasArtistRole = (account?.roles || []).some((role) => (typeof role === "string" ? role : role.code) === "ARTIST");
   const [workspace, setWorkspace] = useState(null);
   const [tab, setTab] = useState("Dashboard");
   const [error, setError] = useState("");
@@ -1200,6 +1201,7 @@ function ArtistWorkspace({ nav, account }) {
 
   const artist = workspace?.artist;
   const songs = workspace?.songs || [];
+  if (!hasArtistRole) return <Phone><TopBack title="Artist Workspace" onBack={nav.pop} /><div className="flex-1 flex items-center justify-center px-6 text-center" style={{ color: C.muted }}>Artist Workspace is available after a verified Artist role and linked Artist profile are activated.</div></Phone>;
   const events = workspace?.events || [];
   const bookings = workspace?.bookings || [];
   const upcomingEvents = events.filter((event) => event?.starts_at && new Date(event.starts_at) >= new Date());
@@ -1235,6 +1237,15 @@ function ArtistWorkspace({ nav, account }) {
   </Phone>;
 }
 
+/* ============================== SUPER ADMIN ARTIST SETTINGS ============================== */
+function ArtistAdminSettings({ nav, account }) {
+  const [overview, setOverview] = useState(null); const [forms, setForms] = useState({ artist_registration_fee: "", artist_verification_fee: "" }); const [busy, setBusy] = useState(false); const [message, setMessage] = useState(""); const [error, setError] = useState("");
+  const refresh = async () => { try { setError(""); const data = await loadArtistAdminOverview(); setOverview(data); setForms(Object.fromEntries((data.settings || []).map((item) => [item.key, String(item.amount ?? "")] ))); } catch (loadError) { setError(loadError.message || "Unable to load artist settings."); } };
+  useEffect(() => { refresh(); }, []);
+  const save = async (key) => { setBusy(true); setMessage(""); setError(""); try { const result = await updateArtistFee(key, forms[key], account.user.id); setOverview((current) => ({ ...current, settings: (current.settings || []).map((item) => item.key === key ? result : item) })); setMessage(`${key === "artist_registration_fee" ? "Registration" : "Verification"} fee saved securely.`); } catch (saveError) { setError(saveError.message || "Only a Super Admin can change these fees."); } finally { setBusy(false); } };
+  return <Phone><TopBack title="Artist Settings" onBack={nav.pop} /><div className="flex-1 overflow-y-auto px-5 pt-2 pb-8"><p className="text-[12px] uppercase tracking-[0.16em]" style={{ color: C.gold }}>Super Admin only</p><h1 className="ev-display text-[25px] mt-1" style={{ color: C.ivory }}>Artist pricing</h1><p className="text-[12px] leading-5 mt-2" style={{ color: C.muted }}>These prices are read by the server when a transaction begins. Existing transactions keep their immutable price snapshot.</p>{error && <AuthMessage error={error} />}{message && <p className="text-[11px] mt-3" style={{ color: C.green }}>{message}</p>}{!overview && !error ? <p className="py-8 text-center text-[13px]" style={{ color: C.muted }}>Loading artist settings...</p> : <><div className="rounded-2xl p-4 mt-5" style={{ background: C.card, border: `1px solid ${C.line}` }}>{["artist_registration_fee", "artist_verification_fee"].map((key) => { const setting = overview?.settings?.find((item) => item.key === key); return <div key={key} className="pb-4 mb-4 last:pb-0 last:mb-0" style={{ borderBottom: key === "artist_registration_fee" ? `1px solid ${C.line}` : "none" }}><p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{key === "artist_registration_fee" ? "Artist Registration Fee" : "Artist Verification Fee"}</p><p className="text-[11px] mt-1" style={{ color: C.muted }}>{setting?.currency || "NGN"} · Last updated {setting?.updated_at ? new Date(setting.updated_at).toLocaleString("en-NG") : "not yet updated"}</p><div className="flex gap-2 mt-3"><input type="number" min="0" step="0.01" value={forms[key] || ""} onChange={(event) => setForms((current) => ({ ...current, [key]: event.target.value }))} className="flex-1 rounded-xl px-3 py-2 text-[13px] outline-none" style={{ background: C.bg, color: C.ivory, border: `1px solid ${C.line}` }} /><button disabled={busy} onClick={() => save(key)} className="px-4 rounded-xl text-[11px] font-semibold" style={{ background: C.gold, color: C.bg }}>{busy ? "Saving" : "Save"}</button></div></div>})}</div><div className="rounded-2xl p-4 mt-4" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[13px] font-semibold" style={{ color: C.ivory }}>Application oversight</p><p className="text-[11px] mt-2" style={{ color: C.muted }}>{overview?.registrations?.length || 0} registration records · {overview?.verifications?.length || 0} verification records · {overview?.transactions?.length || 0} fee transactions</p><p className="text-[11px] mt-2" style={{ color: C.muted }}>Role activation remains webhook/RPC controlled; this screen only manages price configuration and visibility.</p></div></>}</div></Phone>;
+}
+
 /* ============================== ROLE CENTER ============================== */
 function RoleCenter({ nav, account }) {
   const [dashboard, setDashboard] = useState(null);
@@ -1243,11 +1254,46 @@ function RoleCenter({ nav, account }) {
   const roles = (account?.roles || []).map((role) => typeof role === "string" ? role : role.code).filter(Boolean);
   if (!roles.length) return <Phone><TopBack title="Workspace" onBack={nav.pop} /><div className="flex-1 flex items-center justify-center px-6 text-center" style={{ color: C.muted }}>No operational role is assigned to this account.</div></Phone>;
   const metrics = [{ label: "Events", value: dashboard?.events?.length || 0, visible: roles.some((role) => ["ORGANIZER", "ADMIN", "SUPER_ADMIN"].includes(role)) }, { label: "Bookings", value: dashboard?.bookings?.length || 0, visible: roles.some((role) => ["ARTIST", "ADMIN", "SUPER_ADMIN"].includes(role)) }, { label: "Venues", value: dashboard?.venues?.length || 0, visible: roles.some((role) => ["VENUE_MANAGER", "ADMIN", "SUPER_ADMIN"].includes(role)) }, { label: "Songs", value: dashboard?.songs?.length || 0, visible: roles.some((role) => ["ARTIST", "ADMIN", "SUPER_ADMIN"].includes(role)) }].filter((metric) => metric.visible);
-  return <Phone><TopBack title="Workspace" onBack={nav.pop} /><div className="px-5 pt-2 pb-3"><p className="text-[12px] uppercase tracking-[0.16em]" style={{ color: C.gold }}>Protected workspace</p><h1 className="ev-display text-[24px] mt-1" style={{ color: C.ivory }}>Your Atizzy operations</h1><p className="text-[12px] mt-2" style={{ color: C.muted }}>{roles.map((role) => role.replaceAll("_", " ")).join(" · ")}</p></div><div className="flex-1 overflow-y-auto px-5">{error && <AuthMessage error={error} />}{!dashboard && !error && <p className="py-8 text-center text-[13px]" style={{ color: C.muted }}>Loading workspace data...</p>}<div className="grid grid-cols-2 gap-3 mb-5">{metrics.map((metric) => <div key={metric.label} className="rounded-2xl p-4" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[24px] font-semibold" style={{ color: C.goldSoft }}>{metric.value}</p><p className="text-[11px] mt-1" style={{ color: C.muted }}>{metric.label} visible to you</p></div>)}</div><div className="rounded-2xl p-4 mb-5" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[14px] font-semibold mb-3" style={{ color: C.ivory }}>Role capabilities</p>{roles.map((role) => <div key={role} className="flex items-center justify-between py-2" style={{ borderBottom: `1px solid ${C.line}` }}><span className="text-[12px]" style={{ color: C.ivory }}>{role.replaceAll("_", " ")}</span><ShieldCheck size={15} color={C.gold} /></div>)}</div>{roles.includes("ORGANIZER") && <GoldButton onClick={() => nav.push("organizerEvents")}>Manage my events</GoldButton>}{roles.includes("ARTIST") && <><div className="mt-3"><GoldButton onClick={() => nav.push("artistWorkspace")}>Open Artist Workspace</GoldButton></div><div className="mt-3"><GhostButton onClick={() => nav.push("artistLibrary")}>Manage music library</GhostButton></div></>}{roles.includes("VENUE_MANAGER") && <div className="mt-3"><GhostButton onClick={() => nav.push("venueManager")}>Manage venues</GhostButton></div>}{roles.some((role) => ["EVENT_STAFF", "VENUE_MANAGER", "ORGANIZER", "ADMIN", "SUPER_ADMIN"].includes(role)) && <div className="mt-3"><GhostButton onClick={() => nav.push("checkIn")}>Check in a ticket</GhostButton></div>}</div></Phone>;
+  return <Phone><TopBack title="Workspace" onBack={nav.pop} /><div className="px-5 pt-2 pb-3"><p className="text-[12px] uppercase tracking-[0.16em]" style={{ color: C.gold }}>Protected workspace</p><h1 className="ev-display text-[24px] mt-1" style={{ color: C.ivory }}>Your Atizzy operations</h1><p className="text-[12px] mt-2" style={{ color: C.muted }}>{roles.map((role) => role.replaceAll("_", " ")).join(" · ")}</p></div><div className="flex-1 overflow-y-auto px-5">{error && <AuthMessage error={error} />}{!dashboard && !error && <p className="py-8 text-center text-[13px]" style={{ color: C.muted }}>Loading workspace data...</p>}<div className="grid grid-cols-2 gap-3 mb-5">{metrics.map((metric) => <div key={metric.label} className="rounded-2xl p-4" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[24px] font-semibold" style={{ color: C.goldSoft }}>{metric.value}</p><p className="text-[11px] mt-1" style={{ color: C.muted }}>{metric.label} visible to you</p></div>)}</div><div className="rounded-2xl p-4 mb-5" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[14px] font-semibold mb-3" style={{ color: C.ivory }}>Role capabilities</p>{roles.map((role) => <div key={role} className="flex items-center justify-between py-2" style={{ borderBottom: `1px solid ${C.line}` }}><span className="text-[12px]" style={{ color: C.ivory }}>{role.replaceAll("_", " ")}</span><ShieldCheck size={15} color={C.gold} /></div>)}</div>{roles.includes("SUPER_ADMIN") && <><GoldButton onClick={() => nav.push("artistAdminSettings")}>Manage artist pricing</GoldButton><div className="mt-3"><GhostButton onClick={() => nav.push("organizerEvents")}>Manage my events</GhostButton></div></>}{roles.includes("ORGANIZER") && !roles.includes("SUPER_ADMIN") && <GoldButton onClick={() => nav.push("organizerEvents")}>Manage my events</GoldButton>}{roles.includes("ARTIST") && <><div className="mt-3"><GoldButton onClick={() => nav.push("artistWorkspace")}>Open Artist Workspace</GoldButton></div><div className="mt-3"><GhostButton onClick={() => nav.push("artistVerification")}>Get Verified</GhostButton></div><div className="mt-3"><GhostButton onClick={() => nav.push("artistLibrary")}>Manage music library</GhostButton></div></>}{roles.includes("VENUE_MANAGER") && <div className="mt-3"><GhostButton onClick={() => nav.push("venueManager")}>Manage venues</GhostButton></div>}{roles.some((role) => ["EVENT_STAFF", "VENUE_MANAGER", "ORGANIZER", "ADMIN", "SUPER_ADMIN"].includes(role)) && <div className="mt-3"><GhostButton onClick={() => nav.push("checkIn")}>Check in a ticket</GhostButton></div>}</div></Phone>;
 }
 
 function RoleResourceScreen({ nav, account, title, description, rows, emptyLabel, columns }) {
   return <Phone><TopBack title={title} onBack={nav.pop} /><div className="px-5 pt-2 pb-3"><p className="text-[12px] uppercase tracking-[0.16em]" style={{ color: C.gold }}>Protected workspace</p><h1 className="ev-display text-[24px] mt-1" style={{ color: C.ivory }}>{title}</h1><p className="text-[12px] mt-2" style={{ color: C.muted }}>{description}</p></div><div className="flex-1 overflow-y-auto px-5">{!rows?.length ? <EmptyResourceCard label={emptyLabel} description="This module stays available while live records are provisioned." /> : rows.map((row) => <div key={row.id} className="rounded-2xl p-4 mb-3" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[14px] font-semibold" style={{ color: C.ivory }}>{row[columns.title] || "Untitled"}</p><div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">{columns.meta.map((key) => <span key={key} className="text-[11px]" style={{ color: C.muted }}>{String(row[key] ?? "Not provided")}</span>)}</div></div>)}</div></Phone>;
+}
+
+/* ============================== ARTIST ONBOARDING ============================== */
+function ArtistOnboarding({ nav, account, mode = "REGISTRATION" }) {
+  const [state, setState] = useState({ fees: [], registration: null, verification: null, artist: null });
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const feeKey = mode === "REGISTRATION" ? "artist_registration_fee" : "artist_verification_fee";
+  const fee = state.fees.find((item) => item.key === feeKey);
+  const record = mode === "REGISTRATION" ? state.registration : state.verification;
+  useEffect(() => { let mounted = true; loadArtistOnboarding(account?.user?.id).then((value) => { if (mounted) setState(value); }).catch((error) => { if (mounted) setMessage(error.message || "Unable to load artist onboarding."); }).finally(() => mounted && setLoading(false)); return () => { mounted = false; }; }, [account?.user?.id]);
+  const startPayment = async () => {
+    setBusy(true); setMessage("");
+    try {
+      const session = (await supabase.auth.getSession()).data.session;
+      if (!session?.access_token) throw new Error("Please sign in again before starting payment.");
+      const idempotencyKey = `atizzy-${mode.toLowerCase()}-${account.user.id}-${Date.now()}`;
+      const response = await fetch("/api/paystack/artist-initialize", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ transactionType: mode, email: account.user.email, idempotencyKey, callbackUrl: `${window.location.origin}/?artist-payment=callback` }) });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "Unable to initialize payment.");
+      nav.push("artistProcessing", { transactionId: payload.transactionId, transactionType: mode, authorizationUrl: payload.authorizationUrl });
+      window.location.assign(payload.authorizationUrl);
+    } catch (error) { setMessage(error.message || "Unable to start payment."); } finally { setBusy(false); }
+  };
+  const active = ["PENDING_PAYMENT", "ACTIVATING"].includes(record?.status);
+  const complete = mode === "REGISTRATION" ? record?.status === "ACTIVE" : record?.status === "VERIFIED";
+  return <Phone><TopBack title={mode === "REGISTRATION" ? "Become an Artist" : "Verify Artist"} onBack={nav.pop} /><div className="flex-1 overflow-y-auto px-5 pt-2 pb-8"><p className="text-[12px] uppercase tracking-[0.16em]" style={{ color: C.gold }}>{mode === "REGISTRATION" ? "Artist registration" : "Artist verification"}</p><h1 className="ev-display text-[27px] mt-1" style={{ color: C.ivory }}>{mode === "REGISTRATION" ? "Build your artist presence" : "Earn your verified badge"}</h1><p className="text-[13px] leading-6 mt-3" style={{ color: C.muted }}>{mode === "REGISTRATION" ? "Create your artist profile and unlock the artist workspace, music tools, bookings, and event participation." : "Verification is a separate server-confirmed status. Registration alone does not grant the golden badge."}</p>{loading ? <p className="py-8 text-center text-[13px]" style={{ color: C.muted }}>Loading current fee and application status...</p> : <><div className="rounded-2xl p-4 mt-5" style={{ background: C.card, border: `1px solid ${C.line}` }}><div className="flex items-start justify-between gap-4"><div><p className="text-[12px]" style={{ color: C.muted }}>Current fee</p><p className="text-[25px] font-semibold mt-1" style={{ color: C.goldSoft }}>{money(fee?.amount)}</p><p className="text-[11px] mt-1" style={{ color: C.muted }}>{fee?.currency || "NGN"} · captured from live platform settings</p></div><ShieldCheck size={22} color={C.gold} /></div></div><div className="rounded-2xl p-4 mt-3" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[13px] font-semibold" style={{ color: C.ivory }}>Server-authoritative status</p><p className="text-[12px] mt-2" style={{ color: C.muted }}>{complete ? (mode === "REGISTRATION" ? "Your artist role is active. Open the workspace to continue." : "Your artist profile is verified and the golden badge is active.") : active ? "Payment was started. Atizzy will activate this status only after verified Paystack confirmation." : record?.status === "FAILED" ? "The previous payment failed. You can retry without trusting a browser redirect." : "No successful transaction has activated this status yet."}</p></div>{message && <AuthMessage error={message} />}{complete ? <div className="mt-5"><div className="flex items-center justify-center gap-2 mb-3 text-[12px] font-semibold" style={{ color: C.gold }}><ShieldCheck size={15} color={C.gold} fill={C.gold} /> {mode === "REGISTRATION" ? "Artist role active" : "Golden verification active"}</div><GoldButton onClick={() => nav.push("artistWorkspace")}>Open Artist Workspace</GoldButton></div> : active ? <div className="mt-5"><GhostButton onClick={() => nav.push("artistProcessing", { transactionId: record.transaction_id, transactionType: mode })}>Check payment status</GhostButton></div> : <div className="mt-5"><GoldButton onClick={startPayment} disabled={busy || !fee}>{busy ? "Starting secure payment..." : `Pay ${money(fee?.amount)} and continue`}</GoldButton></div>}</>}</div></Phone>;
+}
+
+function ArtistPaymentProcessing({ nav, data }) {
+  const [status, setStatus] = useState("PROCESSING");
+  const [message, setMessage] = useState("");
+  useEffect(() => { let mounted = true; let timer; const check = async () => { try { const transaction = await loadArtistFeeTransaction(data?.transactionId); if (!mounted) return; setStatus(transaction?.status || "PROCESSING"); if (transaction?.status === "VERIFIED_SUCCESS") { window.localStorage.removeItem("atizzy:pending-artist-payment"); nav.replace(data.transactionType === "REGISTRATION" ? "artistOnboarding" : "artistVerification"); return; } if (["FAILED", "CANCELLED", "EXPIRED"].includes(transaction?.status)) { setMessage("Payment was not verified. You can safely retry from the previous screen."); return; } timer = window.setTimeout(check, 2500); } catch (error) { if (mounted) { setMessage(error.message || "Unable to check payment status."); timer = window.setTimeout(check, 4000); } } }; check(); return () => { mounted = false; window.clearTimeout(timer); }; }, [data?.transactionId, data?.transactionType]);
+  return <Phone><div className="flex-1 flex flex-col justify-center px-6 text-center"><div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center" style={{ background: C.green, border: `1px solid ${C.gold}` }}><Clock size={26} color={C.gold} /></div><h1 className="ev-display text-[27px] mt-5" style={{ color: C.ivory }}>Confirming your payment</h1><p className="text-[13px] leading-6 mt-3" style={{ color: C.muted }}>{status === "VERIFIED_SUCCESS" ? "Payment verified. Restoring your artist status..." : "Do not close this page. Atizzy waits for the signed Paystack webhook before activating your account."}</p>{message && <p className="text-[12px] mt-4" style={{ color: C.red }}>{message}</p>}<div className="mt-6"><GhostButton onClick={() => nav.pop()}>Back to artist status</GhostButton></div></div></Phone>;
 }
 
 /* ============================== PROFILE (stub, phase 1) ============================== */
@@ -1286,6 +1332,8 @@ function Profile({ nav, player, account }) {
         </form>}
         {message && !editing && <p className="text-[11px] mb-3 text-center" style={{ color: C.green }}>{message}</p>}
         {account?.roles?.length > 0 && <button onClick={() => nav.push("roleCenter")} className="w-full flex items-center justify-between py-3.5" style={{ borderBottom: `1px solid ${C.line}` }}><span className="text-[13.5px]" style={{ color: C.goldSoft }}>Open workspace</span><ShieldCheck size={15} color={C.gold} /></button>}
+        {!account?.roles?.some((role) => (typeof role === "string" ? role : role.code) === "ARTIST") && <button onClick={() => nav.push("artistOnboarding")} className="w-full flex items-center justify-between py-3.5" style={{ borderBottom: `1px solid ${C.line}` }}><span className="text-[13.5px]" style={{ color: C.goldSoft }}>Become an Artist</span><ChevronRight size={15} color={C.muted} /></button>}
+        {account?.roles?.some((role) => (typeof role === "string" ? role : role.code) === "ARTIST") && <button onClick={() => nav.push("artistVerification")} className="w-full flex items-center justify-between py-3.5" style={{ borderBottom: `1px solid ${C.line}` }}><span className="text-[13.5px]" style={{ color: C.goldSoft }}>Get Verified</span><ShieldCheck size={15} color={C.gold} /></button>}
         {items.map((it) => (
           <button key={it} onClick={() => it === "My Tickets" ? nav.push("tickets") : it === "Music Library" ? nav.push("music") : null} className="w-full flex items-center justify-between py-3.5" style={{ borderBottom: `1px solid ${C.line}` }}>
             <span className="text-[13.5px]" style={{ color: C.ivory }}>{it}</span>
@@ -1320,7 +1368,7 @@ function ArtistProfile({ nav, data, account, catalog }) {
       <div className="px-5 pt-11">
         <div className="flex items-center gap-1.5 mb-1">
           <p className="text-[19px] font-semibold" style={{ color: C.ivory }}>{a.name}</p>
-          {a.verified && <ShieldCheck size={15} color={C.gold} fill={C.gold} />}
+          {a.verified && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ color: C.bg, background: C.gold }}><ShieldCheck size={12} color={C.bg} fill={C.bg} /> Verified</span>}
         </div>
         <p className="text-[12px] mb-4" style={{ color: C.muted }}>{a.followers || 0} Followers</p>
         <div className="flex gap-3 mb-5">
@@ -1553,14 +1601,17 @@ export default function EventVerseApp() {
         const { data } = await supabase.auth.getSession();
         const sharedEventId = url.pathname.match(/^\/events\/([^/]+)/)?.[1] ? decodeURIComponent(url.pathname.match(/^\/events\/([^/]+)/)[1]) : null;
         const paymentCallback = url.searchParams.get("payment") === "callback";
+        const artistPaymentCallback = url.searchParams.get("artist-payment") === "callback";
         const pendingPayment = paymentCallback ? JSON.parse(window.localStorage.getItem("atizzy:pending-payment") || "null") : null;
-        if (paymentCallback) {
+        const pendingArtistPayment = artistPaymentCallback ? JSON.parse(window.localStorage.getItem("atizzy:pending-artist-payment") || "null") : null;
+        if (paymentCallback || artistPaymentCallback) {
           url.searchParams.delete("payment");
+          url.searchParams.delete("artist-payment");
           window.history.replaceState({}, document.title, `${url.pathname}${url.search}`);
         }
         if (mounted && data.session) {
           window.localStorage.setItem("eventverse:onboarding-complete", "1");
-          setStack([{ screen: pendingPayment ? "processing" : (sharedEventId ? "eventDetail" : "home"), data: pendingPayment || (sharedEventId ? { id: sharedEventId } : null) }]);
+          setStack([{ screen: pendingArtistPayment ? "artistProcessing" : (pendingPayment ? "processing" : (sharedEventId ? "eventDetail" : "home")), data: pendingArtistPayment || pendingPayment || (sharedEventId ? { id: sharedEventId } : null) }]);
           void ensureUserProfile(data.session.user);
         }
       } catch (restoreError) {
@@ -1632,6 +1683,10 @@ export default function EventVerseApp() {
     checkIn: <CheckInScreen nav={nav} />,
     roleCenter: <RoleCenter nav={nav} account={account} />,
     artistWorkspace: <ArtistWorkspace nav={nav} account={account} />,
+    artistOnboarding: <ArtistOnboarding nav={nav} account={account} mode="REGISTRATION" />,
+    artistVerification: <ArtistOnboarding nav={nav} account={account} mode="VERIFICATION" />,
+    artistProcessing: <ArtistPaymentProcessing nav={nav} data={current.data} />,
+    artistAdminSettings: <ArtistAdminSettings nav={nav} account={account} />,
     organizerEvents: <RoleResourceScreen nav={nav} account={account} title="My Events" description="Organizer-owned event records visible through Supabase RLS." rows={roleDashboard?.events || []} emptyLabel="No organizer events are available yet." columns={{ title: "title", meta: ["status", "city", "starts_at"] }} />,
     artistLibrary: <RoleResourceScreen nav={nav} account={account} title="Music Library" description="Artist library records available to your role." rows={roleDashboard?.songs || []} emptyLabel="No songs are available for this artist workspace." columns={{ title: "title", meta: ["play_count", "audio_url"] }} />,
     venueManager: <RoleResourceScreen nav={nav} account={account} title="Venues" description="Venue records owned by this account." rows={roleDashboard?.venues || []} emptyLabel="No venues are available for this account." columns={{ title: "name", meta: ["city", "capacity"] }} />,
