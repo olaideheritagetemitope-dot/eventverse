@@ -353,7 +353,18 @@ function Login({ nav }) {
 
   const oauth = async (provider) => {
     setError("");
-    const { error: authError } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: window.location.origin } });
+    const queryParams = provider === "spotify"
+      ? { show_dialog: "true" }
+      : provider === "google"
+        ? { prompt: "select_account" }
+        : undefined;
+    const { error: authError } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: window.location.origin,
+        ...(queryParams ? { queryParams } : {}),
+      },
+    });
     if (authError) setError(authError.message);
   };
 

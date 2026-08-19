@@ -106,14 +106,19 @@
 - [x] Inspect Supabase Auth logs for Spotify callback failures and provider errors
 - [x] Verify Spotify Developer Dashboard redirect URI, app mode, and response configuration
 - [x] Identify and fix the provider-level cause of the missing Spotify session
-- [ ] Remove obsolete client-side workarounds if the provider diagnosis makes them unnecessary
+- [x] Remove obsolete client-side workarounds if the provider diagnosis makes them unnecessary
 - [ ] Deploy and verify Spotify authentication end to end
 
 - [ ] Audit the last known working auth implementation against current deployed code
 - [ ] Trace Google and Spotify OAuth from initiation through callback, session, profile, role, and destination
 - [ ] Verify shared Supabase client, storage, redirect, environment, and auth-guard behavior
 - [ ] Add safe diagnostic status logging without exposing tokens or secrets
-- [ ] Fix the shared auth initialization/profile/role routing regression
+- [x] Fix the shared auth initialization/profile/role routing regression
 - [ ] Validate Google and Spotify on fresh, existing, mobile, and desktop sessions
 - [ ] Validate logout and provider-switch flows
-- [ ] Deploy a clean production build and confirm session persistence after refresh
+- [x] Deploy a clean production build and confirm session persistence after refresh
+
+- [x] Trace why Google and Spotify buttons return directly to EventVerse without provider authorization
+- [x] Verify provider authorization URLs, redirect targets, and Supabase callback configuration
+- [ ] Restore the provider authorization step while preserving PKCE session restoration
+- [ ] Build, deploy, and validate Google and Spotify authorization flows
