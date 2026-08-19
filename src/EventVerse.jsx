@@ -242,10 +242,13 @@ const SLIDES = [
 function Onboarding({ nav }) {
   const [i, setI] = useState(0);
   const s = SLIDES[i];
-  const next = () => {
-    if (i < 3) return setI(i + 1);
+  const openAuth = () => {
     window.localStorage.setItem("eventverse:onboarding-complete", "1");
     nav.push("login");
+  };
+  const next = () => {
+    if (i < 3) return setI(i + 1);
+    openAuth();
   };
   return (
     <Phone>
@@ -263,7 +266,7 @@ function Onboarding({ nav }) {
           <p className="text-[13.5px] mb-7 whitespace-pre-line leading-relaxed" style={{ color: C.muted }}>{s.sub}</p>
           <GoldButton onClick={next}>{s.cta}</GoldButton>
           {s.showLogin ? (
-            <button onClick={() => nav.push("login")} className="w-full text-center py-3.5 text-[14px] font-medium" style={{ color: C.ivory }}>Login</button>
+            <button onClick={openAuth} className="w-full text-center py-3.5 text-[14px] font-medium" style={{ color: C.ivory }}>Login</button>
           ) : (
             <div className="flex justify-center gap-1.5 pt-5">
               {SLIDES.map((_, idx) => (
@@ -1254,6 +1257,7 @@ export default function EventVerseApp() {
         if (callbackError) console.error("EventVerse OAuth callback returned an error", callbackError);
         const { data } = await supabase.auth.getSession();
         if (mounted && data.session) {
+          window.localStorage.setItem("eventverse:onboarding-complete", "1");
           await ensureUserProfile(data.session.user);
           setStack([{ screen: "home", data: null }]);
         }

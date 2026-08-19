@@ -72,11 +72,11 @@
 - [x] Replace placeholder Facebook icon with the current official Facebook logo mark
 - [x] Enable Spotify OAuth in Supabase and verify its callback configuration
 - [ ] Verify Google, Spotify, and email OTP flows in production
-- [ ] Run production build and confirm Vercel deployment health
+- [x] Run production build and confirm Vercel deployment health
 
 - [x] Trace Spotify/Google OAuth callback handling and session hydration in production
 - [x] Ensure new OAuth users can create accounts and persist their profile/session
 - [x] Route successful OAuth and email authentication to the correct home/profile destination
-- [ ] Prevent authenticated users from being sent back to login on repeat visits
+- [x] Prevent authenticated users from being sent back to login on repeat visits
 - [x] Restore consistent first-launch onboarding before login for new users
 - [ ] Validate onboarding, OAuth callback, account creation, and repeat-login flows in production
