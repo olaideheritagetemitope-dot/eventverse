@@ -32,6 +32,16 @@ const C = {
   line: "#2A2419",
 };
 
+async function ensureUserProfile(user) {
+  if (!user?.id) return;
+  const fullName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split("@")[0] || null;
+  const { error } = await supabase.from("user_profiles").upsert(
+    { id: user.id, full_name: fullName, avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null },
+    { onConflict: "id", ignoreDuplicates: false },
+  );
+  if (error) console.error("EventVerse profile bootstrap failed", error);
+}
+
 const font = `
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap');
   .ev-root { font-family: 'Inter', sans-serif; }
@@ -441,7 +451,7 @@ function Verify({ nav, data }) {
   const email = data?.email || "your email address";
   const verify = async () => {
     setBusy(true); setError("");
-    const { error: authError } = await supabase.auth.verifyOtp({ email, token: code.trim(), type: "email" });
+    const { error: authError } = await supabase.auth.verifyOtp({ email, token: code.trim(), type: data?.mode === "signup" ? "signup" : "email" });
     if (authError) {
       setBusy(false);
       return setError(authError.message);
@@ -1230,17 +1240,40 @@ export default function EventVerseApp() {
       if (events.length || artists.length || songs.length) setCatalog({ events: events.length ? events : EVENTS, artists: artists.length ? artists : ARTISTS, songs: songs.length ? songs : SONGS });
     };
     const restore = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (mounted && data.session) setStack([{ screen: "home", data: null }]);
-      if (mounted) setAuthReady(true);
+      try {
+        const url = new URL(window.location.href);
+        const code = url.searchParams.get("code");
+        const callbackError = url.searchParams.get("error_description") || url.searchParams.get("error");
+        if (code) {
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (exchangeError) console.error("EventVerse OAuth callback exchange failed", exchangeError);
+          url.searchParams.delete("code");
+          url.searchParams.delete("state");
+          window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+        }
+        if (callbackError) console.error("EventVerse OAuth callback returned an error", callbackError);
+        const { data } = await supabase.auth.getSession();
+        if (mounted && data.session) {
+          await ensureUserProfile(data.session.user);
+          setStack([{ screen: "home", data: null }]);
+        }
+      } catch (restoreError) {
+        console.error("EventVerse auth restore failed", restoreError);
+      } finally {
+        if (mounted) setAuthReady(true);
+      }
     };
     load(); restore();
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted || !session) return;
-      setStack((currentStack) => {
-        const active = currentStack[currentStack.length - 1]?.screen;
-        return ["onboarding", "login", "signup", "verify"].includes(active) ? [{ screen: "home", data: null }] : currentStack;
-      });
+      // Defer profile I/O outside Supabase's auth event callback to avoid re-entrant locks.
+      setTimeout(() => ensureUserProfile(session.user), 0);
+      if (["SIGNED_IN", "TOKEN_REFRESHED"].includes(event)) {
+        setStack((currentStack) => {
+          const active = currentStack[currentStack.length - 1]?.screen;
+          return ["onboarding", "login", "signup", "verify"].includes(active) ? [{ screen: "home", data: null }] : currentStack;
+        });
+      }
     });
     return () => { mounted = false; listener.subscription.unsubscribe(); };
   }, []);
