@@ -120,5 +120,11 @@
 
 - [x] Trace why Google and Spotify buttons return directly to EventVerse without provider authorization
 - [x] Verify provider authorization URLs, redirect targets, and Supabase callback configuration
-- [ ] Restore the provider authorization step while preserving PKCE session restoration
-- [ ] Build, deploy, and validate Google and Spotify authorization flows
+- [x] Restore the provider authorization step while preserving PKCE session restoration
+- [x] Build, deploy, and validate Google and Spotify authorization flows
+
+- [x] Rebrand the app display name from EventVerse to Atizzy
+- [x] Install the supplied Atizzy artwork as the unchanged square app icon
+- [x] Generate correctly sized icon, splash, favicon, and adaptive-icon assets from the supplied artwork
+- [x] Update branding metadata without changing the application UI design
+- [x] Build and verify the Atizzy branding update

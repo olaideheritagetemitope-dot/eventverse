@@ -233,7 +233,7 @@ function MiniPlayer({ song, playing, onToggle, onOpen }) {
 
 /* ============================== ONBOARDING ============================== */
 const SLIDES = [
-  { title: "EVENTVERSE", sub: "Events, Music, Experiences.\nAll in one place.", cta: "Get Started", showLogin: true, bg: `linear-gradient(180deg, transparent, ${C.bg}), radial-gradient(circle at 50% 30%, ${C.woodLight}55, transparent 60%), linear-gradient(160deg, ${C.green}, ${C.bg})` },
+  { title: "ATIZZY", sub: "Events, Music, Experiences.\nAll in one place.", cta: "Get Started", showLogin: true, bg: `linear-gradient(180deg, transparent, ${C.bg}), radial-gradient(circle at 50% 30%, ${C.woodLight}55, transparent 60%), linear-gradient(160deg, ${C.green}, ${C.bg})` },
   { title: "Discover", sub: "Find amazing events, artists, and venues near you.", cta: "Next", bg: `linear-gradient(180deg, transparent, ${C.bg}), linear-gradient(160deg, ${C.wood}, ${C.bg})` },
   { title: "Book", sub: "Book tickets, venues, and artists in a few taps.", cta: "Next", bg: `linear-gradient(180deg, transparent, ${C.bg}), linear-gradient(160deg, ${C.blue}, ${C.bg})` },
   { title: "Experience", sub: "Enjoy events, stream music, and create memories.", cta: "Get Started", bg: `linear-gradient(180deg, transparent, ${C.bg}), linear-gradient(160deg, ${C.green}, ${C.wood})` },
@@ -258,7 +258,7 @@ function Onboarding({ nav }) {
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ border: `1.5px solid ${C.gold}`, transform: "rotate(45deg)" }}>
               <span className="ev-display text-[22px]" style={{ color: C.gold, transform: "rotate(-45deg)" }}>E</span>
             </div>
-            <span className="ev-display tracking-[0.2em] text-[15px]" style={{ color: C.goldSoft }}>EVENTVERSE</span>
+            <span className="ev-display tracking-[0.2em] text-[15px]" style={{ color: C.goldSoft }}>ATIZZY</span>
           </div>
         )}
         <div className="px-7 pb-8">
@@ -378,7 +378,7 @@ function Login({ nav }) {
   return (
     <Phone>
       <div className="flex-1 px-6 pt-8 overflow-y-auto">
-        <span className="ev-display tracking-[0.15em] text-[13px]" style={{ color: C.goldSoft }}>EVENTVERSE</span>
+        <span className="ev-display tracking-[0.15em] text-[13px]" style={{ color: C.goldSoft }}>ATIZZY</span>
         <h1 className="ev-display text-[26px] mt-6 mb-1" style={{ color: C.ivory }}>Welcome Back</h1>
         <p className="text-[13px] mb-8" style={{ color: C.muted }}>Login to your account</p>
         <Field label="Email" type="email" placeholder="renile@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -1250,7 +1250,7 @@ export default function EventVerseApp() {
         img: e.cover_url || `linear-gradient(160deg, ${C.wood}, ${C.green})`, tag: index === 0 ? "Featured" : index === 1 ? "Trending" : "Near You",
       }));
       const artists = (artistResult.data || []).map((a) => ({ id: a.id, name: a.name, followers: formatFollowers(a.follower_count), verified: a.verified, img: a.image_url || `linear-gradient(160deg, ${C.wood}, ${C.green})` }));
-      const songs = (songResult.data || []).map((s) => ({ id: s.id, title: s.title, artist: s.artists?.name || "EventVerse Artist", duration: `${Math.floor(s.duration_seconds / 60)}:${String(s.duration_seconds % 60).padStart(2, "0")}`, plays: formatFollowers(s.play_count) }));
+      const songs = (songResult.data || []).map((s) => ({ id: s.id, title: s.title, artist: s.artists?.name || "Atizzy Artist", duration: `${Math.floor(s.duration_seconds / 60)}:${String(s.duration_seconds % 60).padStart(2, "0")}`, plays: formatFollowers(s.play_count) }));
       if (events.length || artists.length || songs.length) setCatalog({ events: events.length ? events : EVENTS, artists: artists.length ? artists : ARTISTS, songs: songs.length ? songs : SONGS });
     };
     const restore = async () => {
@@ -1339,7 +1339,7 @@ export default function EventVerseApp() {
   // "tickets" tab in bottom nav should show MyTickets, not ticket selector — route it explicitly.
   if (current.screen === "tickets" && !current.data) screens.tickets = <MyTickets nav={nav} player={player} />;
 
-  if (!authReady) return <div className="ev-app-viewport flex min-h-screen items-center justify-center" style={{ background: C.bg, color: C.goldSoft }}>Loading EventVerse...</div>;
+  if (!authReady) return <div className="ev-app-viewport flex min-h-screen items-center justify-center" style={{ background: C.bg, color: C.goldSoft }}>Loading Atizzy...</div>;
 
   return (
     <div className="ev-app-viewport flex min-h-screen w-full items-stretch justify-stretch overflow-hidden" style={{ background: C.bg, minHeight: "100dvh", width: "100dvw" }}>
