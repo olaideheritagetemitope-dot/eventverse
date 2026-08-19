@@ -5,14 +5,13 @@ import { createClient } from "@supabase/supabase-js";
 export const SUPABASE_URL = "https://blalvoelllndmbppbkcy.supabase.co";
 export const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_UPS5rb-O3q2hExK0RtPoBA_dn5X6aPf";
 
+// Keep the default Supabase browser flow (PKCE). It was the last known working
+// configuration for both Google and Spotify in EventVerse. The verifier is stored
+// by supabase-js in browser storage and is exchanged at the Supabase callback.
 export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    // EventVerse is a client-only Vite SPA. Implicit flow keeps the provider
-    // session in the browser URL fragment and avoids losing a PKCE verifier
-    // when mobile browsers hand off to Spotify and return to the app.
-    flowType: "implicit",
   },
 });

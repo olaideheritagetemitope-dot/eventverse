@@ -97,8 +97,23 @@
 - [x] Apply and validate the smallest correct Spotify authentication fix
 - [ ] Re-test the corrected Spotify flow on production
 
-- [ ] Persist the confirmed Spotify redirect-loop evidence and affected production URL
+- [x] Persist the confirmed Spotify redirect-loop evidence and affected production URL
 - [x] Instrument Spotify callback, Supabase session events, and route transitions
 - [x] Identify why the authenticated session is not reaching the user profile/home route
 - [x] Remove the redirect loop at its root without adding another manual redirect workaround
 - [ ] Build, deploy, and verify the final Spotify authentication flow
+
+- [x] Inspect Supabase Auth logs for Spotify callback failures and provider errors
+- [x] Verify Spotify Developer Dashboard redirect URI, app mode, and response configuration
+- [x] Identify and fix the provider-level cause of the missing Spotify session
+- [ ] Remove obsolete client-side workarounds if the provider diagnosis makes them unnecessary
+- [ ] Deploy and verify Spotify authentication end to end
+
+- [ ] Audit the last known working auth implementation against current deployed code
+- [ ] Trace Google and Spotify OAuth from initiation through callback, session, profile, role, and destination
+- [ ] Verify shared Supabase client, storage, redirect, environment, and auth-guard behavior
+- [ ] Add safe diagnostic status logging without exposing tokens or secrets
+- [ ] Fix the shared auth initialization/profile/role routing regression
+- [ ] Validate Google and Spotify on fresh, existing, mobile, and desktop sessions
+- [ ] Validate logout and provider-switch flows
+- [ ] Deploy a clean production build and confirm session persistence after refresh

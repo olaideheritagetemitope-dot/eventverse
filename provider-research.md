@@ -45,3 +45,13 @@ The second screen recording `/home/ubuntu/upload/Screen_Recording_20260819_14061
 The active Vite Supabase client uses `persistSession: true`, `autoRefreshToken: true`, `detectSessionInUrl: true`, and `flowType: "implicit"`. The Spotify provider is enabled in Supabase and displays callback URL `https://blalvoelllndmbppbkcy.supabase.co/auth/v1/callback`. Supabase URL Configuration has Site URL `https://eventverse-eight.vercel.app` and allowed redirects `https://eventverse-eight.vercel.app` plus `https://eventverse-eight.vercel.app/**`.
 
 The latest pushed fix commit is `898d85766efb3c6f3552bdc64a70868fcaeac3e8`, titled `Fix Spotify OAuth session event race`. Vercel reports it READY for production at `https://eventverse-3a7bj4z5d-olaideheritagetemitope-dots-projects.vercel.app`. The fix subscribes to `supabase.auth.onAuthStateChange` before calling session restore and handles `INITIAL_SESSION`, `SIGNED_IN`, and `TOKEN_REFRESHED`, preventing an implicit-flow event from being missed before the app routes away from Login.
+
+## Spotify redirect-loop root cause — 19 Aug 2026
+
+Supabase Auth Logs: https://supabase.com/dashboard/project/blalvoelllndmbppbkcy/logs/auth-logs
+
+The failed Spotify callbacks returned HTTP 422 with the message: "Unverified email with spotify. Verify the email with spotify in order to sign in." The `/authorize` calls succeeded and redirected to Spotify, but `/callback` rejected the identity before a Supabase session could be created. This explains why the browser returned to EventVerse and then appeared to loop back to Login: there was no authenticated session for the client to restore.
+
+Supabase Spotify provider settings: https://supabase.com/dashboard/project/blalvoelllndmbppbkcy/auth/providers?provider=Spotify
+
+The provider form contains an "Allow users without an email" switch whose description says it allows successful authentication when the provider does not return an email address. This setting was enabled and saved after the log diagnosis. The existing Spotify callback remains `https://blalvoelllndmbppbkcy.supabase.co/auth/v1/callback`.
