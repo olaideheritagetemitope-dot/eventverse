@@ -10,13 +10,14 @@
 }
 
 * { box-sizing: border-box; }
-html, body, #root { min-height: 100%; margin: 0; }
-body { min-width: 320px; background: #050403; }
+html, body, #root {
+  width: 100%;
+  min-width: 320px;
+  min-height: 100%;
+  min-height: 100dvh;
+  margin: 0;
+  background: #050403;
+}
+body { overflow-x: hidden; }
 button, input { font: inherit; }
 button { cursor: pointer; }
-
-@media (min-width: 768px) {
-  #root > div > div[style*="width: 390px"] {
-    box-shadow: 0 30px 100px rgba(0,0,0,.55);
-  }
-}

@@ -69,21 +69,19 @@ const money = (n) => `\u20A6${n.toLocaleString()}`;
 /* ============================== SHARED UI ============================== */
 function Phone({ children }) {
   return (
-    <div style={{ background: C.bg }} className="ev-root w-full h-full flex flex-col overflow-hidden relative">
+    <div
+      className="ev-root relative flex min-h-0 w-full flex-1 flex-col overflow-hidden"
+      style={{
+        background: C.bg,
+        minHeight: "100dvh",
+        width: "100dvw",
+        paddingTop: "env(safe-area-inset-top, 0px)",
+        paddingRight: "env(safe-area-inset-right, 0px)",
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        paddingLeft: "env(safe-area-inset-left, 0px)",
+      }}
+    >
       {children}
-    </div>
-  );
-}
-
-function StatusBar() {
-  return (
-    <div className="flex items-center justify-between px-5 pt-3 pb-1 text-[11px]" style={{ color: C.ivory }}>
-      <span className="font-medium">9:41</span>
-      <div className="flex items-center gap-1 opacity-80">
-        <span>●●●●</span>
-        <span>Wi-Fi</span>
-        <span>78%</span>
-      </div>
     </div>
   );
 }
@@ -231,7 +229,6 @@ function Onboarding({ nav }) {
   return (
     <Phone>
       <div className="flex-1 flex flex-col justify-end relative" style={{ background: s.bg }}>
-        <StatusBar />
         {i === 0 && (
           <div className="absolute inset-x-0 top-24 flex flex-col items-center">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ border: `1.5px solid ${C.gold}`, transform: "rotate(45deg)" }}>
@@ -513,7 +510,6 @@ function EventDetail({ nav, data }) {
   return (
     <Phone>
       <div style={{ height: 240, background: ev.img }} className="relative flex-shrink-0">
-        <StatusBar />
         <div className="flex items-center justify-between px-5 mt-2">
           <button onClick={nav.pop} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "#00000060" }}><ChevronLeft size={18} color="#fff" /></button>
           <div className="flex gap-2">
@@ -886,7 +882,6 @@ function ArtistProfile({ nav, data }) {
   return (
     <Phone>
       <div style={{ height: 190, background: a.img }} className="relative flex-shrink-0">
-        <StatusBar />
         <button onClick={nav.pop} className="w-9 h-9 mt-2 ml-5 rounded-full flex items-center justify-center" style={{ background: "#00000060" }}><ChevronLeft size={18} color="#fff" /></button>
         <div className="absolute -bottom-8 left-5 w-20 h-20 rounded-full border-4" style={{ background: a.img, borderColor: C.bg }} />
       </div>
@@ -982,7 +977,6 @@ function FullPlayer({ nav, player }) {
   return (
     <Phone>
       <div className="flex-1 flex flex-col px-6" style={{ background: `linear-gradient(180deg, ${C.green}, ${C.bg} 60%)` }}>
-        <StatusBar />
         <div className="flex items-center justify-between pt-2 pb-6">
           <button onClick={nav.pop}><ChevronDown size={20} color={C.ivory} /></button>
           <span className="text-[11px] uppercase tracking-wide" style={{ color: C.muted }}>Now Playing</span>
@@ -1106,10 +1100,10 @@ export default function EventVerseApp() {
   if (current.screen === "tickets" && !current.data) screens.tickets = <MyTickets nav={nav} player={player} />;
 
   return (
-    <div className="w-full min-h-screen flex items-center justify-center p-6" style={{ background: "#050403" }}>
+    <div className="ev-app-viewport flex min-h-screen w-full items-stretch justify-stretch overflow-hidden" style={{ background: C.bg, minHeight: "100dvh", width: "100dvw" }}>
       <style>{font}</style>
       <style>{`.no-scrollbar::-webkit-scrollbar{display:none} .no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}`}</style>
-      <div className="relative rounded-[2.5rem] overflow-hidden shadow-2xl" style={{ width: 390, height: 780, border: "8px solid #111", background: C.bg }}>
+      <div className="relative flex min-h-0 w-full flex-1 overflow-hidden" style={{ background: C.bg, minHeight: "100dvh", width: "100dvw" }}>
         {screens[current.screen] || screens.home}
       </div>
     </div>

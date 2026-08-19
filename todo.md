@@ -10,3 +10,18 @@
 - [ ] Validate 390px mobile and desktop responsive layouts
 - [ ] Run production build and deployment checks
 - [ ] Create a GitHub repository and Vercel deployment handoff
+
+- [ ] Reconnect the EventVerse GitHub repository to the Vercel project
+- [ ] Deploy the `main` branch to Vercel production
+- [ ] Verify and provide the live Vercel URL
+
+- [ ] Verify access to the reconfigured GitHub, Vercel, and Supabase connections
+- [ ] Confirm EventVerse repository and Vercel deployment configuration
+- [ ] Retry the live Vercel deployment and inspect Supabase readiness
+- [ ] Report connected-service status and live access result
+
+- [ ] Remove the simulated phone frame and any visual device chrome
+- [ ] Convert the root to a full viewport AppViewport using responsive and safe-area CSS
+- [ ] Preserve all existing screens, routes, navigation, and approved visual tokens
+- [ ] Validate mobile, tablet, desktop, and production build behavior
+- [ ] Deploy the viewport correction and verify the live URL
