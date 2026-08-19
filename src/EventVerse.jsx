@@ -274,9 +274,31 @@ function AuthMessage({ message, error }) {
 }
 
 function ProviderIcon({ provider }) {
-  const colors = { google: "#4285F4", facebook: "#1877F2", spotify: "#1DB954", apple: C.ivory };
-  const letter = { google: "G", facebook: "f", spotify: "●", apple: "●" }[provider];
-  return <span className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[12px] font-bold" style={{ color: provider === "apple" ? C.bg : "#fff", background: colors[provider] }}>{letter}</span>;
+  if (provider === "spotify") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" focusable="false">
+        <circle cx="12" cy="12" r="12" fill="#1DB954" />
+        <path d="M6.4 9.1c3.65-1.1 7.6-.82 11.2.78" fill="none" stroke="#fff" strokeLinecap="round" strokeWidth="1.65" />
+        <path d="M7.2 12.35c3.05-.82 6.27-.56 9.32.7" fill="none" stroke="#fff" strokeLinecap="round" strokeWidth="1.55" />
+        <path d="M8.05 15.38c2.3-.55 4.68-.33 6.9.58" fill="none" stroke="#fff" strokeLinecap="round" strokeWidth="1.45" />
+      </svg>
+    );
+  }
+
+  if (provider === "facebook") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" focusable="false">
+        <circle cx="12" cy="12" r="12" fill="#1877F2" />
+        <path d="M13.35 20v-7h2.35l.35-2.72h-2.7V8.54c0-.79.22-1.33 1.36-1.33h1.46V4.78c-.25-.03-1.1-.1-2.1-.1-2.08 0-3.5 1.27-3.5 3.6v2H8.22V13h2.35v7h2.78Z" fill="#fff" />
+      </svg>
+    );
+  }
+
+  if (provider === "google") {
+    return <span className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[12px] font-bold" style={{ color: "#fff", background: "#4285F4" }}>G</span>;
+  }
+
+  return <span className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[12px] font-bold" style={{ color: C.bg, background: C.ivory }}>●</span>;
 }
 
 function Login({ nav }) {
@@ -325,7 +347,7 @@ function Login({ nav }) {
   const providers = [
     { label: "Google", provider: "google", enabled: true },
     { label: "Facebook", provider: "facebook", enabled: false },
-    { label: "Spotify", provider: "spotify", enabled: false },
+    { label: "Spotify", provider: "spotify", enabled: true },
     { label: "Apple", provider: "apple", enabled: false },
   ];
 
@@ -360,7 +382,7 @@ function Login({ nav }) {
             </button>
           ))}
         </div>
-        <p className="text-center text-[10px] mb-6" style={{ color: C.muted }}>Google is enabled. Other providers will appear here when their credentials are configured.</p>
+        <p className="text-center text-[10px] mb-6" style={{ color: C.muted }}>Google and Spotify are enabled. Facebook and Apple will appear when their credentials are configured.</p>
         <p className="text-center text-[13px]" style={{ color: C.muted }}>
           Don't have an account?{" "}
           <button onClick={() => nav.push("signup")} className="font-semibold" style={{ color: C.gold }}>Sign up</button>

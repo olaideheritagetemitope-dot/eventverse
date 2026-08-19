@@ -61,3 +61,15 @@
 
 - [x] Add branded Google, Facebook, Spotify, and Apple provider icons/buttons to the login UI
 - [x] Keep Google active and clearly mark Facebook, Spotify, and Apple unavailable until independent credentials are configured
+
+- [ ] Enable Facebook OAuth with its own provider credentials
+- [x] Enable Spotify OAuth with its own provider credentials
+- [ ] Replace Spotify and Facebook login icons with current brand-accurate marks
+- [ ] Keep Apple provider unavailable
+- [ ] Verify Facebook and Spotify login buttons in production
+
+- [x] Replace placeholder Spotify icon with the official Spotify circular icon mark
+- [x] Replace placeholder Facebook icon with the current official Facebook logo mark
+- [x] Enable Spotify OAuth in Supabase and verify its callback configuration
+- [ ] Verify Google, Spotify, and email OTP flows in production
+- [ ] Run production build and confirm Vercel deployment health
