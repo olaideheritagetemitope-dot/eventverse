@@ -128,3 +128,9 @@
 - [x] Generate correctly sized icon, splash, favicon, and adaptive-icon assets from the supplied artwork
 - [x] Update branding metadata without changing the application UI design
 - [x] Build and verify the Atizzy branding update
+
+- [x] Audit every app, web, favicon, splash, adaptive-icon, and metadata branding reference
+- [x] Install the supplied Atizzy logo in every required branding location
+- [ ] Remove stale EventVerse icon and logo references where they represent the app identity
+- [x] Build and verify complete Atizzy logo coverage without changing UI design
+- [ ] Deploy the complete Atizzy logo update and confirm production readiness
