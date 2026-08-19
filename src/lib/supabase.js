@@ -10,5 +10,9 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
+    // EventVerse is a client-only Vite SPA. Implicit flow keeps the provider
+    // session in the browser URL fragment and avoids losing a PKCE verifier
+    // when mobile browsers hand off to Spotify and return to the app.
+    flowType: "implicit",
   },
 });

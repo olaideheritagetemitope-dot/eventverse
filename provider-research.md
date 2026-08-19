@@ -25,3 +25,14 @@ Additional official sources reviewed:
 
 - https://newsroom.spotify.com/media-kit/logo-and-brand-assets/
 - https://www.meta.com/brand/resources/facebook/logo/
+
+## Spotify OAuth regression investigation — 2026-08-19
+
+The attached screen recording showed Google and Spotify attempts briefly displaying “Loading EventVerse...” and then returning to the EventVerse login screen without a visible error. In a direct production reproduction, the Spotify button correctly opened Spotify’s authorization page with the expected Supabase callback URL and EventVerse redirect target.
+
+The EventVerse Supabase client was using the default PKCE flow. Supabase documents that PKCE requires the code verifier to remain available on the same browser and device through the redirect, while the implicit flow is intended for client-only browser applications and restores tokens from the URL fragment. Because EventVerse is a Vite client-only SPA and the reported failure occurs during mobile browser handoff, the client was changed to `flowType: "implicit"` while retaining `detectSessionInUrl: true`.
+
+Sources:
+- Supabase PKCE flow: https://supabase.com/docs/guides/auth/sessions/pkce-flow
+- Supabase implicit flow: https://supabase.com/docs/guides/auth/sessions/implicit-flow
+- Supabase JavaScript signInWithOAuth reference: https://supabase.com/docs/reference/javascript/auth-signinwithoauth

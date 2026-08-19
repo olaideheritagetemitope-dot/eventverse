@@ -80,3 +80,8 @@
 - [x] Prevent authenticated users from being sent back to login on repeat visits
 - [x] Restore consistent first-launch onboarding before login for new users
 - [ ] Validate onboarding, OAuth callback, account creation, and repeat-login flows in production
+
+- [x] Inspect the attached Spotify authentication failure and callback behavior
+- [x] Trace Spotify-specific Supabase provider redirect and session exchange behavior
+- [x] Fix Spotify authentication so a successful provider return reaches EventVerse Home
+- [ ] Validate Spotify authentication on the production deployment
