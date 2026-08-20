@@ -38,6 +38,6 @@ describe("discovery and navigation workflows", () => {
     expect(app).toContain('notifications: <NotificationBoard');
     expect(app).toContain("markUserNotificationRead");
     expect(app).toContain("markAllUserNotificationsRead");
-    expect(app).toContain("item.deep_link.screen");
+    expect(app).toContain("deepLink.screen");
   });
 });

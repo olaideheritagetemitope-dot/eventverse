@@ -42,7 +42,10 @@ export async function toggleEventFavorite(userId, eventId, next) {
 }
 
 export async function toggleArtistFollow(userId, artistId, next) {
-  return toggleFavorite("artist_followers", "artist_id", userId, next ? artistId : artistId);
+  if (!userId || !artistId) throw new Error("Artist follow requires an authenticated user and artist.");
+  const { data, error } = await supabase.rpc("toggle_artist_follow", { p_artist_id: artistId, p_follow: next });
+  if (error) throw error;
+  return data || { following: next, artist_id: artistId };
 }
 
 export async function toggleMusicFavorite(userId, songId, next) {
@@ -465,6 +468,18 @@ export async function loadEventStaffForOrganizer(eventId) {
   const { data, error } = await supabase.rpc("list_event_staff_for_organizer", { p_event_id: eventId });
   if (error) throw error;
   return data || [];
+}
+
+export async function updateEventStaffShift(assignmentId, shiftStartsAt = null, shiftEndsAt = null, shiftNote = "") {
+  if (!assignmentId) throw new Error("Staff assignment is required.");
+  const { data, error } = await supabase.rpc("update_event_staff_shift", {
+    p_assignment_id: assignmentId,
+    p_shift_starts_at: shiftStartsAt || null,
+    p_shift_ends_at: shiftEndsAt || null,
+    p_shift_note: shiftNote || null,
+  });
+  if (error) throw error;
+  return data;
 }
 
 export async function revokeEventStaffAssignment(assignmentId) {

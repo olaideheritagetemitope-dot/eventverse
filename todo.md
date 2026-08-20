@@ -322,3 +322,23 @@
 - [ ] Complete notification board, deep links, dropdown integration, profile dropdown, and responsive navigation
 - [ ] Preserve Preferences, Search History, notification persistence/read state, Support, authentication, search infrastructure, and role dashboards
 - [ ] Add acceptance coverage, validate responsive behavior, apply live changes, and save a checkpoint
+
+# Shared Design Directive — 6a86cb9c5bf0819181bfe668a0485251
+- [ ] Extract and reconcile every visual and layout requirement from the shared design directive
+- [ ] Audit Atizzy design primitives, responsive shell, and affected screens against the directive
+- [ ] Implement the directive’s visual hierarchy, component, spacing, typography, interaction, and responsive changes
+- [ ] Validate visual regression, responsive behavior, tests, production build, GitHub state, and checkpoint
+
+# Atizzy Production Completion Pass — 2026-08-20
+
+- [x] Verify follow-notification deep links and metadata-compatible acceptance coverage
+- [x] Add camera-based QR scanning with secure-context checks, rear-camera preference, BarcodeDetector decoding, and stream cleanup
+- [x] Preserve server-authoritative ticket check-in through check_in_ticket_with_token
+- [x] Add ticket purchase-history details from orders and payments to My Tickets and Digital Ticket
+- [x] Keep organizer attendance and check-in counters sourced from get_organizer_event_dashboard
+- [x] Add organizer-created Event Staff instructions and server-authoritative shift scheduling
+- [x] Include shift schedule and notes in organizer and staff workspace payloads
+- [x] Apply Supabase migration 0024_event_staff_shifts to production
+- [x] Validate Atizzy preview loads at the current Vite preview URL
+- [x] Run 18 acceptance test files: 57 passing tests, 1 intentionally skipped credential test
+- [x] Run production Vite build successfully
