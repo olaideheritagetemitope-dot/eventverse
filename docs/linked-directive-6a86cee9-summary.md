@@ -17,3 +17,13 @@ Reference assets:
 The linked directive was confirmed from the shared ChatGPT page. The supplied square image contains the Atizzy gold logo on a black field with gold music notes, ticket outlines, and stars around the edges. The supplied tall image is a narrow black-and-gold repeating motif using ticket outlines, music notes, and stars, with a gold edge.
 
 The current Atizzy Vite preview loads the login screen successfully. The new texture is visible as a very subtle vertical gold-on-black pattern behind the login shell. The preview shows no horizontal overflow in the captured desktop viewport, and the existing login controls and provider buttons remain present and readable.
+
+## Deployment verification
+
+The first deployment after the texture commit failed because `src/services/catalog.js` had an existing uncommitted `loadVenueDetail` export required by `src/EventVerse.jsx`. That export was committed in `483731b38e1303305db6a2ee423b0b7c5e5e7443` and pushed to `main`.
+
+The subsequent Vercel production deployment for commit `483731b` reached `READY`. The public production domain `https://eventverse-olaideheritagetemitope-dots-projects.vercel.app` loads successfully with the Atizzy landing shell and Get Started/Login actions.
+
+### Continuous watermark coverage verification — 2026-08-20
+
+The refined borderless asset has no enclosing straight frame. A faint secondary CSS pass using the same borderless asset now fills dark gaps between motif clusters, with reduced opacity on narrow screens and reduced-motion mode. Preview verification shows continuous black-and-gold watermark coverage behind the login shell while controls and text remain readable.

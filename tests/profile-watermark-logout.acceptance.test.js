@@ -14,7 +14,10 @@ describe("Atizzy watermark and Profile Logout correction", () => {
     expect(styles).toContain("opacity: .44");
     expect(styles).toContain("pointer-events: none");
     expect(styles).not.toContain(".ev-atizzy-pattern::before");
-    expect((styles.match(/url\('\/assets\/atizzy-pattern\.png'\)/g) || []).length).toBe(1);
+    expect(styles).toContain(".ev-atizzy-pattern::after");
+    expect(styles).toContain("background-size: 250px auto");
+    expect(styles).toContain("opacity: .075");
+    expect((styles.match(/url\('\/assets\/atizzy-pattern\.png'\)/g) || []).length).toBe(2);
   });
 
   it("places one accessible Logout action in the Profile header", () => {

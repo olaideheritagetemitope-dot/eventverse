@@ -385,3 +385,10 @@
 - [x] Remove the frame effect without replacing or duplicating the Atizzy pattern
 - [x] Increase music, ticket, and star motif visibility slightly
 - [x] Validate the refined background and preserve navigation/content readability
+
+# Continuous Watermark Coverage — 2026-08-20
+
+- [x] Inspect dark gaps in the refined borderless pattern and current CSS layering
+- [x] Add subtle continuous watermark coverage between motif clusters without adding frames
+- [x] Keep motifs visible, text readable, and background pointer-transparent
+- [x] Validate the visual refinement, tests, build, and deployment
