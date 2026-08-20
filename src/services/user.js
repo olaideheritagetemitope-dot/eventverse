@@ -538,3 +538,42 @@ export async function loadAdminAuditLogs() {
   if (error) throw error;
   return data || [];
 }
+
+export async function loadUserExperienceSnapshot() {
+  const { data, error } = await supabase.rpc("user_experience_snapshot");
+  if (error) throw error;
+  return data || { search_history: [], notifications: [], preferences: {}, support_requests: [] };
+}
+
+export async function recordUserSearch(query) {
+  const { data, error } = await supabase.rpc("record_user_search", { p_query: query });
+  if (error) throw error;
+  return data;
+}
+
+export async function clearUserSearchHistory() {
+  const { error } = await supabase.rpc("clear_user_search_history");
+  if (error) throw error;
+}
+
+export async function updateUserPreferences(preferences) {
+  const { data, error } = await supabase.rpc("update_user_preferences", { p_preferences: preferences });
+  if (error) throw error;
+  return data;
+}
+
+export async function markUserNotificationRead(notificationId) {
+  const { error } = await supabase.rpc("mark_user_notification_read", { p_notification_id: notificationId });
+  if (error) throw error;
+}
+
+export async function markAllUserNotificationsRead() {
+  const { error } = await supabase.rpc("mark_all_user_notifications_read");
+  if (error) throw error;
+}
+
+export async function createSupportRequest(category, subject, message) {
+  const { data, error } = await supabase.rpc("create_support_request", { p_category: category, p_subject: subject, p_message: message });
+  if (error) throw error;
+  return data;
+}

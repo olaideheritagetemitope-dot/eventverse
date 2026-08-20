@@ -302,3 +302,9 @@
 - [x] Audit Atizzy implementation, Supabase contracts, permissions, UI routes, and tests against the new directive
 - [x] Implement every feasible missing directive workflow with server-authoritative security
 - [x] Add focused acceptance coverage, apply live backend changes, and validate responsive production behavior
+
+# New Shared ChatGPT Directive — 6a86c230648c8191a9a272aaf8d905eb
+- [x] Extract and reconcile every requirement from the new shared directive link
+- [x] Audit Atizzy implementation, Supabase contracts, permissions, UI routes, and tests against the new directive
+- [x] Implement every feasible missing directive workflow with server-authoritative security
+- [x] Add focused acceptance coverage, apply live backend changes, and validate responsive production behavior

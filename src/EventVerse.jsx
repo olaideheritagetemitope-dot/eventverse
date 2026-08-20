@@ -8,7 +8,7 @@ import {
 import { supabase } from "./lib/supabase";
 import { loadCatalog, loadEventDetail, searchCatalog, formatFollowers } from "./services/catalog";
 import CheckInScreen from "./components/CheckInScreen";
-import { loadCurrentUser, loadFavoriteState, toggleEventFavorite, toggleArtistFollow, toggleMusicFavorite, loadMusicFavorites, recordPlay, loadPlaylists, createPlaylist, submitBooking, loadRoleDashboard, loadArtistWorkspace, updateArtistProfile, updateArtistSong, artistUpdateBookingStatus, issueTicketQrToken, updateProfile, loadArtistOnboarding, initializeArtistFeePayment, loadArtistFeeTransaction, loadArtistAdminOverview, updateArtistFee, loadOrganizerApplication, applyAsOrganizer, loadOrganizerEvents, createOrganizerEvent, updateOrganizerEvent, addOrganizerTicketType, linkOrganizerArtist, publishOrganizerEvent, cancelOrganizerEvent, loadOrganizerEventDashboard, loadVenueManagerWorkspace, applyAsVenueManager, createOwnedVenue, updateOwnedVenue, requestVenueBooking, respondVenueBooking, setVenueAvailability, initializeVenueBookingPayment, loadAvailableVenues, searchOrganizerArtists, searchEventStaffUsers, assignEventStaff, loadEventStaffForOrganizer, revokeEventStaffAssignment, loadEventStaffWorkspace, respondEventStaffAssignment, acknowledgeEventStaffTask, loadSuperAdminAnalytics, loadAdminDashboardSnapshot, adminListUsers, adminSuspendUser, adminReviewEvent, loadAdminPaymentSupport, loadAdminAuditLogs } from "./services/user";
+import { loadCurrentUser, loadFavoriteState, toggleEventFavorite, toggleArtistFollow, toggleMusicFavorite, loadMusicFavorites, recordPlay, loadPlaylists, createPlaylist, submitBooking, loadRoleDashboard, loadArtistWorkspace, updateArtistProfile, updateArtistSong, artistUpdateBookingStatus, issueTicketQrToken, updateProfile, loadArtistOnboarding, initializeArtistFeePayment, loadArtistFeeTransaction, loadArtistAdminOverview, updateArtistFee, loadOrganizerApplication, applyAsOrganizer, loadOrganizerEvents, createOrganizerEvent, updateOrganizerEvent, addOrganizerTicketType, linkOrganizerArtist, publishOrganizerEvent, cancelOrganizerEvent, loadOrganizerEventDashboard, loadVenueManagerWorkspace, applyAsVenueManager, createOwnedVenue, updateOwnedVenue, requestVenueBooking, respondVenueBooking, setVenueAvailability, initializeVenueBookingPayment, loadAvailableVenues, searchOrganizerArtists, searchEventStaffUsers, assignEventStaff, loadEventStaffForOrganizer, revokeEventStaffAssignment, loadEventStaffWorkspace, respondEventStaffAssignment, acknowledgeEventStaffTask, loadSuperAdminAnalytics, loadAdminDashboardSnapshot, adminListUsers, adminSuspendUser, adminReviewEvent, loadAdminPaymentSupport, loadAdminAuditLogs, loadUserExperienceSnapshot, recordUserSearch, clearUserSearchHistory, updateUserPreferences, markUserNotificationRead, markAllUserNotificationsRead, createSupportRequest } from "./services/user";
 import QRCode from "qrcode";
 
 /* ============================== DESIGN TOKENS ==============================
@@ -702,7 +702,7 @@ function Section({ title, children, last }) {
 }
 
 /* ============================== SEARCH ============================== */
-function SearchScreen({ nav, catalog }) {
+function SearchScreen({ nav, catalog, account }) {
   const [tab, setTab] = useState("All");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState({ events: [], artists: [], songs: [], venues: [] });
@@ -711,6 +711,7 @@ function SearchScreen({ nav, catalog }) {
   useEffect(() => {
     const timer = setTimeout(async () => {
       if (!query.trim()) { setResults({ events: [], artists: [], songs: [], venues: [] }); return; }
+      if (account?.user?.id) recordUserSearch(query.trim()).catch(() => {});
       setLoading(true); setError("");
       try { setResults(await searchCatalog(query)); } catch (searchError) { setError(searchError.message || "Search is unavailable."); } finally { setLoading(false); }
     }, 300);
@@ -1372,6 +1373,32 @@ function ArtistPaymentProcessing({ nav, data }) {
   return <Phone><div className="flex-1 flex flex-col justify-center px-6 text-center"><div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center" style={{ background: C.green, border: `1px solid ${C.gold}` }}><Clock size={26} color={C.gold} /></div><h1 className="ev-display text-[27px] mt-5" style={{ color: C.ivory }}>Confirming your payment</h1><p className="text-[13px] leading-6 mt-3" style={{ color: C.muted }}>{status === "VERIFIED_SUCCESS" ? "Payment verified. Restoring your artist status..." : "Do not close this page. Atizzy waits for the signed Paystack webhook before activating your account."}</p>{message && <p className="text-[12px] mt-4" style={{ color: C.red }}>{message}</p>}<div className="mt-6"><GhostButton onClick={() => nav.pop()}>Back to artist status</GhostButton></div></div></Phone>;
 }
 
+/* ============================== USER EXPERIENCE ============================== */
+function UserExperience({ nav, account, initialTab = "Preferences" }) {
+  const [tab, setTab] = useState(initialTab);
+  const [snapshot, setSnapshot] = useState({ search_history: [], notifications: [], preferences: {}, support_requests: [] });
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
+  const [support, setSupport] = useState({ category: "GENERAL", subject: "", message: "" });
+  const [saving, setSaving] = useState(false);
+  useEffect(() => { let mounted = true; loadUserExperienceSnapshot().then((data) => { if (mounted) setSnapshot(data); }).catch((error) => { if (mounted) setMessage(error.message || "Unable to load your account preferences."); }).finally(() => { if (mounted) setLoading(false); }); return () => { mounted = false; }; }, []);
+  const prefs = snapshot.preferences || {};
+  const savePreference = async (key, value) => { setSaving(true); setMessage(""); try { const next = { ...prefs, discovery: { ...(prefs.discovery || {}), [key]: value } }; await updateUserPreferences(next); setSnapshot((current) => ({ ...current, preferences: { ...current.preferences, discovery: next.discovery } })); setMessage("Preferences saved."); } catch (error) { setMessage(error.message || "Unable to save preferences."); } finally { setSaving(false); } };
+  const submitSupport = async (event) => { event.preventDefault(); setSaving(true); setMessage(""); try { const created = await createSupportRequest(support.category, support.subject, support.message); setSnapshot((current) => ({ ...current, support_requests: [created, ...(current.support_requests || [])] })); setSupport({ category: "GENERAL", subject: "", message: "" }); setMessage("Support request submitted."); } catch (error) { setMessage(error.message || "Unable to submit support request."); } finally { setSaving(false); } };
+  const markAll = async () => { try { await markAllUserNotificationsRead(); setSnapshot((current) => ({ ...current, notifications: (current.notifications || []).map((item) => ({ ...item, read_at: item.read_at || new Date().toISOString() })) })); } catch (error) { setMessage(error.message || "Unable to update notifications."); } };
+  return <Phone>
+    <div className="flex items-center gap-3 px-5 pt-2 pb-4"><button onClick={nav.pop}><ChevronLeft size={20} color={C.ivory} /></button><h1 className="ev-display text-[22px]" style={{ color: C.ivory }}>Your Atizzy</h1></div>
+    <div className="flex gap-2 px-5 pb-4 overflow-x-auto no-scrollbar">{["Preferences", "Notifications", "Search history", "Help & Support"].map((item) => <Pill key={item} active={tab === item} onClick={() => setTab(item)}>{item}</Pill>)}</div>
+    <div className="flex-1 overflow-y-auto px-5 pb-4">{loading && <p className="text-[12px] py-8 text-center" style={{ color: C.muted }}>Loading your Atizzy settings...</p>}
+      {!loading && tab === "Preferences" && <div className="space-y-3"><p className="text-[12px] mb-3" style={{ color: C.muted }}>Tune discovery and notification behavior for {account?.user?.email || "your account"}.</p>{[["show_recommended","Recommended events"],["notify_events","Event reminders"],["notify_tickets","Ticket updates"],["notify_music","New music from followed artists"]].map(([key,label]) => { const enabled = prefs.discovery?.[key] !== false; return <button key={key} onClick={() => savePreference(key, !enabled)} className="w-full flex items-center justify-between rounded-2xl p-4 text-left" style={{ background: C.card, border: `1px solid ${C.line}` }}><span className="text-[13px]" style={{ color: C.ivory }}>{label}</span><span className="w-10 h-6 rounded-full p-1" style={{ background: enabled ? C.gold : C.line }}><span className="block w-4 h-4 rounded-full" style={{ background: enabled ? C.bg : C.muted, marginLeft: enabled ? 16 : 0 }} /></span></button>; })}{saving && <p className="text-[11px]" style={{ color: C.muted }}>Saving...</p>}</div>}
+      {!loading && tab === "Notifications" && <div><div className="flex justify-between items-center mb-3"><p className="text-[12px]" style={{ color: C.muted }}>{(snapshot.notifications || []).filter((item) => !item.read_at).length} unread</p><button onClick={markAll} className="text-[12px]" style={{ color: C.gold }}>Mark all read</button></div>{!(snapshot.notifications || []).length ? <p className="text-[13px] py-8 text-center" style={{ color: C.muted }}>No notifications yet.</p> : snapshot.notifications.map((item) => <div key={item.id} className="rounded-2xl p-4 mb-3" style={{ background: C.card, border: `1px solid ${item.read_at ? C.line : `${C.gold}88`}` }}><div className="flex items-start gap-3"><Bell size={15} color={C.gold} /><div className="flex-1"><p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{item.title}</p><p className="text-[11px] mt-1" style={{ color: C.muted }}>{item.message}</p></div>{!item.read_at && <button onClick={async () => { await markUserNotificationRead(item.id); setSnapshot((current) => ({ ...current, notifications: current.notifications.map((entry) => entry.id === item.id ? { ...entry, read_at: new Date().toISOString() } : entry) })); }} className="text-[11px]" style={{ color: C.gold }}>Read</button>}</div></div>)}</div>}
+      {!loading && tab === "Search history" && <div><div className="flex justify-between items-center mb-3"><p className="text-[12px]" style={{ color: C.muted }}>Your recent searches</p><button onClick={async () => { await clearUserSearchHistory(); setSnapshot((current) => ({ ...current, search_history: [] })); }} className="text-[12px]" style={{ color: C.gold }}>Clear</button></div>{!(snapshot.search_history || []).length ? <p className="text-[13px] py-8 text-center" style={{ color: C.muted }}>No saved searches yet.</p> : snapshot.search_history.map((item) => <button key={item.id} onClick={() => nav.push("search", { query: item.query })} className="w-full flex items-center gap-3 py-3 text-left" style={{ borderBottom: `1px solid ${C.line}` }}><Search size={14} color={C.gold} /><span className="text-[13px]" style={{ color: C.ivory }}>{item.query}</span><ChevronRight size={14} color={C.muted} /></button>)}</div>}
+      {!loading && tab === "Help & Support" && <div><form onSubmit={submitSupport} className="rounded-2xl p-4 mb-4" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[13px] font-semibold mb-3" style={{ color: C.ivory }}>Contact Atizzy Support</p><select value={support.category} onChange={(event) => setSupport((current) => ({ ...current, category: event.target.value }))} className="w-full rounded-xl px-3 py-2 mb-2 text-[12px]" style={{ background: C.bg, color: C.ivory, border: `1px solid ${C.line}` }}><option value="GENERAL">General question</option><option value="TICKET_PAYMENT">Ticket or payment</option><option value="ACCOUNT">Account</option><option value="REPORT_PROBLEM">Report a problem</option></select><input required value={support.subject} onChange={(event) => setSupport((current) => ({ ...current, subject: event.target.value }))} placeholder="Subject" className="w-full rounded-xl px-3 py-2 mb-2 text-[12px] outline-none" style={{ background: C.bg, color: C.ivory, border: `1px solid ${C.line}` }} /><textarea required value={support.message} onChange={(event) => setSupport((current) => ({ ...current, message: event.target.value }))} placeholder="Tell us what happened" rows={4} className="w-full rounded-xl px-3 py-2 mb-3 text-[12px] outline-none resize-none" style={{ background: C.bg, color: C.ivory, border: `1px solid ${C.line}` }} /><button disabled={saving} className="w-full py-2.5 rounded-xl text-[12px] font-semibold" style={{ background: C.gold, color: C.bg }}>{saving ? "Sending..." : "Submit request"}</button></form>{(snapshot.support_requests || []).map((item) => <div key={item.id} className="rounded-2xl p-4 mb-3" style={{ background: C.card }}><div className="flex justify-between"><p className="text-[12px] font-semibold" style={{ color: C.ivory }}>{item.subject}</p><span className="text-[10px]" style={{ color: C.gold }}>{item.status}</span></div><p className="text-[11px] mt-1" style={{ color: C.muted }}>{item.message}</p></div>)}</div>}
+      {message && <p className="text-[11px] mt-3" style={{ color: message.includes("Unable") ? C.red : C.green }}>{message}</p>}
+    </div>
+  </Phone>;
+}
+
 /* ============================== PROFILE (stub, phase 1) ============================== */
 function Profile({ nav, player, account }) {
   const items = ["My Tickets", "Music Library", "Preferences", "Notifications", "Security", "Help & Support"];
@@ -1413,7 +1440,7 @@ function Profile({ nav, player, account }) {
         {account?.roles?.some((role) => (typeof role === "string" ? role : role.code) === "EVENT_STAFF") && <button onClick={() => nav.push("eventStaff")} className="w-full flex items-center justify-between py-3.5" style={{ borderBottom: `1px solid ${C.line}` }}><span className="text-[13.5px]" style={{ color: C.goldSoft }}>Event Staff Workspace</span><ChevronRight size={15} color={C.muted} /></button>}
         {account?.roles?.some((role) => (typeof role === "string" ? role : role.code) === "ARTIST") && <button onClick={() => nav.push("artistVerification")} className="w-full flex items-center justify-between py-3.5" style={{ borderBottom: `1px solid ${C.line}` }}><span className="text-[13.5px]" style={{ color: C.goldSoft }}>Get Verified</span><ShieldCheck size={15} color={C.gold} /></button>}
         {items.map((it) => (
-          <button key={it} onClick={() => it === "My Tickets" ? nav.push("tickets") : it === "Music Library" ? nav.push("music") : null} className="w-full flex items-center justify-between py-3.5" style={{ borderBottom: `1px solid ${C.line}` }}>
+          <button key={it} onClick={() => it === "My Tickets" ? nav.push("tickets") : it === "Music Library" ? nav.push("music") : ["Preferences", "Notifications", "Help & Support"].includes(it) ? nav.push("userExperience", { initialTab: it }) : null} className="w-full flex items-center justify-between py-3.5" style={{ borderBottom: `1px solid ${C.line}` }}>
             <span className="text-[13.5px]" style={{ color: C.ivory }}>{it}</span>
             <ChevronRight size={15} color={C.muted} />
           </button>
@@ -1751,7 +1778,7 @@ export default function EventVerseApp() {
     verify: <Verify nav={nav} data={current.data} />,
     home: <AttendeeHome nav={nav} player={player} catalog={catalog} account={account} loading={catalogLoading} error={catalogError} />,
     explore: <Explore nav={nav} player={player} catalog={catalog} loading={catalogLoading} error={catalogError} />,
-    search: <SearchScreen nav={nav} catalog={catalog} />,
+        search: <SearchScreen nav={nav} catalog={catalog} account={account} />,
     eventDetail: <EventDetail nav={nav} data={current.data} account={account} />,
     tickets: <TicketSelection nav={nav} data={current.data} />,
     checkout: <Checkout nav={nav} data={current.data} />,
@@ -1776,6 +1803,7 @@ export default function EventVerseApp() {
     myTickets: <MyTickets nav={nav} player={player} />,
     tickets_tab: null,
     profile: <Profile nav={nav} player={player} account={account} />,
+    userExperience: <UserExperience nav={nav} account={account} initialTab={current.data?.initialTab || "Preferences"} />,
     artist: <ArtistProfile nav={nav} data={current.data} account={account} catalog={catalog} />,
     booking: <Booking nav={nav} data={current.data} account={account} />,
     music: <MusicHome nav={nav} player={player} catalog={catalog} account={account} />,
