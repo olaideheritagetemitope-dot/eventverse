@@ -674,3 +674,10 @@
 - [x] Verify Artist, Organizer, Venue Manager, Event Staff, Admin, and Super Admin workspaces use live data and protected mutations
 - [x] Add direct acceptance coverage for the no-mock-data contract and all listed module surfaces
 - [x] Run full regression, TypeScript, production build, responsive smoke checks, and save a checkpoint
+
+- [x] Extract the complete attached hallucinated/demo-content directive and save its acceptance requirements
+- [x] Audit all frontend entity names, images, media, counters, analytics, comments, notifications, search, tickets, wallets, and admin records for fabricated content
+- [x] Preserve every existing card, pill, board, section, structural frame, navigation, and detail layout while replacing only fake content
+- [x] Ensure live Supabase/media services drive popular, trending, nearby, and counter-based sections
+- [x] Add acceptance coverage for no fabricated data, preserved UI structure, live media references, dynamic counters, and empty states
+- [x] Run full tests, TypeScript, production build, responsive checks, and save a checkpoint

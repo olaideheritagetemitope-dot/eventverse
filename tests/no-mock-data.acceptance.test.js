@@ -27,6 +27,23 @@ describe("Atizzy live-data frontend contract", () => {
       "MiniPlayer",
       "GovernanceDashboard",
       "AdminControlCenter",
+      "AttendeeHome",
+      "Explore",
+      "SearchScreen",
+      "MusicHome",
+      "ArtistProfile",
+      "EventDetail",
+      "VenueDetail",
+      "MyTickets",
+      "Profile",
+      "NotificationBoard",
+      "UserExperience",
+      "ArtistWorkspace",
+      "OrganizerEvents",
+      "VenueManagerWorkspace",
+      "EventStaffWorkspace",
+      "AdminWorkspace",
+      "RoleCenter",
     ]) {
       expect(source).toContain(token);
     }
@@ -56,6 +73,7 @@ describe("Atizzy live-data frontend contract", () => {
     expect(source).not.toMatch(/const\s+(MOCK|DEMO|EVENTS|ARTISTS|SONGS|VENUES|ALBUMS|TICKETS)\s*=\s*\[/);
     expect(source).not.toMatch(/export\s+const\s+(MOCK|DEMO|EVENTS|ARTISTS|SONGS|VENUES|ALBUMS|TICKETS)\s*=\s*\[/);
     expect(source).not.toMatch(/\b(fake|demo|sample)\s+(event|artist|song|venue|ticket|album|user)\b/i);
+    expect(source).not.toMatch(/\basake\b/i);
     expect(source).not.toMatch(/https?:\/\/[^\s"']+(unsplash|pexels|example\.com)/i);
   });
 
