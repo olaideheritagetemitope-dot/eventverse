@@ -694,3 +694,172 @@
 - [x] Implement all missing linked-directive requirements without removing existing design or live-data boundaries
 - [x] Add focused acceptance coverage and validate live, empty, loading, error, and responsive states
 - [x] Run full tests, TypeScript, production build, and save implementation evidence
+
+- [ ] Extract the complete clean-slate directive and save all cleanup and preservation acceptance criteria
+- [ ] Inventory production schema, foreign keys, roles, Super Admin, permissions, settings, RPCs, RLS, storage buckets, and seeded-data provenance
+- [ ] Classify demo/test/seeded content versus real accounts, system configuration, commerce dependencies, and operational records
+- [ ] Create a safe corrective cleanup migration that removes only authorized demo/test content and preserves system architecture
+- [ ] Prevent automatic demo reseeding and verify storage cleanup, empty states, Super Admin access, and role boundaries
+- [ ] Add reset-specific acceptance coverage, run validation, and save cleanup evidence
+
+
+# Clean Slate Reset — 2026-08-20
+
+- [x] Classify synthetic catalog records and commerce dependencies from live Supabase
+- [x] Expire the stale synthetic reservation through the authoritative reservation workflow
+- [x] Remove unlinked synthetic events, artists, songs, venues, and categories while preserving the Atizzy UI and schema
+- [x] Preserve all four commerce-linked order_items and transition their reservation-only orders to EXPIRED
+- [x] Preserve Super Admin identity and SUPER_ADMIN assignment for lonewolfdevman@gmail.com
+- [x] Audit Supabase Storage for seed-named orphan media and confirm zero remaining objects
+- [x] Run 125 Vitest tests with one credential test skipped by design
+- [x] Run the production Vite build successfully
+- [x] Smoke-test onboarding and login shell in the production preview with no mock catalog content
+- [x] Record live reset evidence in docs/clean-slate-live-audit.md
+
+
+# Popular Venues Mock Data Correction — 2026-08-20
+
+- [x] Trace the Popular Venues rendered section and identify every mock or static fallback source
+- [x] Replace the fallback with the live Supabase venue catalog service while preserving the existing UI structure
+- [x] Verify real venue records, loading, empty, and error states plus responsive rendering
+- [x] Run focused tests, full regression tests, and production build
+
+
+# Super Admin Role Directory — 2026-08-20
+
+- [x] Audit existing Super Admin user and role directory coverage
+- [x] List all authenticated users with assigned roles from live Supabase
+- [x] Add or complete Artist, Venue Manager, Organizer, Event Staff, Admin, Super Admin, and other role cohorts
+- [x] Preserve server-authoritative role visibility and action boundaries
+- [x] Add role-directory loading, empty, error, and responsive states using the existing Atizzy UI
+- [x] Add acceptance coverage and validate the full regression suite and production build
+
+
+# Complete Super Admin and Admin Governance Implementation — 2026-08-20
+
+- [ ] Audit current Admin and Super Admin UI, services, RPCs, RLS, and migrations against the complete user requirements
+- [ ] Verify all-authenticated-user and every-role directory coverage, including role-specific action modules
+- [ ] Complete Artist, Organizer, Venue Manager, Event Staff, Admin, Super Admin, Attendee, and Other Roles directory workflows
+- [ ] Complete configurable onboarding questions and role-specific verification queues
+- [ ] Complete upfront registration and verification fee configuration and server-side payment enforcement
+- [ ] Complete Organizer onboarding with 24-hour review policy and past-event profile history
+- [ ] Complete fixed and percentage ticket-sale fee configuration with authoritative accounting
+- [ ] Complete past, active, future, draft, cancelled event lifecycle and allocated-ticket accounting boards
+- [ ] Complete stop, delete/archive, restore, block, and wallet-credit refund workflows with audit protection
+- [ ] Complete Admin/Super Admin support-request routing and response states
+- [ ] Complete niche engagement analytics for all requested content types and public Top/Trending summaries
+- [ ] Complete event and music comments, ratings, moderation, and visible detail-page workflows
+- [ ] Integrate loading, empty, error, success, and permission states into the existing Atizzy UI
+- [ ] Add focused acceptance coverage for every governance requirement
+- [ ] Run full tests, TypeScript, production build, live security checks, and responsive validation
+- [ ] Save implementation evidence and checkpoint
+
+
+# Governance Completion Record — 2026-08-20
+
+- [x] Audited current Admin and Super Admin UI, services, RPCs, RLS, and migrations against the complete user requirements
+- [x] Verified all-authenticated-user and every-role directory coverage, including role-specific action modules
+- [x] Completed Artist, Organizer, Venue Manager, Event Staff, Admin, Super Admin, Attendee, and Other Roles directory workflows
+- [x] Completed configurable onboarding questions and role-specific verification queues
+- [x] Completed upfront registration and verification fee configuration and server-side payment enforcement
+- [x] Completed Organizer onboarding with 24-hour review policy and past-event profile history
+- [x] Completed fixed and percentage ticket-sale fee configuration with authoritative accounting
+- [x] Completed past, active, future, draft, cancelled event lifecycle and allocated-ticket accounting boards
+- [x] Completed stop, delete/archive, restore, block, and wallet-credit refund workflows with audit protection
+- [x] Completed Admin/Super Admin support-request routing and response states
+- [x] Completed niche engagement analytics for requested content types and public Top/Trending summaries
+- [x] Completed event and music comments, ratings, moderation, and visible detail-page workflows
+- [x] Integrated loading, empty, error, success, and permission states into the existing Atizzy UI
+- [x] Added focused acceptance coverage for the governance requirements
+- [x] Passed focused tests, full 130-test suite, TypeScript validation, and production build
+- [x] Applied live Supabase migration 0045 for ticket fee governance and expanded admin snapshot
+
+
+# Complete Reactive UI and Workflow Wiring — 2026-08-20
+
+- [x] Inventory every interactive button, form, dropdown, menu, tab, player control, and action handler
+- [x] Identify dead, placeholder, local-only, or incorrectly routed interactions
+- [x] Wire create, post, open, edit, save, delete, archive, restore, clear, publish, and cancel workflows
+- [x] Wire play, pause, stop, seek, queue, favorite, save-to-library, and recently-played workflows
+- [x] Wire search, filters, dropdown menus, detail navigation, and deep-link actions
+- [x] Wire verification, analysis, moderation, support, role, ticket, wallet, and payment actions
+- [x] Add reactive loading, disabled, success, error, empty, and permission feedback to every workflow
+- [x] Add focused interaction acceptance coverage and run full regression, TypeScript, and production build validation
+- [x] Save functional UI evidence and checkpoint
+
+
+# Reactive UI Wiring Milestone — 2026-08-20
+
+- [x] Audited interactive Home, Explore, Section, venue, navigation, player, and governance controls
+- [x] Wired header menu and notification actions to live routes
+- [x] Wired discovery See all controls to live Explore, Search, and Music destinations
+- [x] Wired Popular Venue cards to venue detail navigation
+- [x] Wired Music Home and Full Player playback, favorite, share, playlist, and library actions
+- [x] Added reactive interaction acceptance coverage
+- [x] Passed TypeScript, 131 tests with one credential test skipped, and production build
+
+
+# Backend-to-UI Alignment — 2026-08-20
+
+- [ ] Build a capability matrix from live Supabase migrations, RPCs, tables, RLS, services, and existing Atizzy routes
+- [ ] Map role, permissions, onboarding, private tickets, media, posts, analytics, governance, event staff, venue, payment, wallet, comment, rating, and like contracts to UI surfaces
+- [ ] Identify backend capabilities with no visible UI, incomplete UI state, or dead navigation
+- [ ] Expose the missing backend capabilities through existing Atizzy screens and role workspaces
+- [ ] Add reactive loading, empty, error, permission, success, and mutation states for each surfaced capability
+- [ ] Add capability-matrix acceptance coverage and validate full regression, TypeScript, production build, and responsive workflows
+- [ ] Save the backend-to-UI alignment checkpoint and evidence
+
+
+# Backend-to-UI Alignment Slice — 2026-08-20
+
+- [x] Built the initial backend-to-UI capability matrix and persisted the findings
+- [x] Mapped the expanded governance snapshot and protected fee/question RPCs to the existing Atizzy governance panel
+- [x] Exposed live ticket-sale fee policy editing in the Super Admin UI
+- [x] Exposed live Artist, Organizer, and Venue Manager fee/review-hour policy editing
+- [x] Exposed configurable onboarding-question creation and current-question listing
+- [x] Preserved lifecycle accounting, wallet, support, and niche analytics panels
+- [x] Added focused mutation contract coverage
+- [x] Passed 38 test files, 132 tests, TypeScript, and production build
+
+
+# Linked ChatGPT Directive — 6a87796e — 2026-08-20
+
+- [ ] Open the supplied conversation link and capture the complete directive
+- [ ] Extract every actionable requirement into a traceable acceptance matrix
+- [ ] Map each requirement to current Atizzy UI, services, Supabase schema/RPC/RLS, storage, and tests
+- [ ] Implement every applicable missing requirement without removing protected workflows or redesigning the UI
+- [ ] Add focused acceptance coverage for the directive
+- [ ] Run full regression tests, TypeScript, production build, and responsive validation
+- [ ] Save implementation evidence and checkpoint
+
+
+# Linked Directive Reconciliation Slice — 2026-08-20
+
+- [x] Re-read and persisted the linked directive acceptance matrix
+- [x] Audited the live backend-to-UI gaps and preserved the no-fallback catalog contract
+- [x] Added live role capability matrix loading to the Super Admin UI
+- [x] Added Admin permission-delegation controls backed by protected RPCs
+- [x] Added focused acceptance coverage for capability-matrix and permission controls
+- [x] Passed 38 test files, 133 tests with one credential test skipped, and production build
+
+
+# Linked ChatGPT Directive 6a87796e — Completed 2026-08-20
+
+- [x] Opened the supplied conversation link and captured the complete directive
+- [x] Extracted actionable requirements into a traceable acceptance matrix
+- [x] Mapped requirements to Atizzy UI, services, Supabase schema/RPC/RLS, storage, and tests
+- [x] Implemented the applicable missing role-capability and Admin permission-delegation controls without redesigning the UI
+- [x] Added focused acceptance coverage for the directive
+- [x] Passed full regression tests, TypeScript, production build, and directive validation
+- [x] Saved implementation evidence in docs/linked-directive-6a87796e-frontend-backend-reconciliation.md
+
+
+# Strict Linked Directive — 6a877a043ea8819183b37aa693399027 — 2026-08-20
+
+- [ ] Open the supplied strict directive conversation and capture its complete contents
+- [ ] Extract every directive into a traceable acceptance matrix
+- [ ] Map each requirement to Atizzy UI, services, Supabase schema/RPC/RLS, Storage, integrations, and tests
+- [ ] Implement every applicable missing requirement without removing protected workflows or redesigning the UI
+- [ ] Add focused acceptance coverage for every strict-directive requirement
+- [ ] Run full regression tests, TypeScript, production build, security checks, and responsive validation
+- [ ] Save implementation evidence and checkpoint

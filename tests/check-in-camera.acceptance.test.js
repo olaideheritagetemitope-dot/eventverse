@@ -11,17 +11,19 @@ describe("camera QR check-in contract", () => {
     expect(screen).toContain("window.isSecureContext");
     expect(screen).toContain("navigator.mediaDevices?.getUserMedia");
     expect(screen).toContain("facingMode: { ideal: \"environment\" }");
-    expect(screen).toContain("BarcodeDetector");
+    expect(screen).toContain("BrowserMultiFormatReader");
+    expect(screen).toContain("decodeFromVideoDevice");
   });
 
   it("stops camera tracks when scanning ends or the screen unmounts", () => {
     expect(screen).toContain("streamRef.current?.getTracks().forEach((track) => track.stop())");
-    expect(screen).toContain("videoRef.current.srcObject = stream");
-    expect(screen).toContain("stopScanner();");
+    expect(screen).toContain("videoRef.current.srcObject = null");
+    expect(screen).toContain("stopScanner()");
   });
 
   it("submits the decoded token through the server check-in RPC", () => {
-    expect(screen).toContain("checkInTicketWithToken(qrToken.trim())");
+    expect(screen).toContain("checkInTicketWithToken(token)");
+    expect(screen).toContain("eventStaffEntryDecision(token, \"ACCEPT\")");
     expect(service).toContain('supabase.rpc("check_in_ticket_with_token"');
   });
 });

@@ -32,7 +32,7 @@ describe("Event Operations responsibility contracts", () => {
   it("passes responsibility and event context into the existing scanner UI", () => {
     expect(app).toContain('nav.push("checkIn", { responsibility: item.responsibility, eventTitle: item.event_title })');
     expect(app).toContain('checkIn: <CheckInScreen nav={nav} data={current.data} />');
-    expect(checkIn).toContain('eventStaffEntryDecision(qrToken.trim(), "ACCEPT")');
+    expect(checkIn).toContain('eventStaffEntryDecision(token, "ACCEPT")');
     expect(checkIn).toContain('eventStaffEntryDecision(qrToken.trim(), "REJECT")');
     expect(checkIn).toContain("Reject entry");
     expect(checkIn).toContain("already used");

@@ -62,7 +62,7 @@ import { createClient } from "@supabase/supabase-js";
 // These are Supabase publishable client values. They are safe to expose in a browser
 // when Row Level Security is enabled on every application table.
 export const SUPABASE_URL = "https://blalvoelllndmbppbkcy.supabase.co";
-export const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_UPS5rb-O3q2hExK0RtPoBA_dn5X6aPf";
+export const SUPABASE_PUBLISHABLE_KEY = "<environment-provided>";
 
 // Keep the default Supabase browser flow (PKCE). It was the last known working
 // configuration for both Google and Spotify in EventVerse. The verifier is stored

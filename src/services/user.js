@@ -822,6 +822,17 @@ export async function setRoleFeePolicy(roleCode, enabled, amount, currency = "NG
   if (error) throw error;
   return data;
 }
+export async function setPlatformFeePolicy(policyKey, enabled, feeType, amount, currency = "NGN") {
+  const { data, error } = await supabase.rpc("set_platform_fee_policy", {
+    p_policy_key: policyKey,
+    p_enabled: enabled,
+    p_fee_type: feeType,
+    p_amount: Number(amount || 0),
+    p_currency: currency,
+  });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
 
 export async function adminSetEventStatus(eventId, status, reason = null) {
   if (!eventId || !status) throw new Error("Event and status are required.");

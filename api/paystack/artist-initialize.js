@@ -1,5 +1,5 @@
-const SUPABASE_URL = "https://blalvoelllndmbppbkcy.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_UPS5rb-O3q2hExK0RtPoBA_dn5X6aPf";
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 
 function json(res, status, body) { res.status(status).json(body); }
 
@@ -36,7 +36,7 @@ async function attachProviderReference(transactionId, reference) {
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return json(res, 405, { error: "Method not allowed" });
-  if (!process.env.PAYSTACK_SECRET_KEY || !process.env.SUPABASE_SERVICE_ROLE_KEY) return json(res, 503, { error: "Artist payment provider is not configured" });
+  if (!process.env.PAYSTACK_SECRET_KEY || !process.env.SUPABASE_SERVICE_ROLE_KEY || !SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) return json(res, 503, { error: "Artist payment provider is not configured" });
   const authorization = req.headers.authorization;
   if (!authorization?.startsWith("Bearer ")) return json(res, 401, { error: "Authentication required" });
   try {

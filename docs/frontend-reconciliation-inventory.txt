@@ -1,0 +1,200 @@
+--- service exports ---
+src/services/user.js:14:export async function uploadMediaFile(userId, file, mediaKind, entityType = null, entityId = null) {
+src/services/user.js:31:export async function removeMediaAsset(asset) {
+src/services/user.js:39:export async function loadCurrentUser() {
+src/services/user.js:63:export async function loadFavoriteState(userId, eventId, artistId) {
+src/services/user.js:74:export async function toggleFavorite(table, key, userId, value) {
+src/services/user.js:86:export async function toggleEventFavorite(userId, eventId, next) {
+src/services/user.js:90:export async function toggleArtistFollow(userId, artistId, next) {
+src/services/user.js:97:export async function toggleMusicFavorite(userId, songId, next) {
+src/services/user.js:101:export async function loadMusicFavorites(userId) {
+src/services/user.js:108:export async function recordPlay(userId, songId, secondsPlayed = 0) {
+src/services/user.js:114:export async function loadPlaylists(userId) {
+src/services/user.js:121:export async function createPlaylist(userId, name) {
+src/services/user.js:130:export async function submitBooking(userId, artistId, payload) {
+src/services/user.js:137:export async function loadRoleDashboard(userId, roles = []) {
+src/services/user.js:162:export async function issueTicketQrToken(ticketId) {
+src/services/user.js:169:export async function checkInTicket(ticketId) {
+src/services/user.js:176:export async function checkInTicketWithToken(qrToken) {
+src/services/user.js:183:export async function updateProfile(userId, updates) {
+src/services/user.js:197:export async function loadArtistWorkspace(userId) {
+src/services/user.js:212:export async function updateArtistProfile(artistId, userId, updates) {
+src/services/user.js:221:export async function updateArtistSong(songId, artistId, updates) {
+src/services/user.js:230:export async function artistUpdateBookingStatus(bookingId, status) {
+src/services/user.js:237:export async function loadArtistOnboarding(userId) {
+src/services/user.js:256:export async function initializeArtistFeePayment(userId, transactionType) {
+src/services/user.js:264:export async function loadArtistFeeTransaction(transactionId) {
+src/services/user.js:271:export async function loadArtistAdminOverview() {
+src/services/user.js:284:export async function updateArtistFee(key, amount, userId) {
+src/services/user.js:294:export async function loadOrganizerApplication(userId) {
+src/services/user.js:301:export async function applyAsOrganizer(userId, displayName, reason) {
+src/services/user.js:308:export async function loadOrganizerEvents(userId) {
+src/services/user.js:315:export async function createOrganizerEvent(userId, payload) {
+src/services/user.js:324:export async function updateOrganizerEvent(eventId, userId, payload) {
+src/services/user.js:332:export async function addOrganizerTicketType(eventId, userId, payload) {
+src/services/user.js:359:export async function discoverPrivateTicket(eventId, { code = null, word = null } = {}) {
+src/services/user.js:366:export async function linkOrganizerArtist(eventId, userId, artistId) {
+src/services/user.js:375:export async function publishOrganizerEvent(eventId) {
+src/services/user.js:382:export async function cancelOrganizerEvent(eventId) {
+src/services/user.js:389:export async function loadOrganizerEventDashboard(eventId) {
+src/services/user.js:396:export async function loadVenueManagerWorkspace(userId) {
+src/services/user.js:431:export async function applyAsVenueManager(userId, displayName, reason) {
+src/services/user.js:438:export async function createOwnedVenue(userId, payload) {
+src/services/user.js:450:export async function requestVenueBooking(userId, payload) {
+src/services/user.js:461:export async function respondVenueBooking(bookingId, status, reason = null) {
+src/services/user.js:468:export async function updateOwnedVenue(venueId, payload) {
+src/services/user.js:480:export async function setVenueAvailability(venueId, payload) {
+src/services/user.js:487:export async function initializeVenueBookingPayment(bookingId, idempotencyKey) {
+src/services/user.js:494:export async function loadAvailableVenues(startsAt, endsAt) {
+src/services/user.js:504:export async function loadSuperAdminAnalytics() {
+src/services/user.js:510:export async function searchOrganizerArtists(query = "") {
+src/services/user.js:524:export async function searchEventStaffUsers(query = "") {
+src/services/user.js:530:export async function assignEventStaff(eventId, staffUserId, responsibility = "GENERAL", instructions = "") {
+src/services/user.js:536:export async function loadEventStaffForOrganizer(eventId) {
+src/services/user.js:542:export async function updateEventStaffShift(assignmentId, shiftStartsAt = null, shiftEndsAt = null, shiftNote = "") {
+src/services/user.js:554:export async function revokeEventStaffAssignment(assignmentId) {
+src/services/user.js:560:export async function loadEventStaffWorkspace() {
+src/services/user.js:566:export async function respondEventStaffAssignment(assignmentId, status) {
+src/services/user.js:572:export async function acknowledgeEventStaffTask(taskId, status = "ACKNOWLEDGED") {
+src/services/user.js:578:export async function markEventStaffNotificationRead(notificationId) {
+src/services/user.js:584:export async function eventStaffEntryDecision(qrToken, decision = "ACCEPT") {
+src/services/user.js:590:export async function loadAdminDashboardSnapshot() {
+src/services/user.js:595:export async function adminListUsers(search = "") {
+src/services/user.js:600:export async function adminSuspendUser(userId, suspend, reason = "") {
+src/services/user.js:605:export async function adminReviewEvent(eventId, status, note = "") {
+src/services/user.js:610:export async function adminUpdateReport(reportId, status, note = "") {
+src/services/user.js:615:export async function loadAdminPaymentSupport() {
+src/services/user.js:620:export async function loadAdminAuditLogs() {
+src/services/user.js:626:export async function loadUserExperienceSnapshot() {
+src/services/user.js:632:export async function recordUserSearch(query) {
+src/services/user.js:638:export async function clearUserSearchHistory() {
+src/services/user.js:643:export async function updateUserPreferences(preferences) {
+src/services/user.js:649:export async function markUserNotificationRead(notificationId) {
+src/services/user.js:654:export async function markAllUserNotificationsRead() {
+src/services/user.js:659:export async function createSupportRequest(category, subject, message) {
+src/services/user.js:665:export async function loadUserCollections(userId) {
+src/services/user.js:683:export async function loadMyPosts(userId) {
+src/services/user.js:689:export async function createPost(payload) {
+src/services/user.js:694:export async function updatePost(postId, payload) {
+src/services/user.js:700:export async function setPostStatus(postId, status) {
+src/services/user.js:707:export async function deletePost(postId) {
+src/services/user.js:714:export async function loadPolicySettings() {
+src/services/user.js:720:export async function updatePolicySetting(key, value) {
+src/services/user.js:727:export async function loadRoleCapabilityMatrix() {
+src/services/user.js:732:export async function loadAdminPermissionGrants(adminUserId = null) {
+src/services/user.js:737:export async function setAdminPermission(adminUserId, permissionCode, granted, expiresAt = null) {
+src/services/user.js:744:export async function loadRoleGovernanceSnapshot() {
+src/services/user.js:750:export async function loadOnboardingConfig(roleCode = null) {
+src/services/user.js:756:export async function saveOnboardingQuestion(question = {}) {
+src/services/user.js:770:export async function submitRoleApplication(roleCode, answers) {
+src/services/user.js:776:export async function reviewRoleApplication(applicationId, status, reason = null) {
+src/services/user.js:782:export async function creditWalletForCancelledOrder(userId, amount, reason, referenceId = null) {
+src/services/user.js:788:export async function loadPublicContentAnalytics() {
+src/services/user.js:794:export async function createContentComment(targetType, targetId, body, authorId) {
+src/services/user.js:801:export async function setContentRating(targetType, targetId, rating, userId) {
+src/services/user.js:808:export async function setContentLike(targetType, targetId, userId, liked) {
+src/services/user.js:820:export async function setRoleFeePolicy(roleCode, enabled, amount, currency = "NGN", reviewHours = 24) {
+src/services/user.js:825:export async function setPlatformFeePolicy(policyKey, enabled, feeType, amount, currency = "NGN") {
+src/services/user.js:837:export async function adminSetEventStatus(eventId, status, reason = null) {
+src/services/user.js:848:export async function loadGovernanceEvents() {
+src/services/user.js:854:export async function loadContentEngagement(targetType, targetId, userId = null) {
+src/services/catalog.js:100:export async function loadCatalog() {
+src/services/catalog.js:119:export async function searchCatalog(query) {
+src/services/catalog.js:139:export async function loadEventDetail(eventId) {
+src/services/catalog.js:156:export async function loadVenueDetail(venueId) {
+--- rpc calls ---
+src/EventVerse.jsx:955:rpc("reserve_event_tickets"
+src/services/user.js:164:rpc("issue_ticket_qr_token"
+src/services/user.js:171:rpc("check_in_ticket"
+src/services/user.js:178:rpc("check_in_ticket_with_token"
+src/services/user.js:232:rpc("artist_update_booking_status"
+src/services/user.js:259:rpc("initialize_artist_fee_payment"
+src/services/user.js:288:rpc("update_platform_setting_fee"
+src/services/user.js:303:rpc("apply_as_organizer"
+src/services/user.js:354:rpc("create_organizer_ticket_type"
+src/services/user.js:361:rpc("discover_private_ticket"
+src/services/user.js:377:rpc("publish_organizer_event"
+src/services/user.js:384:rpc("cancel_organizer_event"
+src/services/user.js:391:rpc("get_organizer_event_dashboard"
+src/services/user.js:411:rpc("get_venue_manager_metrics"
+src/services/user.js:433:rpc("apply_as_venue_manager"
+src/services/user.js:440:rpc("create_owned_venue"
+src/services/user.js:452:rpc("request_venue_booking"
+src/services/user.js:463:rpc("respond_venue_booking"
+src/services/user.js:470:rpc("update_owned_venue"
+src/services/user.js:47:rpc("get_current_role_context"
+src/services/user.js:482:rpc("set_venue_availability"
+src/services/user.js:489:rpc("initialize_venue_booking_payment"
+src/services/user.js:505:rpc("get_super_admin_analytics"
+src/services/user.js:525:rpc("search_event_staff_users"
+src/services/user.js:531:rpc("assign_event_staff"
+src/services/user.js:537:rpc("list_event_staff_for_organizer"
+src/services/user.js:544:rpc("update_event_staff_shift"
+src/services/user.js:555:rpc("revoke_event_staff_assignment"
+src/services/user.js:561:rpc("get_event_staff_workspace"
+src/services/user.js:567:rpc("respond_event_staff_assignment"
+src/services/user.js:573:rpc("acknowledge_event_staff_task"
+src/services/user.js:579:rpc("mark_event_staff_notification_read"
+src/services/user.js:585:rpc("event_staff_entry_decision"
+src/services/user.js:591:rpc("admin_dashboard_snapshot"
+src/services/user.js:596:rpc("admin_list_users"
+src/services/user.js:601:rpc("admin_suspend_user"
+src/services/user.js:606:rpc("admin_review_event"
+src/services/user.js:611:rpc("admin_update_report"
+src/services/user.js:616:rpc("admin_payment_support_snapshot"
+src/services/user.js:621:rpc("admin_recent_audit_logs"
+src/services/user.js:627:rpc("user_experience_snapshot"
+src/services/user.js:633:rpc("record_user_search"
+src/services/user.js:639:rpc("clear_user_search_history"
+src/services/user.js:644:rpc("update_user_preferences"
+src/services/user.js:650:rpc("mark_user_notification_read"
+src/services/user.js:655:rpc("mark_all_user_notifications_read"
+src/services/user.js:660:rpc("create_support_request"
+src/services/user.js:690:rpc("create_post"
+src/services/user.js:696:rpc("update_post"
+src/services/user.js:702:rpc("set_post_status"
+src/services/user.js:709:rpc("delete_post"
+src/services/user.js:715:rpc("list_policy_settings"
+src/services/user.js:722:rpc("update_policy_setting"
+src/services/user.js:728:rpc("role_capability_matrix"
+src/services/user.js:733:rpc("list_admin_permission_grants"
+src/services/user.js:739:rpc("set_admin_permission"
+src/services/user.js:745:rpc("admin_role_governance_snapshot"
+src/services/user.js:751:rpc("get_onboarding_config"
+src/services/user.js:757:rpc("save_onboarding_question"
+src/services/user.js:771:rpc("submit_role_application"
+src/services/user.js:777:rpc("admin_review_role_application"
+src/services/user.js:783:rpc("wallet_credit_for_cancelled_order"
+src/services/user.js:789:rpc("public_content_analytics"
+src/services/user.js:821:rpc("set_role_fee_policy"
+src/services/user.js:826:rpc("set_platform_fee_policy"
+src/services/user.js:839:rpc("admin_set_event_status"
+src/services/user.js:849:rpc("admin_governance_event_snapshot"
+src/services/user.js:92:rpc("toggle_artist_follow"
+--- routes/components ---
+src/EventVerse.jsx:702:function Explore({ nav, player, catalog }) {
+src/EventVerse.jsx:763:function SearchScreen({ nav, catalog, account }) {
+src/EventVerse.jsx:910:function TicketSelection({ nav, data }) {
+src/EventVerse.jsx:1065:function Payment({ nav, data }) {
+src/EventVerse.jsx:1146:function PaymentSuccess({ nav, data }) {
+src/EventVerse.jsx:1212:function Ticket2({ label, value }) {
+src/EventVerse.jsx:1274:function ArtistWorkspace({ nav, account }) {
+src/EventVerse.jsx:1338:function ArtistAdminSettings({ nav, account }) {
+src/EventVerse.jsx:1378:function GovernanceDashboard({ nav, account }) {
+src/EventVerse.jsx:1395:function AdminControlCenter({ nav, account }) {
+src/EventVerse.jsx:1429:function AdminWorkspace({ nav, account }) {
+src/EventVerse.jsx:1460:function OrganizerOnboarding({ nav, account }) {
+src/EventVerse.jsx:1467:function OrganizerEvents({ nav, account }) {
+src/EventVerse.jsx:1488:function EventStaffWorkspace({ nav, account }) {
+src/EventVerse.jsx:1497:function EventStaffTasks({ nav, data }) {
+src/EventVerse.jsx:1501:function VenueManagerOnboarding({ nav, account }) {
+src/EventVerse.jsx:1510:function VenueManagerWorkspace({ nav, account }) {
+src/EventVerse.jsx:1530:function ArtistOnboarding({ nav, account, mode = "REGISTRATION" }) {
+src/EventVerse.jsx:1557:function ArtistPaymentProcessing({ nav, data }) {
+src/EventVerse.jsx:1612:function Profile({ nav, player, account }) {
+src/EventVerse.jsx:1682:function ArtistProfile({ nav, data, account, catalog }) {
+src/EventVerse.jsx:1734:function MusicHome({ nav, player, catalog, account }) {
+src/EventVerse.jsx:1899:function VenueDetail({ nav, data }) {
+src/EventVerse.jsx:1914:function MusicDetail({ nav, data, player, account }) {
+src/EventVerse.jsx:1927:function NotificationBoard({ nav, account }) {
+src/EventVerse.jsx:1935:function ProfileCollections({ nav, account, initialTab = "Followed Artists" }) {

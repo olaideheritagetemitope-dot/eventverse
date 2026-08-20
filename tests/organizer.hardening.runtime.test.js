@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import crypto from "node:crypto";
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || "https://blalvoelllndmbppbkcy.supabase.co";
-const publishableKey = process.env.VITE_SUPABASE_ANON_KEY || "sb_publishable_UPS5rb-O3q2hExK0RtPoBA_dn5X6aPf";
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const publishableKey = process.env.VITE_SUPABASE_ANON_KEY;
+const hasSupabaseConfig = Boolean(supabaseUrl && publishableKey);
 
 async function callPublicRpc(name, body) {
   const response = await fetch(`${supabaseUrl}/rest/v1/rpc/${name}`, {
@@ -18,12 +19,12 @@ async function callPublicRpc(name, body) {
 }
 
 describe("production hardening runtime boundaries", () => {
-  it("rejects unauthenticated direct ticket check-in", async () => {
+  it.skipIf(!hasSupabaseConfig)("rejects unauthenticated direct ticket check-in", async () => {
     const result = await callPublicRpc("check_in_ticket", { p_ticket_id: "00000000-0000-0000-0000-000000000000" });
     expect(result.status).toBeGreaterThanOrEqual(400);
   });
 
-  it("rejects unauthenticated QR-token check-in", async () => {
+  it.skipIf(!hasSupabaseConfig)("rejects unauthenticated QR-token check-in", async () => {
     const result = await callPublicRpc("check_in_ticket_with_token", { p_qr_token: "invalid-token-for-runtime-test" });
     expect(result.status).toBeGreaterThanOrEqual(400);
   });

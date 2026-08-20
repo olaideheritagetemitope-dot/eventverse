@@ -1,17 +1,22 @@
 import { createClient } from "@supabase/supabase-js";
 
-// These are Supabase publishable client values. They are safe to expose in a browser
-// when Row Level Security is enabled on every application table.
-export const SUPABASE_URL = "https://blalvoelllndmbppbkcy.supabase.co";
-export const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_UPS5rb-O3q2hExK0RtPoBA_dn5X6aPf";
+// Supabase configuration is supplied by the deployment environment. Never commit service
+// credentials or bind the production frontend to a project-specific hardcoded URL.
+export const SUPABASE_URL = String(import.meta.env.VITE_SUPABASE_URL || "").trim();
+export const SUPABASE_PUBLISHABLE_KEY = String(import.meta.env.VITE_SUPABASE_ANON_KEY || "").trim();
+export const SUPABASE_PROJECT_REF = SUPABASE_URL.match(/^https?:\/\/([a-z0-9]+)\.supabase\.co(?:m)?$/i)?.[1] || "";
+export const SUPABASE_CONFIGURED = Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
 
-// Keep the default Supabase browser flow (PKCE). It was the last known working
-// configuration for both Google and Spotify in EventVerse. The verifier is stored
-// by supabase-js in browser storage and is exchanged at the Supabase callback.
-export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+// Keep the app shell mountable when a deployment is misconfigured. The first live request
+// then fails explicitly and the UI can render its ERROR state instead of showing demo data.
+const clientUrl = SUPABASE_URL || "https://missing-supabase-config.invalid";
+const clientKey = SUPABASE_PUBLISHABLE_KEY || "missing-supabase-publishable-key";
+
+export const supabase = createClient(clientUrl, clientKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
+    flowType: "pkce",
   },
 });
