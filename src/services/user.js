@@ -428,3 +428,9 @@ export async function loadAvailableVenues(startsAt, endsAt) {
   const blocked = new Set((conflicts || []).map((row) => row.venue_id));
   return (data || []).filter((venue) => !blocked.has(venue.id));
 }
+
+export async function loadSuperAdminAnalytics() {
+  const { data, error } = await supabase.rpc("get_super_admin_analytics");
+  if (error) throw error;
+  return data || {};
+}

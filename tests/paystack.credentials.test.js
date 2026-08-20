@@ -1,22 +1,27 @@
 import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
 
-const execFileAsync = promisify(execFile);
+function runCurl(args) {
+  return new Promise((resolve) => {
+    execFile("curl", args, { timeout: 15000 }, (error, stdout, stderr) => {
+      resolve({ error, stdout: stdout || "", stderr: stderr || "" });
+    });
+  });
+}
 
 describe("Paystack credentials", () => {
   it("authenticates the configured server secret against Paystack", async ({ skip }) => {
     const secret = process.env.PAYSTACK_SECRET_KEY;
     expect(secret, "PAYSTACK_SECRET_KEY must be configured").toBeTruthy();
 
-    const result = await execFileAsync("curl", [
+    const result = await runCurl([
       "--silent",
       "--show-error",
       "--location",
       "--header", "Accept: application/json",
       "--header", `Authorization: Bearer ${secret}`,
       "https://api.paystack.co/balance",
-    ], { timeout: 15000, reject: false });
+    ]);
     const payloadText = result.stdout || result.stderr || "";
 
     if (payloadText.includes("Sorry, you have been blocked") || payloadText.includes("cf-error-details")) {
