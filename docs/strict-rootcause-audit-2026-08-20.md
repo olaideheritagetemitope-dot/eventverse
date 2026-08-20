@@ -33,3 +33,9 @@ The runtime hardening and service-role tests now read the same environment varia
 ## Production conclusion
 
 The code-side strict-fix is validated and the audited commit is now pushed to `main`. Vercel built that commit successfully as a READY production deployment and the production domain returned HTTP 200 with the Atizzy shell. The Vercel project metadata endpoint available in this session exposes project and deployment metadata but not secret values, so exact variable-value comparison must still be completed in the Vercel project settings or deployment build environment without exposing credentials.
+
+## Production configuration incident and repair
+
+The mobile screenshot reproduced a deployment configuration failure: the browser was directed to `missing-supabase-config.invalid`, the application’s explicit missing-configuration sentinel. Vercel project inspection showed that no project environment variables were configured. The project was repaired by adding `VITE_SUPABASE_URL` for `https://blalvoelllndmbppbkcy.supabase.co` and `VITE_SUPABASE_ANON_KEY` to the Vercel Production and Preview environments, followed by a production redeployment.
+
+The new deployment `dpl_5G19h5Zfntb13f4JQAG51R8hS8xH` is READY and serves the canonical `eventverse-eight.vercel.app` alias. The live page now loads the Atizzy login shell instead of the sentinel domain. A read-only browser request to the intended Supabase REST endpoint returned HTTP 200 with an empty JSON collection, confirming backend reachability without introducing synthetic data. The empty result is expected under the clean-slate catalog policy.

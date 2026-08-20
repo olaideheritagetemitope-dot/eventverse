@@ -863,3 +863,7 @@
 - [ ] Add focused acceptance coverage for every strict-directive requirement
 - [ ] Run full regression tests, TypeScript, production build, security checks, and responsive validation
 - [ ] Save implementation evidence and checkpoint
+
+- [x] Fix production Vercel Supabase environment variables so the app never resolves to missing-supabase-config.invalid
+- [x] Verify the deployed app can initialize the Supabase client and reach the intended project without mock-data fallback
+- [x] Revalidate production authentication and live catalog request behavior after redeployment
