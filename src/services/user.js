@@ -434,3 +434,16 @@ export async function loadSuperAdminAnalytics() {
   if (error) throw error;
   return data || {};
 }
+
+export async function searchOrganizerArtists(query = "") {
+  const cleanQuery = query.trim();
+  if (cleanQuery.length < 2) return [];
+  const { data, error } = await supabase
+    .from("artists")
+    .select("id,stage_name,verification_status,avatar_url")
+    .or(`stage_name.ilike.%${cleanQuery}%,bio.ilike.%${cleanQuery}%`)
+    .order("stage_name", { ascending: true })
+    .limit(12);
+  if (error) throw error;
+  return data || [];
+}
