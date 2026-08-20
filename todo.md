@@ -660,3 +660,10 @@
 - [x] Implement all missing linked-directive requirements without removing existing structural UI
 - [x] Add focused acceptance coverage and live workflow validation for the linked directive
 - [x] Run full regression, TypeScript, production build, and save implementation evidence
+
+- [x] Extract all 1,248 lines of the attached Super Admin dashboard restoration directive and save a complete feature matrix
+- [x] Audit each directive across database, backend, service, route, page, component, navigation, actions, live data, empty/loading/error states, and responsive behavior
+- [x] Implement missing visible Super Admin directories, overview cards, applications, onboarding, verification, moderation, analytics, wallet, support, audit, and system modules
+- [x] Wire all visible controls to real server-authoritative actions and live updated UI states
+- [x] Add focused acceptance coverage for every restored governance workflow
+- [x] Run full tests, TypeScript, production build, live smoke validation, and save a checkpoint
