@@ -352,3 +352,10 @@
 - [x] Apply supplied image references only where the directive requires the visual treatment
 - [x] Validate responsive behavior, security boundaries, acceptance tests, and production build
 - [x] Record any action that requires user credentials, provider configuration, or explicit confirmation
+
+# Deployment Repair — 2026-08-20
+
+- [x] Include the existing `src/services/catalog.js` venue-detail export required by `src/EventVerse.jsx`
+- [x] Re-run local tests, typecheck, production build, and diff validation after the export repair
+- [ ] Push the complete source state to GitHub main
+- [ ] Verify the new Vercel production deployment reaches READY

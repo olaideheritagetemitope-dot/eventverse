@@ -112,3 +112,13 @@ export async function loadEventDetail(eventId) {
     ticketTypes: ticketResult.data || [],
   };
 }
+
+export async function loadVenueDetail(venueId) {
+  const [venueResult, eventResult] = await Promise.all([
+    supabase.from("venues").select("id,name,city,address,capacity").eq("id", venueId).maybeSingle(),
+    supabase.from("events").select("id,title,description,event_type,city,starts_at,ends_at,cover_url,status,rating,review_count,venues(id,name,city,address,capacity),ticket_types(id,price)").eq("venue_id", venueId).in("status", ["PUBLISHED", "SOLD_OUT", "LIVE", "COMPLETED"]).order("starts_at").limit(30),
+  ]);
+  const firstError = [venueResult, eventResult].find((result) => result.error)?.error;
+  if (firstError) throw firstError;
+  return { venue: venueResult.data, events: (eventResult.data || []).map(toEvent) };
+}
