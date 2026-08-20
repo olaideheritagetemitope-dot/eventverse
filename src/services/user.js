@@ -220,24 +220,25 @@ export async function loadArtistFeeTransaction(transactionId) {
 }
 
 export async function loadArtistAdminOverview() {
-  const [{ data: settings, error: settingsError }, { data: registrations, error: registrationsError }, { data: verifications, error: verificationsError }, { data: transactions, error: transactionsError }] = await Promise.all([
+  const [{ data: settings, error: settingsError }, { data: registrations, error: registrationsError }, { data: verifications, error: verificationsError }, { data: transactions, error: transactionsError }, { data: auditHistory, error: auditError }] = await Promise.all([
     supabase.from("platform_settings").select("key,amount,currency,description,updated_by,updated_at").in("key", ["artist_registration_fee", "artist_verification_fee"]),
     supabase.from("artist_registrations").select("id,user_id,transaction_id,artist_id,status,submitted_at,activated_at,updated_at").order("created_at", { ascending: false }).limit(100),
     supabase.from("artist_verifications").select("id,artist_id,user_id,transaction_id,status,requested_at,verified_at,updated_at").order("created_at", { ascending: false }).limit(100),
     supabase.from("artist_fee_transactions").select("id,user_id,artist_id,transaction_type,amount,currency,status,provider_reference,verified_at,created_at").order("created_at", { ascending: false }).limit(100),
+    supabase.from("audit_logs").select("id,actor_id,action,entity_type,metadata,created_at").eq("action", "platform_fee.updated").order("created_at", { ascending: false }).limit(20),
   ]);
-  const firstError = [settingsError, registrationsError, verificationsError, transactionsError].find(Boolean);
+  const firstError = [settingsError, registrationsError, verificationsError, transactionsError, auditError].find(Boolean);
   if (firstError) throw firstError;
-  return { settings: settings || [], registrations: registrations || [], verifications: verifications || [], transactions: transactions || [] };
+  return { settings: settings || [], registrations: registrations || [], verifications: verifications || [], transactions: transactions || [], auditHistory: auditHistory || [] };
 }
 
 export async function updateArtistFee(key, amount, userId) {
   if (!userId || !key) throw new Error("Fee setting access is required.");
   const numericAmount = Number(amount);
   if (!Number.isFinite(numericAmount) || numericAmount < 0) throw new Error("Enter a valid non-negative fee.");
-  const { data, error } = await supabase.from("platform_settings").update({ amount: numericAmount, updated_by: userId, updated_at: new Date().toISOString() }).eq("key", key).select("key,amount,currency,description,updated_by,updated_at").single();
+  const { data, error } = await supabase.rpc("update_platform_setting_fee", { p_key: key, p_amount: numericAmount });
   if (error) throw error;
-  return data;
+  return Array.isArray(data) ? data[0] : data;
 }
 
 
