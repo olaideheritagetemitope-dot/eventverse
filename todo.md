@@ -392,3 +392,12 @@
 - [x] Add subtle continuous watermark coverage between motif clusters without adding frames
 - [x] Keep motifs visible, text readable, and background pointer-transparent
 - [x] Validate the visual refinement, tests, build, and deployment
+
+# Seamless Continuous Pattern Directive — 2026-08-20
+
+- [x] Replace sparse repeated column composition with a denser staggered continuous watermark field
+- [x] Eliminate visible vertical columns, horizontal bands, seams, abrupt resets, and large blank gaps
+- [x] Preserve black-and-metallic-gold Atizzy language with varied music notes, tickets, stars, and cropped elements
+- [x] Keep the pattern subtle, readable, pointer-transparent, and behind content/fixed navigation
+- [x] Validate 320/360/375/390/414/430px mobile widths and 1024/1280/1440/1920px desktop behavior
+- [x] Validate scrolling, overflow, performance, acceptance tests, production build, and deployment

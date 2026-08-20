@@ -9,15 +9,16 @@ const styles = fs.readFileSync(path.join(root, "src/styles.css"), "utf8");
 describe("Atizzy watermark and Profile Logout correction", () => {
   it("tunes the existing single watermark layer to be visible but subdued", () => {
     expect(styles).toContain(".ev-atizzy-pattern");
-    expect(styles).toContain("url('/assets/atizzy-pattern.png')");
-    expect(styles).toContain("opacity: .52");
-    expect(styles).toContain("opacity: .44");
+    expect(styles).toContain("url('/assets/atizzy-seamless-pattern.png')");
+    expect(styles).toContain("position: fixed");
+    expect(styles).toContain("background-attachment: fixed");
+    expect(styles).toContain("background-size: auto, 760px 760px");
+    expect(styles).toContain("background-size: auto, 540px 540px");
     expect(styles).toContain("pointer-events: none");
     expect(styles).not.toContain(".ev-atizzy-pattern::before");
-    expect(styles).toContain(".ev-atizzy-pattern::after");
-    expect(styles).toContain("background-size: 250px auto");
-    expect(styles).toContain("opacity: .075");
-    expect((styles.match(/url\('\/assets\/atizzy-pattern\.png'\)/g) || []).length).toBe(2);
+    expect(styles).not.toContain(".ev-atizzy-pattern::after");
+    expect(styles).not.toContain("url('/assets/atizzy-pattern.png')");
+    expect((styles.match(/url\('\/assets\/atizzy-seamless-pattern\.png'\)/g) || []).length).toBe(1);
   });
 
   it("places one accessible Logout action in the Profile header", () => {
