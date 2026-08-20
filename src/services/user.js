@@ -1,17 +1,63 @@
 import { supabase } from "../lib/supabase";
 
+const MEDIA_BUCKET = "atizzy-media";
+const MEDIA_LIMIT_BYTES = 50 * 1024 * 1024;
+const MEDIA_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "audio/mpeg", "audio/mp4", "audio/wav", "audio/ogg", "audio/x-m4a"]);
+const safeFileName = (name = "upload") => name.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "upload";
+const isManagedMediaUrl = (value) => !value || (typeof value === "string" && value.includes(`/storage/v1/object/public/${MEDIA_BUCKET}/`));
+const managedMediaUrl = (value, label = "image") => {
+  const normalized = typeof value === "string" ? value.trim() : "";
+  if (!isManagedMediaUrl(normalized)) throw new Error(`Select a ${label} from your device. External image URLs are not supported.`);
+  return normalized || null;
+};
+
+export async function uploadMediaFile(userId, file, mediaKind, entityType = null, entityId = null) {
+  if (!userId) throw new Error("Authentication required");
+  if (!file || typeof file !== "object") throw new Error("Choose a file before uploading");
+  if (!MEDIA_TYPES.has(file.type)) throw new Error("Unsupported file type. Choose a supported image or audio file.");
+  if (file.size > MEDIA_LIMIT_BYTES) throw new Error("File is too large. The maximum upload size is 50 MB.");
+  const path = `${userId}/${mediaKind.toLowerCase()}/${crypto.randomUUID()}-${safeFileName(file.name)}`;
+  const { error: uploadError } = await supabase.storage.from(MEDIA_BUCKET).upload(path, file, { contentType: file.type, upsert: false, cacheControl: "3600" });
+  if (uploadError) throw uploadError;
+  const { data: publicData } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(path);
+  const { data: asset, error: assetError } = await supabase.from("media_assets").insert({ owner_id: userId, bucket_id: MEDIA_BUCKET, object_path: path, public_url: publicData.publicUrl, media_kind: mediaKind, mime_type: file.type, byte_size: file.size, entity_type: entityType, entity_id: entityId }).select("*").single();
+  if (assetError) {
+    await supabase.storage.from(MEDIA_BUCKET).remove([path]);
+    throw assetError;
+  }
+  return asset;
+}
+
+export async function removeMediaAsset(asset) {
+  if (!asset?.object_path) return;
+  const { error: storageError } = await supabase.storage.from(asset.bucket_id || MEDIA_BUCKET).remove([asset.object_path]);
+  if (storageError) throw storageError;
+  const { error } = await supabase.from("media_assets").delete().eq("id", asset.id);
+  if (error) throw error;
+}
+
 export async function loadCurrentUser() {
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   if (sessionError) throw sessionError;
   const user = sessionData.session?.user || null;
-  if (!user) return { user: null, profile: null, roles: [] };
-  const [{ data: profile, error: profileError }, { data: roleRows, error: roleError }] = await Promise.all([
+  if (!user) return { user: null, profile: null, roles: [], effectiveRoles: [], primaryRole: null };
+  const [{ data: profile, error: profileError }, { data: roleRows, error: roleError }, { data: roleContext, error: roleContextError }] = await Promise.all([
     supabase.from("user_profiles").select("id,full_name,phone,avatar_url,onboarding_complete").eq("id", user.id).maybeSingle(),
     supabase.from("user_roles").select("roles(code,label)").eq("user_id", user.id),
+    supabase.rpc("get_current_role_context"),
   ]);
   if (profileError) throw profileError;
   if (roleError) throw roleError;
-  return { user, profile, roles: (roleRows || []).map((row) => row.roles).filter(Boolean) };
+  const assignedRoles = (roleRows || []).map((row) => row.roles).filter(Boolean);
+  const fallbackEffectiveRoles = assignedRoles.map((role) => typeof role === "string" ? role : role.code).filter(Boolean);
+  return {
+    user,
+    profile,
+    roles: assignedRoles,
+    effectiveRoles: Array.isArray(roleContext?.effective_roles) ? roleContext.effective_roles : fallbackEffectiveRoles,
+    primaryRole: roleContext?.primary_role || assignedRoles[0]?.code || null,
+    roleContextError: roleContextError?.message || null,
+  };
 }
 
 export async function loadFavoriteState(userId, eventId, artistId) {
@@ -140,7 +186,7 @@ export async function updateProfile(userId, updates) {
     id: userId,
     full_name: updates?.full_name?.trim() || null,
     phone: updates?.phone?.trim() || null,
-    avatar_url: updates?.avatar_url?.trim() || null,
+    avatar_url: managedMediaUrl(updates?.avatar_url, "profile photo"),
     updated_at: new Date().toISOString(),
   };
   const { data, error } = await supabase.from("user_profiles").upsert(payload, { onConflict: "id" }).select("id,full_name,phone,avatar_url,onboarding_complete,updated_at").single();
@@ -165,7 +211,7 @@ export async function loadArtistWorkspace(userId) {
 
 export async function updateArtistProfile(artistId, userId, updates) {
   if (!artistId || !userId) throw new Error("Artist profile access is required.");
-  const payload = { name: updates?.name?.trim(), bio: updates?.bio?.trim() || null, image_url: updates?.image_url?.trim() || null, updated_at: new Date().toISOString() };
+  const payload = { name: updates?.name?.trim(), bio: updates?.bio?.trim() || null, image_url: managedMediaUrl(updates?.image_url, "artist photo"), updated_at: new Date().toISOString() };
   if (!payload.name) throw new Error("Artist name is required.");
   const { data, error } = await supabase.from("artists").update(payload).eq("id", artistId).eq("user_id", userId).select("id,user_id,name,bio,verified,follower_count,image_url,created_at,updated_at").single();
   if (error) throw error;
@@ -174,7 +220,7 @@ export async function updateArtistProfile(artistId, userId, updates) {
 
 export async function updateArtistSong(songId, artistId, updates) {
   if (!songId || !artistId) throw new Error("Artist song access is required.");
-  const payload = { title: updates?.title?.trim(), cover_url: updates?.cover_url?.trim() || null };
+  const payload = { title: updates?.title?.trim(), cover_url: managedMediaUrl(updates?.cover_url, "song cover"), audio_url: managedMediaUrl(updates?.audio_url, "audio file") };
   if (!payload.title) throw new Error("Song title is required.");
   const { data, error } = await supabase.from("songs").update(payload).eq("id", songId).eq("artist_id", artistId).select("id,artist_id,title,duration_seconds,audio_url,cover_url,play_count,created_at").single();
   if (error) throw error;
@@ -268,7 +314,7 @@ export async function loadOrganizerEvents(userId) {
 
 export async function createOrganizerEvent(userId, payload) {
   if (!userId) throw new Error("Organizer access is required.");
-  const body = { organizer_id: userId, title: payload.title?.trim(), description: payload.description?.trim() || null, event_type: payload.event_type?.trim() || null, city: payload.city?.trim(), starts_at: payload.starts_at, ends_at: payload.ends_at || null, cover_url: payload.cover_url?.trim() || null, venue_id: null, status: "DRAFT" };
+  const body = { organizer_id: userId, title: payload.title?.trim(), description: payload.description?.trim() || null, event_type: payload.event_type?.trim() || null, city: payload.city?.trim(), starts_at: payload.starts_at, ends_at: payload.ends_at || null, cover_url: managedMediaUrl(payload.cover_url, "event cover"), venue_id: null, status: "DRAFT" };
   if (!body.title || !body.description || !body.city || !body.starts_at) throw new Error("Title, description, city, and start date are required.");
   const { data, error } = await supabase.from("events").insert(body).select("id,organizer_id,venue_id,title,description,event_type,city,starts_at,ends_at,cover_url,status,created_at,updated_at").single();
   if (error) throw error;
@@ -277,7 +323,7 @@ export async function createOrganizerEvent(userId, payload) {
 
 export async function updateOrganizerEvent(eventId, userId, payload) {
   if (!eventId || !userId) throw new Error("Organizer event access is required.");
-  const body = { title: payload.title?.trim(), description: payload.description?.trim() || null, event_type: payload.event_type?.trim() || null, city: payload.city?.trim(), starts_at: payload.starts_at, ends_at: payload.ends_at || null, cover_url: payload.cover_url?.trim() || null, venue_id: payload.venue_id || null, updated_at: new Date().toISOString() };
+  const body = { title: payload.title?.trim(), description: payload.description?.trim() || null, event_type: payload.event_type?.trim() || null, city: payload.city?.trim(), starts_at: payload.starts_at, ends_at: payload.ends_at || null, cover_url: managedMediaUrl(payload.cover_url, "event cover"), venue_id: payload.venue_id || null, updated_at: new Date().toISOString() };
   const { data, error } = await supabase.from("events").update(body).eq("id", eventId).eq("organizer_id", userId).select("id,organizer_id,venue_id,title,description,event_type,city,starts_at,ends_at,cover_url,status,created_at,updated_at").single();
   if (error) throw error;
   return data;
@@ -285,11 +331,34 @@ export async function updateOrganizerEvent(eventId, userId, payload) {
 
 export async function addOrganizerTicketType(eventId, userId, payload) {
   if (!eventId || !userId) throw new Error("Organizer ticket access is required.");
-  const { data: ownedEvent, error: ownedError } = await supabase.from("events").select("id").eq("id", eventId).eq("organizer_id", userId).single();
-  if (ownedError || !ownedEvent) throw ownedError || new Error("Event is not owned by this Organizer.");
-  const body = { event_id: eventId, name: payload.name?.trim(), price: Number(payload.price), capacity: Number(payload.capacity), sales_start: payload.sales_start || null, sales_end: payload.sales_end || null, maximum_per_customer: Number(payload.maximum_per_customer || 4) };
-  if (!body.name || !Number.isFinite(body.price) || body.price < 0 || !Number.isInteger(body.capacity) || body.capacity < 1) throw new Error("Enter a valid ticket name, price, and capacity.");
-  const { data, error } = await supabase.from("ticket_types").insert(body).select("id,event_id,name,price,capacity,sold,reserved,sales_start,sales_end,maximum_per_customer").single();
+  const body = {
+    p_event_id: eventId,
+    p_name: payload.name?.trim(),
+    p_price: Number(payload.price),
+    p_capacity: Number(payload.capacity),
+    p_sales_start: payload.sales_start || null,
+    p_sales_end: payload.sales_end || null,
+    p_maximum_per_customer: Number(payload.maximum_per_customer || 4),
+    p_visibility: payload.visibility || "PUBLIC",
+    p_access_method: payload.access_method || null,
+    p_code: payload.code?.trim() || null,
+    p_word: payload.word?.trim() || null,
+    p_access_credential_hint: payload.access_credential_hint?.trim() || null,
+    p_maximum_redemptions: payload.maximum_redemptions ? Number(payload.maximum_redemptions) : null,
+    p_maximum_purchases_per_user: payload.maximum_purchases_per_user ? Number(payload.maximum_purchases_per_user) : null,
+  };
+  if (!body.p_name || !Number.isFinite(body.p_price) || body.p_price < 0 || !Number.isInteger(body.p_capacity) || body.p_capacity < 1) throw new Error("Enter a valid ticket name, price, and capacity.");
+  if (body.p_visibility === "PRIVATE" && body.p_access_method === "CODE_WORD" && (!body.p_code || !body.p_word)) throw new Error("Private tickets using Code + Word require both values.");
+  if (body.p_visibility === "PRIVATE" && body.p_access_method === "CODE" && !body.p_code) throw new Error("Enter a private ticket code.");
+  if (body.p_visibility === "PRIVATE" && body.p_access_method === "WORD" && !body.p_word) throw new Error("Enter a private ticket word.");
+  const { data, error } = await supabase.rpc("create_organizer_ticket_type", body);
+  if (error) throw error;
+  return data;
+}
+
+export async function discoverPrivateTicket(eventId, { code = null, word = null } = {}) {
+  if (!eventId) throw new Error("Event is required.");
+  const { data, error } = await supabase.rpc("discover_private_ticket", { p_event_id: eventId, p_code: code?.trim() || null, p_word: word?.trim() || null });
   if (error) throw error;
   return data;
 }
@@ -371,7 +440,7 @@ export async function createOwnedVenue(userId, payload) {
   const { data, error } = await supabase.rpc("create_owned_venue", {
     p_name: payload.name, p_city: payload.city, p_address: payload.address || null, p_capacity: Number(payload.capacity),
     p_description: payload.description || null, p_venue_type: payload.venue_type || null, p_amenities: payload.amenities || [],
-    p_rules: payload.rules || null, p_contact_phone: payload.contact_phone || null, p_image_urls: payload.image_urls || [],
+    p_rules: payload.rules || null, p_contact_phone: payload.contact_phone || null, p_image_urls: (payload.image_urls || []).map((url) => managedMediaUrl(url, "venue photo")),
     p_pricing: payload.pricing || {}, p_cancellation_policy: payload.cancellation_policy || null,
   });
   if (error) throw error;
@@ -608,5 +677,186 @@ export async function loadUserCollections(userId) {
     likedMusic: (likedMusic || []).map((row) => row.songs || { id: row.song_id }),
     recentlyPlayed: (recentlyPlayed || []).map((row) => ({ ...(row.songs || {}), played_at: row.played_at, seconds_played: row.seconds_played })).filter((row) => row.id),
     activity: (recentlyPlayed || []).map((row) => ({ id: row.id, type: "PLAYED_MUSIC", label: `Played ${row.songs?.title || "music"}`, created_at: row.played_at })).filter((row) => row.created_at),
+  };
+}
+
+export async function loadMyPosts(userId) {
+  if (!userId) return [];
+  const { data, error } = await supabase.from("posts").select("id,author_id,caption,image_url,music_id,event_id,status,published_at,created_at,updated_at").eq("author_id", userId).order("updated_at", { ascending: false }).limit(100);
+  if (error) throw error;
+  return data || [];
+}
+export async function createPost(payload) {
+  const { data, error } = await supabase.rpc("create_post", { p_caption: payload.caption || "", p_image_url: managedMediaUrl(payload.image_url, "post image"), p_music_id: payload.music_id || null, p_event_id: payload.event_id || null, p_status: payload.status || "DRAFT" });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+export async function updatePost(postId, payload) {
+  if (!postId) throw new Error("Post access is required.");
+  const { data, error } = await supabase.rpc("update_post", { p_post_id: postId, p_caption: payload.caption || "", p_image_url: managedMediaUrl(payload.image_url, "post image"), p_music_id: payload.music_id || null, p_event_id: payload.event_id || null });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+export async function setPostStatus(postId, status) {
+  if (!postId) throw new Error("Post access is required.");
+  const { data, error } = await supabase.rpc("set_post_status", { p_post_id: postId, p_status: status });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+
+export async function deletePost(postId) {
+  if (!postId) throw new Error("Post access is required.");
+  const { data, error } = await supabase.rpc("delete_post", { p_post_id: postId });
+  if (error) throw error;
+  return data === true || data?.deleted === true;
+}
+
+export async function loadPolicySettings() {
+  const { data, error } = await supabase.rpc("list_policy_settings");
+  if (error) throw error;
+  return data || [];
+}
+
+export async function updatePolicySetting(key, value) {
+  if (!key) throw new Error("Policy key is required.");
+  const { data, error } = await supabase.rpc("update_policy_setting", { p_key: key, p_value: value });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+
+export async function loadRoleCapabilityMatrix() {
+  const { data, error } = await supabase.rpc("role_capability_matrix");
+  if (error) throw error;
+  return data || [];
+}
+export async function loadAdminPermissionGrants(adminUserId = null) {
+  const { data, error } = await supabase.rpc("list_admin_permission_grants", { p_admin_user_id: adminUserId });
+  if (error) throw error;
+  return data || [];
+}
+export async function setAdminPermission(adminUserId, permissionCode, granted, expiresAt = null) {
+  if (!adminUserId || !permissionCode) throw new Error("Admin and permission are required.");
+  const { data, error } = await supabase.rpc("set_admin_permission", { p_admin_user_id: adminUserId, p_permission_code: permissionCode, p_granted: Boolean(granted), p_expires_at: expiresAt });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+
+export async function loadRoleGovernanceSnapshot() {
+  const { data, error } = await supabase.rpc("admin_role_governance_snapshot");
+  if (error) throw error;
+  return data || { users: [], applications: [], fees: [], questions: [], wallets: [], analytics: {} };
+}
+
+export async function loadOnboardingConfig(roleCode = null) {
+  const { data, error } = await supabase.rpc("get_onboarding_config", { p_role_code: roleCode });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function saveOnboardingQuestion(question = {}) {
+  const { data, error } = await supabase.rpc("save_onboarding_question", {
+    p_id: question.id || null,
+    p_role_code: question.roleCode,
+    p_prompt: question.prompt,
+    p_question_type: question.questionType || "SHORT_TEXT",
+    p_options: question.options || [],
+    p_required: question.required !== false,
+    p_sort_order: Number(question.sortOrder || 0),
+  });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+
+export async function submitRoleApplication(roleCode, answers) {
+  const { data, error } = await supabase.rpc("submit_role_application", { p_role_code: roleCode, p_answers: answers || {} });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+
+export async function reviewRoleApplication(applicationId, status, reason = null) {
+  const { data, error } = await supabase.rpc("admin_review_role_application", { p_application_id: applicationId, p_status: status, p_reason: reason });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+
+export async function creditWalletForCancelledOrder(userId, amount, reason, referenceId = null) {
+  const { data, error } = await supabase.rpc("wallet_credit_for_cancelled_order", { p_user_id: userId, p_amount: amount, p_reason: reason, p_reference_id: referenceId });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+
+export async function loadPublicContentAnalytics() {
+  const { data, error } = await supabase.rpc("public_content_analytics");
+  if (error) throw error;
+  return data || { likes: 0, ratings: 0, comments: 0 };
+}
+
+export async function createContentComment(targetType, targetId, body, authorId) {
+  if (!targetType || !targetId || !body?.trim() || !authorId) throw new Error("Comment details are required.");
+  const { data, error } = await supabase.from("content_comments").insert({ target_type: targetType, target_id: targetId, body: body.trim(), author_id: authorId }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function setContentRating(targetType, targetId, rating, userId) {
+  if (!targetType || !targetId || !userId) throw new Error("Rating details are required.");
+  const { data, error } = await supabase.from("content_ratings").upsert({ target_type: targetType, target_id: targetId, rating: Number(rating), user_id: userId }, { onConflict: "user_id,target_type,target_id" }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function setContentLike(targetType, targetId, userId, liked) {
+  if (!targetType || !targetId || !userId) throw new Error("Like details are required.");
+  if (liked) {
+    const { data, error } = await supabase.from("content_likes").upsert({ target_type: targetType, target_id: targetId, user_id: userId }, { onConflict: "user_id,target_type,target_id" }).select().single();
+    if (error) throw error;
+    return data;
+  }
+  const { error } = await supabase.from("content_likes").delete().match({ target_type: targetType, target_id: targetId, user_id: userId });
+  if (error) throw error;
+  return null;
+}
+
+export async function setRoleFeePolicy(roleCode, enabled, amount, currency = "NGN", reviewHours = 24) {
+  const { data, error } = await supabase.rpc("set_role_fee_policy", { p_role_code: roleCode, p_enabled: enabled, p_amount: Number(amount || 0), p_currency: currency, p_review_hours: Number(reviewHours || 24) });
+  if (error) throw error;
+  return data;
+}
+
+export async function adminSetEventStatus(eventId, status, reason = null) {
+  if (!eventId || !status) throw new Error("Event and status are required.");
+  const { data, error } = await supabase.rpc("admin_set_event_status", {
+    p_event_id: eventId,
+    p_status: status,
+    p_reason: reason,
+  });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+
+export async function loadGovernanceEvents() {
+  const { data, error } = await supabase.rpc("admin_governance_event_snapshot");
+  if (error) throw error;
+  return data || [];
+}
+
+export async function loadContentEngagement(targetType, targetId, userId = null) {
+  if (!targetType || !targetId) return { comments: [], averageRating: 0, ratingCount: 0, likeCount: 0, liked: false };
+  const [{ data: comments, error: commentsError }, { data: ratings, error: ratingsError }, { data: likes, error: likesError }] = await Promise.all([
+    supabase.from("content_comments").select("id,body,author_id,created_at,user_profiles(full_name,avatar_url)").eq("target_type", targetType).eq("target_id", targetId).eq("status", "VISIBLE").order("created_at", { ascending: false }).limit(50),
+    supabase.from("content_ratings").select("rating,user_id").eq("target_type", targetType).eq("target_id", targetId).limit(1000),
+    supabase.from("content_likes").select("user_id").eq("target_type", targetType).eq("target_id", targetId).limit(1000),
+  ]);
+  const firstError = [commentsError, ratingsError, likesError].find(Boolean);
+  if (firstError) throw firstError;
+  const ratingRows = ratings || [];
+  const likeRows = likes || [];
+  return {
+    comments: comments || [],
+    averageRating: ratingRows.length ? ratingRows.reduce((sum, row) => sum + Number(row.rating || 0), 0) / ratingRows.length : 0,
+    ratingCount: ratingRows.length,
+    likeCount: likeRows.length,
+    liked: Boolean(userId && likeRows.some((row) => row.user_id === userId)),
+    userRating: userId ? ratingRows.find((row) => row.user_id === userId)?.rating || 0 : 0,
   };
 }

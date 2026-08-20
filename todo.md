@@ -688,3 +688,9 @@
 - [x] Preserve Home featured, upcoming, artist, venue, pills, navigation, background, and card structures while removing only fake content
 - [x] Verify production build, generated bundle, GitHub/Vercel/environment/Supabase alignment, and deployed Home behavior
 - [x] Add regression coverage, run full validation, and save a deployment-safe checkpoint
+
+- [x] Inspect linked ChatGPT directive 6a874d5ce7308191976020169f71111a and extract every actionable requirement
+- [x] Map each linked requirement against Atizzy's current UI shell, services, Supabase schema, RLS, roles, and tests
+- [x] Implement all missing linked-directive requirements without removing existing design or live-data boundaries
+- [x] Add focused acceptance coverage and validate live, empty, loading, error, and responsive states
+- [x] Run full tests, TypeScript, production build, and save implementation evidence
