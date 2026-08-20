@@ -308,3 +308,17 @@
 - [x] Audit Atizzy implementation, Supabase contracts, permissions, UI routes, and tests against the new directive
 - [x] Implement every feasible missing directive workflow with server-authoritative security
 - [x] Add focused acceptance coverage, apply live backend changes, and validate responsive production behavior
+
+# Outstanding Discovery, Commerce, Account, and Navigation Workflows
+- [ ] Audit outstanding Artist, Music, Event, Venue, Search, Profile, Ticket, Security, Notification, and Navigation workflows
+- [ ] Complete Artist detail, music, events, popular-artist routing, follow notifications, and deep links
+- [ ] Complete Music detail/player, liked music, recently played, and music library workflows
+- [ ] Complete Event detail, event collections, nearby/trending/popular routing, and event-to-ticket-to-payment-to-ticket flow
+- [ ] Complete Venue detail, popular venues, and venue-to-events routing
+- [x] Complete search-result routing to Artist, Music, Event, and Venue detail
+- [x] Complete Profile followed artists, liked music, activity, and account security workflows
+- [ ] Complete upcoming/past ticket lists, ticket detail, QR ticket, and purchase history
+- [ ] Complete Security page, authentication methods, sessions, and account security
+- [ ] Complete notification board, deep links, dropdown integration, profile dropdown, and responsive navigation
+- [ ] Preserve Preferences, Search History, notification persistence/read state, Support, authentication, search infrastructure, and role dashboards
+- [ ] Add acceptance coverage, validate responsive behavior, apply live changes, and save a checkpoint

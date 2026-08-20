@@ -577,3 +577,21 @@ export async function createSupportRequest(category, subject, message) {
   if (error) throw error;
   return data;
 }
+
+export async function loadUserCollections(userId) {
+  if (!userId) return { followedArtists: [], likedMusic: [], recentlyPlayed: [], activity: [] };
+  const [{ data: followedArtists, error: artistsError }, { data: likedMusic, error: musicError }, { data: recentlyPlayed, error: playedError }] = await Promise.all([
+    supabase.from("artist_followers").select("artist_id,created_at,artists(id,name,image_url,verified,follower_count)").eq("user_id", userId).order("created_at", { ascending: false }),
+    supabase.from("music_favorites").select("song_id,created_at,songs(id,title,artist_id,audio_url,cover_url,duration_seconds,play_count,artists(name))").eq("user_id", userId).order("created_at", { ascending: false }),
+    supabase.from("play_history").select("id,song_id,seconds_played,played_at,songs(id,title,artist_id,audio_url,cover_url,duration_seconds,play_count,artists(name))").eq("user_id", userId).order("played_at", { ascending: false }).limit(50),
+  ]);
+  if (artistsError) throw artistsError;
+  if (musicError) throw musicError;
+  if (playedError) throw playedError;
+  return {
+    followedArtists: (followedArtists || []).map((row) => row.artists || { id: row.artist_id }),
+    likedMusic: (likedMusic || []).map((row) => row.songs || { id: row.song_id }),
+    recentlyPlayed: (recentlyPlayed || []).map((row) => ({ ...(row.songs || {}), played_at: row.played_at, seconds_played: row.seconds_played })).filter((row) => row.id),
+    activity: (recentlyPlayed || []).map((row) => ({ id: row.id, type: "PLAYED_MUSIC", label: `Played ${row.songs?.title || "music"}`, created_at: row.played_at })).filter((row) => row.created_at),
+  };
+}

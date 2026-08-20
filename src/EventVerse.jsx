@@ -6,9 +6,9 @@ import {
   Ticket, User, X, QrCode, Shuffle, Repeat, ListMusic, ChevronDown,
 } from "lucide-react";
 import { supabase } from "./lib/supabase";
-import { loadCatalog, loadEventDetail, searchCatalog, formatFollowers } from "./services/catalog";
+import { loadCatalog, loadEventDetail, loadVenueDetail, searchCatalog, formatFollowers } from "./services/catalog";
 import CheckInScreen from "./components/CheckInScreen";
-import { loadCurrentUser, loadFavoriteState, toggleEventFavorite, toggleArtistFollow, toggleMusicFavorite, loadMusicFavorites, recordPlay, loadPlaylists, createPlaylist, submitBooking, loadRoleDashboard, loadArtistWorkspace, updateArtistProfile, updateArtistSong, artistUpdateBookingStatus, issueTicketQrToken, updateProfile, loadArtistOnboarding, initializeArtistFeePayment, loadArtistFeeTransaction, loadArtistAdminOverview, updateArtistFee, loadOrganizerApplication, applyAsOrganizer, loadOrganizerEvents, createOrganizerEvent, updateOrganizerEvent, addOrganizerTicketType, linkOrganizerArtist, publishOrganizerEvent, cancelOrganizerEvent, loadOrganizerEventDashboard, loadVenueManagerWorkspace, applyAsVenueManager, createOwnedVenue, updateOwnedVenue, requestVenueBooking, respondVenueBooking, setVenueAvailability, initializeVenueBookingPayment, loadAvailableVenues, searchOrganizerArtists, searchEventStaffUsers, assignEventStaff, loadEventStaffForOrganizer, revokeEventStaffAssignment, loadEventStaffWorkspace, respondEventStaffAssignment, acknowledgeEventStaffTask, loadSuperAdminAnalytics, loadAdminDashboardSnapshot, adminListUsers, adminSuspendUser, adminReviewEvent, loadAdminPaymentSupport, loadAdminAuditLogs, loadUserExperienceSnapshot, recordUserSearch, clearUserSearchHistory, updateUserPreferences, markUserNotificationRead, markAllUserNotificationsRead, createSupportRequest } from "./services/user";
+import { loadCurrentUser, loadFavoriteState, toggleEventFavorite, toggleArtistFollow, toggleMusicFavorite, loadMusicFavorites, recordPlay, loadPlaylists, createPlaylist, submitBooking, loadRoleDashboard, loadArtistWorkspace, updateArtistProfile, updateArtistSong, artistUpdateBookingStatus, issueTicketQrToken, updateProfile, loadArtistOnboarding, initializeArtistFeePayment, loadArtistFeeTransaction, loadArtistAdminOverview, updateArtistFee, loadOrganizerApplication, applyAsOrganizer, loadOrganizerEvents, createOrganizerEvent, updateOrganizerEvent, addOrganizerTicketType, linkOrganizerArtist, publishOrganizerEvent, cancelOrganizerEvent, loadOrganizerEventDashboard, loadVenueManagerWorkspace, applyAsVenueManager, createOwnedVenue, updateOwnedVenue, requestVenueBooking, respondVenueBooking, setVenueAvailability, initializeVenueBookingPayment, loadAvailableVenues, searchOrganizerArtists, searchEventStaffUsers, assignEventStaff, loadEventStaffForOrganizer, revokeEventStaffAssignment, loadEventStaffWorkspace, respondEventStaffAssignment, acknowledgeEventStaffTask, loadSuperAdminAnalytics, loadAdminDashboardSnapshot, adminListUsers, adminSuspendUser, adminReviewEvent, loadAdminPaymentSupport, loadAdminAuditLogs, loadUserExperienceSnapshot, loadUserCollections, recordUserSearch, clearUserSearchHistory, updateUserPreferences, markUserNotificationRead, markAllUserNotificationsRead, createSupportRequest } from "./services/user";
 import QRCode from "qrcode";
 
 /* ============================== DESIGN TOKENS ==============================
@@ -630,7 +630,7 @@ function AttendeeHome({ nav, player, catalog, account, loading, error }) {
             <button onClick={() => nav.tab("music")} className="text-[12px]" style={{ color: C.gold }}>See all</button>
           </div>
           <div className="flex gap-3 px-5 overflow-x-auto no-scrollbar">
-            {(catalog?.songs || []).slice(0, 4).map((song) => <button key={song.id} onClick={() => nav.push("musicPlayer", song)} className="flex-shrink-0 w-36 rounded-2xl p-3 text-left" style={{ background: C.card, border: `1px solid ${C.line}` }}><div className="h-24 rounded-xl" style={imageStyle(song.coverUrl, C.card)} /><p className="text-[12px] font-semibold mt-2 truncate" style={{ color: C.ivory }}>{song.title}</p><p className="text-[11px] mt-1 truncate" style={{ color: C.muted }}>{song.artist}</p></button>)}
+            {(catalog?.songs || []).slice(0, 4).map((song) => <button key={song.id} onClick={() => nav.push("musicDetail", song)} className="flex-shrink-0 w-36 rounded-2xl p-3 text-left" style={{ background: C.card, border: `1px solid ${C.line}` }}><div className="h-24 rounded-xl" style={imageStyle(song.coverUrl, C.card)} /><p className="text-[12px] font-semibold mt-2 truncate" style={{ color: C.ivory }}>{song.title}</p><p className="text-[11px] mt-1 truncate" style={{ color: C.muted }}>{song.artist}</p></button>)}
             {!(catalog?.songs || []).length && [0, 1, 2].map((slot) => <EmptySongCard key={`song-empty-${slot}`} />)}
           </div>
         </div>
@@ -738,9 +738,9 @@ function SearchScreen({ nav, catalog, account }) {
         {!loading && error && <AuthMessage error={error} />}
         {!loading && !error && query && !artists.length && !songs.length && !events.length && !venues.length && <p className="text-[13px] py-8 text-center" style={{ color: C.muted }}>No results for “{query}”.</p>}
         {!!artists.length && <><p className="text-[12px] font-semibold mb-2" style={{ color: C.muted }}>ARTISTS</p>{artists.map((artist) => <button key={artist.id} onClick={() => nav.push("artist", artist)} className="w-full flex items-center gap-3 py-2.5"><div className="w-11 h-11 rounded-full" style={imageStyle(artist.img, C.card)} /><div className="flex-1 text-left"><p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{artist.name}</p><p className="text-[11px]" style={{ color: C.muted }}>{artist.followers} Followers</p></div></button>)}</>}
-        {!!songs.length && <><p className="text-[12px] font-semibold mt-4 mb-2" style={{ color: C.muted }}>SONGS</p>{songs.map((song) => <button key={song.id} onClick={() => nav.push("musicPlayer", song)} className="w-full flex items-center gap-3 py-2.5 text-left"><div className="w-11 h-11 rounded-lg" style={imageStyle(song.coverUrl, C.card)} /><div className="flex-1"><p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{song.title}</p><p className="text-[11px]" style={{ color: C.muted }}>{song.artist}</p></div><Play size={16} color={C.gold} /></button>)}</>}
+        {!!songs.length && <><p className="text-[12px] font-semibold mt-4 mb-2" style={{ color: C.muted }}>SONGS</p>{songs.map((song) => <button key={song.id} onClick={() => nav.push("musicDetail", song)} className="w-full flex items-center gap-3 py-2.5 text-left"><div className="w-11 h-11 rounded-lg" style={imageStyle(song.coverUrl, C.card)} /><div className="flex-1"><p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{song.title}</p><p className="text-[11px]" style={{ color: C.muted }}>{song.artist}</p></div><Play size={16} color={C.gold} /></button>)}</>}
         {!!events.length && <><p className="text-[12px] font-semibold mt-4 mb-2" style={{ color: C.muted }}>EVENTS</p>{events.map((event) => <button key={event.id} onClick={() => nav.push("eventDetail", event)} className="w-full flex items-center gap-3 pb-4 text-left"><div className="w-14 h-14 rounded-xl flex-shrink-0" style={imageStyle(event.img, C.card)} /><div className="flex-1"><p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{event.title}</p><p className="text-[11px]" style={{ color: C.muted }}>{event.date} · {event.venue}</p></div></button>)}</>}
-        {!!venues.length && <><p className="text-[12px] font-semibold mt-4 mb-2" style={{ color: C.muted }}>VENUES</p>{venues.map((venue) => <div key={venue.id} className="flex items-center gap-3 py-2.5"><div className="w-11 h-11 rounded-lg" style={{ background: C.card }} /><div><p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{venue.name}</p><p className="text-[11px]" style={{ color: C.muted }}>{venue.city || venue.address || "Location pending"}</p></div></div>)}</>}
+        {!!venues.length && <><p className="text-[12px] font-semibold mt-4 mb-2" style={{ color: C.muted }}>VENUES</p>{venues.map((venue) => <button key={venue.id} onClick={() => nav.push("venueDetail", venue)} className="w-full flex items-center gap-3 py-2.5 text-left"><div className="w-11 h-11 rounded-lg flex items-center justify-center" style={{ background: C.card }}><MapPin size={16} color={C.gold} /></div><div><p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{venue.name}</p><p className="text-[11px]" style={{ color: C.muted }}>{venue.city || venue.address || "Location pending"}</p></div></button>)}</>}
       </div>
     </Phone>
   );
@@ -1401,7 +1401,7 @@ function UserExperience({ nav, account, initialTab = "Preferences" }) {
 
 /* ============================== PROFILE (stub, phase 1) ============================== */
 function Profile({ nav, player, account }) {
-  const items = ["My Tickets", "Music Library", "Preferences", "Notifications", "Security", "Help & Support"];
+  const items = ["My Tickets", "Music Library", "Followed Artists", "Liked Music", "Recently Played", "Activity", "Preferences", "Notifications", "Security", "Help & Support"];
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
   const [message, setMessage] = useState("");
@@ -1440,7 +1440,7 @@ function Profile({ nav, player, account }) {
         {account?.roles?.some((role) => (typeof role === "string" ? role : role.code) === "EVENT_STAFF") && <button onClick={() => nav.push("eventStaff")} className="w-full flex items-center justify-between py-3.5" style={{ borderBottom: `1px solid ${C.line}` }}><span className="text-[13.5px]" style={{ color: C.goldSoft }}>Event Staff Workspace</span><ChevronRight size={15} color={C.muted} /></button>}
         {account?.roles?.some((role) => (typeof role === "string" ? role : role.code) === "ARTIST") && <button onClick={() => nav.push("artistVerification")} className="w-full flex items-center justify-between py-3.5" style={{ borderBottom: `1px solid ${C.line}` }}><span className="text-[13.5px]" style={{ color: C.goldSoft }}>Get Verified</span><ShieldCheck size={15} color={C.gold} /></button>}
         {items.map((it) => (
-          <button key={it} onClick={() => it === "My Tickets" ? nav.push("tickets") : it === "Music Library" ? nav.push("music") : ["Preferences", "Notifications", "Help & Support"].includes(it) ? nav.push("userExperience", { initialTab: it }) : null} className="w-full flex items-center justify-between py-3.5" style={{ borderBottom: `1px solid ${C.line}` }}>
+          <button key={it} onClick={() => it === "My Tickets" ? nav.push("tickets") : it === "Music Library" ? nav.push("music") : ["Followed Artists", "Liked Music", "Recently Played", "Activity"].includes(it) ? nav.push("profileCollections", { initialTab: it }) : ["Preferences", "Notifications", "Help & Support"].includes(it) ? nav.push("userExperience", { initialTab: it }) : it === "Security" ? nav.push("security") : null} className="w-full flex items-center justify-between py-3.5" style={{ borderBottom: `1px solid ${C.line}` }}>
             <span className="text-[13.5px]" style={{ color: C.ivory }}>{it}</span>
             <ChevronRight size={15} color={C.muted} />
           </button>
@@ -1661,7 +1661,53 @@ function Booking({ nav, data, account }) {
   );
 }
 
+/* ============================== VENUE / MUSIC / ACCOUNT DETAIL ============================== */
+function VenueDetail({ nav, data }) {
+  const [state, setState] = useState({ venue: data || null, events: [] });
+  const [loading, setLoading] = useState(Boolean(data?.id));
+  const [error, setError] = useState("");
+  useEffect(() => {
+    if (!data?.id) return;
+    let active = true;
+    setLoading(true);
+    loadVenueDetail(data.id).then((result) => { if (active) setState(result); }).catch((loadError) => { if (active) setError(loadError.message || "Unable to load venue details."); }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [data?.id]);
+  const venue = state.venue;
+  return <Phone><TopBack title="Venue" onBack={nav.pop} /> <div className="flex-1 overflow-y-auto px-5 pb-6">{loading && <p className="py-8 text-center text-[13px]" style={{ color: C.muted }}>Loading venue...</p>}{error && <AuthMessage error={error} />}{venue && <><div className="rounded-2xl p-5 mb-5" style={{ background: `linear-gradient(145deg, ${C.wood}, ${C.card})` }}><MapPin size={22} color={C.gold} /><h1 className="ev-display text-2xl mt-3" style={{ color: C.ivory }}>{venue.name}</h1><p className="text-[12px] mt-1" style={{ color: C.muted }}>{venue.address || venue.city || "Location pending"}</p><p className="text-[11px] mt-3" style={{ color: C.goldSoft }}>Capacity {venue.capacity ? Number(venue.capacity).toLocaleString() : "pending"}</p></div><p className="text-[12px] font-semibold mb-3" style={{ color: C.muted }}>EVENTS AT THIS VENUE</p>{state.events.map((event) => <div key={event.id} className="mb-3"><EventCard ev={event} wide onClick={() => nav.push("eventDetail", event)} /></div>)}{!loading && !state.events.length && <p className="py-6 text-center text-[13px]" style={{ color: C.muted }}>No published events at this venue yet.</p>}</>}</div></Phone>;
+}
+
+function MusicDetail({ nav, data, player, account }) {
+  const song = data;
+  const [liked, setLiked] = useState(false);
+  useEffect(() => { if (account?.user?.id && song?.id) loadFavoriteState(account.user.id, null, song.id).then((state) => setLiked(Boolean(state.musicFavorite))).catch(() => {}); }, [account?.user?.id, song?.id]);
+  if (!song) return <Phone><div className="flex-1 flex items-center justify-center text-[13px]" style={{ color: C.muted }}>Music details are unavailable.</div></Phone>;
+  const toggleLike = async () => { if (!account?.user?.id) return nav.push("login"); const next = !liked; setLiked(next); try { await toggleMusicFavorite(account.user.id, song.id, next); } catch { setLiked(!next); } };
+  return <Phone><TopBack title="Music Detail" onBack={nav.pop} right={<button onClick={toggleLike}><Heart size={18} color={liked ? C.gold : C.ivory} fill={liked ? C.gold : "none"} /></button>} /><div className="flex-1 overflow-y-auto px-5 pb-6"><div className="aspect-square rounded-3xl mb-5" style={imageStyle(song.coverUrl, `linear-gradient(145deg, ${C.green}, ${C.wood})`)} /><h1 className="ev-display text-2xl" style={{ color: C.ivory }}>{song.title}</h1><p className="text-[13px] mt-1" style={{ color: C.goldSoft }}>{song.artist}</p><p className="text-[11px] mt-2" style={{ color: C.muted }}>{song.plays || "0"} plays · {song.duration}</p><div className="mt-6"><GoldButton onClick={() => { player.play(song); recordPlay(account?.user?.id, song.id).catch(() => {}); }}> <Play size={15} fill="#1A1408" className="inline mr-2" /> Play now</GoldButton></div><div className="mt-4"><GhostButton onClick={() => nav.push("musicPlayer", song)}>Open full player</GhostButton></div></div></Phone>;
+}
+
+function SecurityScreen({ nav, account }) {
+  return <Phone><TopBack title="Security" onBack={nav.pop} /><div className="flex-1 overflow-y-auto px-5 pb-6"><div className="rounded-2xl p-4 mb-4" style={{ background: C.card }}><div className="flex items-center gap-3"><ShieldCheck size={22} color={C.gold} /><div><p className="font-semibold text-[14px]" style={{ color: C.ivory }}>Account security</p><p className="text-[11px] mt-1" style={{ color: C.muted }}>Your session is protected by Atizzy authentication.</p></div></div></div><p className="text-[12px] font-semibold mb-2" style={{ color: C.muted }}>AUTHENTICATION METHODS</p><div className="rounded-2xl p-4 mb-4" style={{ background: C.card }}><p className="text-[13px]" style={{ color: C.ivory }}>{account?.user?.email || "Authenticated account"}</p><p className="text-[11px] mt-1" style={{ color: C.muted }}>Primary email login</p></div><p className="text-[12px] font-semibold mb-2" style={{ color: C.muted }}>ACTIVE SESSION</p><div className="rounded-2xl p-4" style={{ background: C.card }}><p className="text-[13px]" style={{ color: C.ivory }}>Current device</p><p className="text-[11px] mt-1" style={{ color: C.muted }}>This session is active and monitored.</p></div></div></Phone>;
+}
+
+function NotificationBoard({ nav, account }) {
+  const [snapshot, setSnapshot] = useState(null);
+  useEffect(() => { if (account?.user?.id) loadUserExperienceSnapshot().then(setSnapshot).catch(() => {}); }, [account?.user?.id]);
+  const notifications = snapshot?.notifications || [];
+  return <Phone><TopBack title="Notifications" onBack={nav.pop} right={<button onClick={() => markAllUserNotificationsRead().then(() => loadUserExperienceSnapshot().then(setSnapshot))}><Check size={17} color={C.gold} /></button>} /><div className="flex-1 overflow-y-auto px-5 pb-6">{notifications.map((item) => <button key={item.id} onClick={() => { markUserNotificationRead(item.id).catch(() => {}); if (item.deep_link) nav.push(item.deep_link.screen || "userExperience", item.deep_link.data); }} className="w-full text-left rounded-2xl p-4 mb-3" style={{ background: item.read_at ? C.card : `linear-gradient(135deg, ${C.woodLight}55, ${C.card})`, border: `1px solid ${item.read_at ? C.line : C.gold + "55"}` }}><p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{item.title || "Atizzy update"}</p><p className="text-[11px] mt-1" style={{ color: C.muted }}>{item.body || item.message || "Open to view details."}</p></button>)}{!notifications.length && <p className="py-8 text-center text-[13px]" style={{ color: C.muted }}>You have no notifications.</p>}</div></Phone>;
+}
+
 /* ============================== APP SHELL / ROUTER ============================== */
+function ProfileCollections({ nav, account, initialTab = "Followed Artists" }) {
+  const [tab, setTab] = useState(initialTab);
+  const [data, setData] = useState({ followedArtists: [], likedMusic: [], recentlyPlayed: [], activity: [] });
+  const [loading, setLoading] = useState(true);
+  useEffect(() => { let mounted = true; loadUserCollections(account?.user?.id).then((value) => mounted && setData(value)).catch(() => mounted && setData({ followedArtists: [], likedMusic: [], recentlyPlayed: [], activity: [] })).finally(() => mounted && setLoading(false)); return () => { mounted = false; }; }, [account?.user?.id]);
+  const tabs = ["Followed Artists", "Liked Music", "Recently Played", "Activity"];
+  const rows = tab === "Followed Artists" ? data.followedArtists : tab === "Liked Music" ? data.likedMusic : tab === "Recently Played" ? data.recentlyPlayed : data.activity;
+  return <Phone><TopBack title="Your Activity" onBack={nav.pop} /><div className="px-5 pt-2 pb-3"><div className="flex gap-2 overflow-x-auto no-scrollbar">{tabs.map((item) => <Pill key={item} active={tab === item} onClick={() => setTab(item)}>{item}</Pill>)}</div></div><div className="flex-1 overflow-y-auto px-5">{loading ? <p className="text-[13px] py-8 text-center" style={{ color: C.muted }}>Loading your activity...</p> : !rows.length ? <EmptyResourceCard label={`No ${tab.toLowerCase()} yet`} description="Your live activity will appear here as you follow artists, like music, and use Atizzy." /> : rows.map((row) => <button key={row.id || `${row.type}-${row.created_at}`} onClick={() => row.artist_id ? nav.push("artist", { id: row.artist_id }) : row.song_id ? nav.push("musicDetail", row) : row.event_id ? nav.push("eventDetail", row) : null} className="w-full text-left rounded-2xl p-4 mb-3" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{row.name || row.title || row.label || row.action || "Activity"}</p><p className="text-[11px] mt-1" style={{ color: C.muted }}>{row.name ? "Followed artist" : row.title ? "Music" : row.action || "Recent activity"}</p></button>)}</div></Phone>;
+}
+
 export default function EventVerseApp() {
   const [stack, setStack] = useState(() => {
     const completed = typeof window !== "undefined" && window.localStorage.getItem("eventverse:onboarding-complete") === "1";
@@ -1780,6 +1826,10 @@ export default function EventVerseApp() {
     explore: <Explore nav={nav} player={player} catalog={catalog} loading={catalogLoading} error={catalogError} />,
         search: <SearchScreen nav={nav} catalog={catalog} account={account} />,
     eventDetail: <EventDetail nav={nav} data={current.data} account={account} />,
+    venueDetail: <VenueDetail nav={nav} data={current.data} />,
+    musicDetail: <MusicDetail nav={nav} data={current.data} player={player} account={account} />,
+    notifications: <NotificationBoard nav={nav} account={account} />,
+    security: <SecurityScreen nav={nav} account={account} />,
     tickets: <TicketSelection nav={nav} data={current.data} />,
     checkout: <Checkout nav={nav} data={current.data} />,
     payment: <Payment nav={nav} data={current.data} />,
@@ -1803,7 +1853,7 @@ export default function EventVerseApp() {
     myTickets: <MyTickets nav={nav} player={player} />,
     tickets_tab: null,
     profile: <Profile nav={nav} player={player} account={account} />,
-    userExperience: <UserExperience nav={nav} account={account} initialTab={current.data?.initialTab || "Preferences"} />,
+    userExperience: <UserExperience nav={nav} account={account} initialTab={current.data?.initialTab || "Preferences"} />, profileCollections: <ProfileCollections nav={nav} account={account} initialTab={current.data?.initialTab || "Followed Artists"} />,
     artist: <ArtistProfile nav={nav} data={current.data} account={account} catalog={catalog} />,
     booking: <Booking nav={nav} data={current.data} account={account} />,
     music: <MusicHome nav={nav} player={player} catalog={catalog} account={account} />,
