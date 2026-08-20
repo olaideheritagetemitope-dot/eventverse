@@ -274,3 +274,10 @@
 - [x] Map every directive requirement to the current Atizzy codebase and identify gaps
 - [x] Implement every actionable directive while preserving approved Atizzy UI
 - [x] Validate all directive requirements across tests, builds, live services, responsive behavior, and GitHub
+
+# Venue Manager Directive — 6a86aa5c3850819184a8087b6c67cadc + pasted_content.txt
+
+- [ ] Read and reconcile both venue-manager directive sources into one complete acceptance checklist
+- [ ] Audit current venue, organizer, booking, payment, RBAC, schema, and UI contracts
+- [ ] Implement every actionable venue-manager directive without removing approved Atizzy UI
+- [ ] Validate ownership, RLS, availability conflicts, booking lifecycle, payment/webhook behavior, runtime tests, build, responsive behavior, and GitHub delivery

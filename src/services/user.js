@@ -264,7 +264,7 @@ export async function loadOrganizerEvents(userId) {
 
 export async function createOrganizerEvent(userId, payload) {
   if (!userId) throw new Error("Organizer access is required.");
-  const body = { organizer_id: userId, title: payload.title?.trim(), description: payload.description?.trim() || null, event_type: payload.event_type?.trim() || null, city: payload.city?.trim(), starts_at: payload.starts_at, ends_at: payload.ends_at || null, cover_url: payload.cover_url?.trim() || null, venue_id: payload.venue_id || null, status: "DRAFT" };
+  const body = { organizer_id: userId, title: payload.title?.trim(), description: payload.description?.trim() || null, event_type: payload.event_type?.trim() || null, city: payload.city?.trim(), starts_at: payload.starts_at, ends_at: payload.ends_at || null, cover_url: payload.cover_url?.trim() || null, venue_id: null, status: "DRAFT" };
   if (!body.title || !body.description || !body.city || !body.starts_at) throw new Error("Title, description, city, and start date are required.");
   const { data, error } = await supabase.from("events").insert(body).select("id,organizer_id,venue_id,title,description,event_type,city,starts_at,ends_at,cover_url,status,created_at,updated_at").single();
   if (error) throw error;
@@ -318,4 +318,112 @@ export async function loadOrganizerEventDashboard(eventId) {
   const { data, error } = await supabase.rpc("get_organizer_event_dashboard", { p_event_id: eventId });
   if (error) throw error;
   return data;
+}
+
+export async function loadVenueManagerWorkspace(userId) {
+  if (!userId) throw new Error("Sign in to open the Venue Manager workspace.");
+  const [{ data: application, error: applicationError }, { data: venues, error: venuesError }, { data: bookings, error: bookingsError }, { data: availability, error: availabilityError }] = await Promise.all([
+    supabase.from("venue_manager_applications").select("id,user_id,display_name,reason,status,rejection_reason,activated_at,reviewed_at,created_at,updated_at").eq("user_id", userId).maybeSingle(),
+    supabase.from("venues").select("id,owner_id,name,city,address,capacity,description,venue_type,amenities,rules,contact_phone,image_urls,pricing,cancellation_policy,created_at,updated_at").eq("owner_id", userId).order("created_at", { ascending: false }),
+    supabase.from("venue_bookings").select("id,venue_id,organizer_id,event_id,event_name,starts_at,ends_at,expected_attendance,additional_requirements,status,rejection_reason,requested_at,responded_at,created_at,updated_at,venues(name,city,capacity)").order("starts_at", { ascending: true }).limit(100),
+    supabase.from("venue_availability").select("id,venue_id,starts_at,ends_at,status,note,created_at,updated_at").order("starts_at", { ascending: true }).limit(100),
+  ]);
+  const firstError = [applicationError, venuesError, bookingsError, availabilityError].find(Boolean);
+  if (firstError) throw firstError;
+  const ownedVenueIds = new Set((venues || []).map((venue) => venue.id));
+  const ownedBookings = (bookings || []).filter((booking) => ownedVenueIds.has(booking.venue_id));
+  const ownedAvailability = (availability || []).filter((item) => ownedVenueIds.has(item.venue_id));
+  const confirmed = ownedBookings.filter((booking) => booking.status === "CONFIRMED");
+  let liveMetrics = {};
+  const { data: metricData, error: metricError } = await supabase.rpc("get_venue_manager_metrics", { p_user_id: userId });
+  if (!metricError) liveMetrics = metricData || {};
+  return {
+    application,
+    venues: venues || [],
+    bookings: ownedBookings,
+    availability: ownedAvailability,
+    metrics: {
+      venues: Number(liveMetrics.venues ?? venues?.length ?? 0),
+      pending: Number(liveMetrics.pending ?? ownedBookings.filter((booking) => booking.status === "PENDING").length),
+      confirmed: Number(liveMetrics.confirmed ?? confirmed.length),
+      rejected: Number(liveMetrics.rejected ?? ownedBookings.filter((booking) => booking.status === "REJECTED").length),
+      history: Number(liveMetrics.history ?? ownedBookings.filter((booking) => ["COMPLETED", "CANCELLED"].includes(booking.status)).length),
+      upcoming: confirmed.filter((booking) => new Date(booking.starts_at) >= new Date()).length,
+      occupancy: confirmed.reduce((sum, booking) => sum + Number(booking.expected_attendance || 0), 0),
+      revenue: Number(liveMetrics.revenue ?? 0),
+    },
+  };
+}
+
+export async function applyAsVenueManager(userId, displayName, reason) {
+  if (!userId) throw new Error("Sign in to apply as a Venue Manager.");
+  const { data, error } = await supabase.rpc("apply_as_venue_manager", { p_display_name: displayName, p_reason: reason });
+  if (error) throw error;
+  return data;
+}
+
+export async function createOwnedVenue(userId, payload) {
+  if (!userId) throw new Error("Sign in to create a venue.");
+  const { data, error } = await supabase.rpc("create_owned_venue", {
+    p_name: payload.name, p_city: payload.city, p_address: payload.address || null, p_capacity: Number(payload.capacity),
+    p_description: payload.description || null, p_venue_type: payload.venue_type || null, p_amenities: payload.amenities || [],
+    p_rules: payload.rules || null, p_contact_phone: payload.contact_phone || null, p_image_urls: payload.image_urls || [],
+    p_pricing: payload.pricing || {}, p_cancellation_policy: payload.cancellation_policy || null,
+  });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+
+export async function requestVenueBooking(userId, payload) {
+  if (!userId) throw new Error("Sign in to request a venue.");
+  const { data, error } = await supabase.rpc("request_venue_booking", {
+    p_venue_id: payload.venue_id, p_event_id: payload.event_id || null, p_event_name: payload.event_name,
+    p_starts_at: payload.starts_at, p_ends_at: payload.ends_at, p_expected_attendance: Number(payload.expected_attendance),
+    p_additional_requirements: payload.additional_requirements || null,
+  });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+
+export async function respondVenueBooking(bookingId, status, reason = null) {
+  if (!bookingId || !status) throw new Error("Booking response is required.");
+  const { data, error } = await supabase.rpc("respond_venue_booking", { p_booking_id: bookingId, p_status: status, p_reason: reason });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+
+export async function updateOwnedVenue(venueId, payload) {
+  if (!venueId) throw new Error("Venue access is required.");
+  const { data, error } = await supabase.rpc("update_owned_venue", {
+    p_venue_id: venueId, p_name: payload.name, p_city: payload.city, p_address: payload.address || null,
+    p_capacity: Number(payload.capacity), p_description: payload.description || null, p_venue_type: payload.venue_type || null,
+    p_amenities: payload.amenities || [], p_rules: payload.rules || null, p_contact_phone: payload.contact_phone || null,
+    p_image_urls: payload.image_urls || [], p_pricing: payload.pricing || {}, p_cancellation_policy: payload.cancellation_policy || null,
+  });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+
+export async function setVenueAvailability(venueId, payload) {
+  if (!venueId) throw new Error("Venue access is required.");
+  const { data, error } = await supabase.rpc("set_venue_availability", { p_venue_id: venueId, p_starts_at: payload.starts_at, p_ends_at: payload.ends_at, p_status: payload.status || "BLOCKED", p_note: payload.note || null });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+
+export async function initializeVenueBookingPayment(bookingId, idempotencyKey) {
+  if (!bookingId || !idempotencyKey) throw new Error("Confirmed booking and idempotency key are required.");
+  const { data, error } = await supabase.rpc("initialize_venue_booking_payment", { p_booking_id: bookingId, p_idempotency_key: idempotencyKey });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+
+export async function loadAvailableVenues(startsAt, endsAt) {
+  let query = supabase.from("venues").select("id,name,city,address,capacity,description,venue_type,amenities,rules,pricing,cancellation_policy").order("name", { ascending: true }).limit(100);
+  const { data, error } = await query;
+  if (error) throw error;
+  const { data: conflicts, error: conflictError } = await supabase.from("venue_bookings").select("venue_id").in("status", ["PENDING", "CONFIRMED"]).lt("starts_at", endsAt).gt("ends_at", startsAt);
+  if (conflictError) throw conflictError;
+  const blocked = new Set((conflicts || []).map((row) => row.venue_id));
+  return (data || []).filter((venue) => !blocked.has(venue.id));
 }
