@@ -10,8 +10,8 @@ describe("Atizzy watermark and Profile Logout correction", () => {
   it("tunes the existing single watermark layer to be visible but subdued", () => {
     expect(styles).toContain(".ev-atizzy-pattern");
     expect(styles).toContain("url('/assets/atizzy-pattern.png')");
-    expect(styles).toContain("opacity: .46");
-    expect(styles).toContain("opacity: .38");
+    expect(styles).toContain("opacity: .52");
+    expect(styles).toContain("opacity: .44");
     expect(styles).toContain("pointer-events: none");
     expect(styles).not.toContain(".ev-atizzy-pattern::before");
     expect((styles.match(/url\('\/assets\/atizzy-pattern\.png'\)/g) || []).length).toBe(1);

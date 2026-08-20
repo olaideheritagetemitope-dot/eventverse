@@ -371,10 +371,17 @@
 
 # Targeted UI Correction — Background Watermark + Profile Logout — 2026-08-20
 
-- [ ] Read the attached directive and map its constraints to the current Atizzy implementation
-- [ ] Increase visibility of the existing Atizzy decorative watermark without duplicating the asset
-- [ ] Move the single Profile Logout action to the top profile area and remove any bottom duplicate
-- [ ] Preserve fixed bottom navigation, safe-area clearance, routing, auth, backend, roles, and commerce workflows
-- [ ] Add focused acceptance coverage for watermark visibility and Profile Logout placement/clickability
-- [ ] Run lint, typecheck, production build, responsive checks, profile navigation checks, and deployment verification
-- [ ] Record changed files, exact implementation details, commit SHA, and deployment status
+- [x] Read the attached directive and map its constraints to the current Atizzy implementation
+- [x] Increase visibility of the existing Atizzy decorative watermark without duplicating the asset
+- [x] Move the single Profile Logout action to the top profile area and remove any bottom duplicate
+- [x] Preserve fixed bottom navigation, safe-area clearance, routing, auth, backend, roles, and commerce workflows
+- [x] Add focused acceptance coverage for watermark visibility and Profile Logout placement/clickability
+- [x] Run lint, typecheck, production build, responsive checks, profile navigation checks, and deployment verification
+- [x] Record changed files, exact implementation details, commit SHA, and deployment status
+
+# Background Frame Refinement — 2026-08-20
+
+- [x] Inspect the current pattern asset and identify the rectangular frame effect
+- [x] Remove the frame effect without replacing or duplicating the Atizzy pattern
+- [x] Increase music, ticket, and star motif visibility slightly
+- [x] Validate the refined background and preserve navigation/content readability
