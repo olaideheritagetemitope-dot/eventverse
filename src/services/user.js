@@ -447,3 +447,52 @@ export async function searchOrganizerArtists(query = "") {
   if (error) throw error;
   return data || [];
 }
+
+
+export async function searchEventStaffUsers(query = "") {
+  const { data, error } = await supabase.rpc("search_event_staff_users", { p_query: query });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function assignEventStaff(eventId, staffUserId, responsibility = "GENERAL", instructions = "") {
+  const { data, error } = await supabase.rpc("assign_event_staff", { p_event_id: eventId, p_staff_user_id: staffUserId, p_responsibility: responsibility, p_instructions: instructions || null });
+  if (error) throw error;
+  return data;
+}
+
+export async function loadEventStaffForOrganizer(eventId) {
+  const { data, error } = await supabase.rpc("list_event_staff_for_organizer", { p_event_id: eventId });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function revokeEventStaffAssignment(assignmentId) {
+  const { data, error } = await supabase.rpc("revoke_event_staff_assignment", { p_assignment_id: assignmentId });
+  if (error) throw error;
+  return data;
+}
+
+export async function loadEventStaffWorkspace() {
+  const { data, error } = await supabase.rpc("get_event_staff_workspace");
+  if (error) throw error;
+  return data || [];
+}
+
+export async function respondEventStaffAssignment(assignmentId, status) {
+  const { data, error } = await supabase.rpc("respond_event_staff_assignment", { p_assignment_id: assignmentId, p_status: status });
+  if (error) throw error;
+  return data;
+}
+
+export async function acknowledgeEventStaffTask(taskId, status = "ACKNOWLEDGED") {
+  const { data, error } = await supabase.rpc("acknowledge_event_staff_task", { p_task_id: taskId, p_status: status });
+  if (error) throw error;
+  return data;
+}
+
+export async function markEventStaffNotificationRead(notificationId) {
+  const { data, error } = await supabase.rpc("mark_event_staff_notification_read", { p_notification_id: notificationId });
+  if (error) throw error;
+  return data;
+}

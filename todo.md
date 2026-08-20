@@ -281,3 +281,10 @@
 - [ ] Audit current venue, organizer, booking, payment, RBAC, schema, and UI contracts
 - [ ] Implement every actionable venue-manager directive without removing approved Atizzy UI
 - [ ] Validate ownership, RLS, availability conflicts, booking lifecycle, payment/webhook behavior, runtime tests, build, responsive behavior, and GitHub delivery
+# Event Staff Directive — 6a86b647238c81918be90959efd636f9 + pasted_content.txt
+- [x] Read and reconcile the Event Staff directive sources into a complete acceptance checklist
+- [x] Audit existing Event Staff role, assignment tables, routes, dashboard cards, permissions, and workflows
+- [x] Implement Organizer-managed event-scoped staff assignments and responsibilities
+- [x] Implement staff dashboard, assigned-event operations, notifications/tasks, and check-in permissions with live data
+- [x] Enforce Event Staff isolation from unassigned events and platform-level settings through backend authorization and RLS
+- [x] Validate Event Staff workflows, security boundaries, responsive behavior, production build, live migration, and GitHub delivery
