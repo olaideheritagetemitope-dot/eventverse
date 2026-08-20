@@ -234,17 +234,27 @@ function BottomNav({ current, go }) {
     { id: "profile", label: "Profile", icon: User },
   ];
   return (
-    <div className="ev-global-header flex items-center justify-around px-2 py-2.5 border-t" style={{ background: C.bg, borderColor: C.line }}>
-      {items.map((it) => {
-        const active = current === it.id;
-        return (
-          <button key={it.id} onClick={() => go(it.id)} className="flex flex-col items-center gap-1 px-2">
-            <it.icon size={19} color={active ? C.gold : C.muted} strokeWidth={active ? 2.2 : 1.8} />
-            <span className="text-[10px]" style={{ color: active ? C.gold : C.muted }}>{it.label}</span>
-          </button>
-        );
-      })}
-    </div>
+    <nav className="ev-bottom-nav" aria-label="Primary navigation">
+      <div className="ev-bottom-nav-inner">
+        {items.map((it) => {
+          const active = current === it.id;
+          return (
+            <button
+              key={it.id}
+              type="button"
+              onClick={() => go(it.id)}
+              aria-label={`Go to ${it.label}`}
+              aria-current={active ? "page" : undefined}
+              className="ev-bottom-nav-item"
+              data-active={active ? "true" : "false"}
+            >
+              <it.icon aria-hidden="true" size={19} color={active ? C.gold : C.muted} strokeWidth={active ? 2.2 : 1.8} />
+              <span style={{ color: active ? C.gold : C.muted }}>{it.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </nav>
   );
 }
 

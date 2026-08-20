@@ -357,5 +357,14 @@
 
 - [x] Include the existing `src/services/catalog.js` venue-detail export required by `src/EventVerse.jsx`
 - [x] Re-run local tests, typecheck, production build, and diff validation after the export repair
-- [ ] Push the complete source state to GitHub main
-- [ ] Verify the new Vercel production deployment reaches READY
+- [x] Push the complete source state to GitHub main
+- [x] Verify the new Vercel production deployment reaches READY
+
+# Fixed Transparent Bottom Navigation Directive — 2026-08-20
+
+- [x] Inspect the existing Atizzy navigation shell, route model, role gates, and scroll containers
+- [x] Convert the mobile bottom navigation to a fixed viewport dock without changing existing destinations
+- [x] Add translucent black/gold glass styling, responsive touch targets, safe-area spacing, and modal-safe layering
+- [x] Preserve active states, accessibility names, keyboard behavior, and role-based navigation visibility
+- [x] Add focused acceptance coverage for fixed positioning, no horizontal overflow, content clearance, and route preservation
+- [x] Validate required mobile widths plus desktop behavior, tests, production build, and deployment
