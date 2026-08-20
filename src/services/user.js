@@ -502,3 +502,39 @@ export async function eventStaffEntryDecision(qrToken, decision = "ACCEPT") {
   if (error) throw error;
   return data;
 }
+
+export async function loadAdminDashboardSnapshot() {
+  const { data, error } = await supabase.rpc("admin_dashboard_snapshot");
+  if (error) throw error;
+  return data || {};
+}
+export async function adminListUsers(search = "") {
+  const { data, error } = await supabase.rpc("admin_list_users", { p_search: search || null });
+  if (error) throw error;
+  return data || [];
+}
+export async function adminSuspendUser(userId, suspend, reason = "") {
+  const { data, error } = await supabase.rpc("admin_suspend_user", { p_user_id: userId, p_suspend: suspend, p_reason: reason || null });
+  if (error) throw error;
+  return data;
+}
+export async function adminReviewEvent(eventId, status, note = "") {
+  const { data, error } = await supabase.rpc("admin_review_event", { p_event_id: eventId, p_status: status, p_note: note || null });
+  if (error) throw error;
+  return data;
+}
+export async function adminUpdateReport(reportId, status, note = "") {
+  const { data, error } = await supabase.rpc("admin_update_report", { p_report_id: reportId, p_status: status, p_resolution_note: note || null });
+  if (error) throw error;
+  return data;
+}
+export async function loadAdminPaymentSupport() {
+  const { data, error } = await supabase.rpc("admin_payment_support_snapshot");
+  if (error) throw error;
+  return data || { ticket_payments: [], venue_payments: [] };
+}
+export async function loadAdminAuditLogs() {
+  const { data, error } = await supabase.rpc("admin_recent_audit_logs");
+  if (error) throw error;
+  return data || [];
+}

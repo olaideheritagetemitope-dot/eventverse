@@ -24,8 +24,8 @@ describe("Paystack credentials", () => {
     ]);
     const payloadText = result.stdout || result.stderr || "";
 
-    if (payloadText.includes("Sorry, you have been blocked") || payloadText.includes("cf-error-details")) {
-      skip("Paystack Cloudflare blocked the sandbox egress; run this live credential check from the deployed server network.");
+    if (!payloadText.trim() || payloadText.includes("Sorry, you have been blocked") || payloadText.includes("cf-error-details") || result.error) {
+      skip("Paystack is unreachable or Cloudflare-blocked from the sandbox egress; run this live credential check from the deployed server network.");
     }
 
     let payload;

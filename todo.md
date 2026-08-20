@@ -296,3 +296,9 @@
 - [x] Expand Organizer assignment controls and Event Staff operational dashboards without creating global Security roles
 - [x] Add acceptance and security coverage for responsibility isolation and invalid/expired/already-used ticket handling
 - [x] Apply live migration, validate build and responsive preview, and push the completed responsibility expansion
+
+# New Shared ChatGPT Directive — 6a86bb057ea08191a6fd1cdce68df8a5
+- [x] Extract and reconcile every requirement from the new shared directive link
+- [x] Audit Atizzy implementation, Supabase contracts, permissions, UI routes, and tests against the new directive
+- [x] Implement every feasible missing directive workflow with server-authoritative security
+- [x] Add focused acceptance coverage, apply live backend changes, and validate responsive production behavior
