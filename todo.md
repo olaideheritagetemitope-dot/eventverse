@@ -880,3 +880,13 @@
 - [x] Add regression and acceptance coverage for scanner flows, security boundaries, and failure states
 - [x] Run TypeScript, tests, production build, and live deployment smoke validation
 - [x] Document implementation evidence and create a project checkpoint
+
+# Live Camera Preview Persistence Fix — 2026-08-21
+
+- [ ] Reproduce and inspect why the camera indicator remains active while the video preview disappears
+- [ ] Keep the active MediaStream attached to the rendered video element for the complete scan session
+- [ ] Add camera track and video playback recovery when the element detaches, pauses, or becomes invisible
+- [ ] Prevent scanner decode-loop cleanup from stopping the live preview prematurely
+- [ ] Add regression coverage for stream attachment, playback recovery, and camera stop behavior
+- [ ] Run TypeScript, tests, production build, and mobile/live scanner validation
+- [ ] Document and push the camera-preview fix

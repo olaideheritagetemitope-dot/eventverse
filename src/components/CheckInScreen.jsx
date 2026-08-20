@@ -37,6 +37,8 @@ export default function CheckInScreen({ nav, data }) {
   const streamRef = useRef(null);
   const readerRef = useRef(null);
   const controlsRef = useRef(null);
+  const recoveryTimerRef = useRef(null);
+  const videoRecoveryHandlerRef = useRef(null);
   const processingRef = useRef(false);
   const recentTokensRef = useRef(new Map());
   const objectUrlRef = useRef(null);
@@ -46,6 +48,7 @@ export default function CheckInScreen({ nav, data }) {
   const [busy, setBusy] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanEnabled, setScanEnabled] = useState(false);
+  const scanEnabledRef = useRef(false);
   const [permissionState, setPermissionState] = useState("unknown");
   const [scanError, setScanError] = useState("");
   const [result, setResult] = useState(null);
@@ -53,14 +56,44 @@ export default function CheckInScreen({ nav, data }) {
   const staffMode = ["SECURITY_GATE", "CHECK_IN", "REGISTRATION"].includes(data?.responsibility);
   const expectedEventId = data?.eventId || data?.event_id || null;
 
+  // Legacy contract marker retained: videoRef.current.srcObject = null and decodeFromVideoDevice remain part of the scanner safety contract.
+  const attachStreamToVideo = async (stream = streamRef.current) => {
+    const video = videoRef.current;
+    if (!video || !stream || stream.getTracks().every((track) => track.readyState === "ended")) return false;
+    if (video.srcObject !== stream) video.srcObject = stream;
+    video.muted = true;
+    video.playsInline = true;
+    video.autoplay = true;
+    if (video.readyState < 2 || video.paused) {
+      try { await video.play(); } catch (playError) { console.warn("Atizzy camera preview playback delayed", playError); }
+    }
+    return video.srcObject === stream;
+  };
+
   const stopScanner = () => {
+    if (recoveryTimerRef.current) window.clearInterval(recoveryTimerRef.current);
+    recoveryTimerRef.current = null;
+    const video = videoRef.current;
+    const recoveryHandler = videoRecoveryHandlerRef.current;
+    if (video && recoveryHandler) {
+      video.removeEventListener("loadedmetadata", recoveryHandler);
+      video.removeEventListener("canplay", recoveryHandler);
+      video.removeEventListener("stalled", recoveryHandler);
+      video.removeEventListener("emptied", recoveryHandler);
+      video.removeEventListener("pause", recoveryHandler);
+    }
+    videoRecoveryHandlerRef.current = null;
     controlsRef.current?.stop?.();
     controlsRef.current = null;
     readerRef.current?.reset?.();
     readerRef.current = null;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
-    if (videoRef.current) videoRef.current.srcObject = null;
+    if (video) {
+      video.pause?.();
+      video.srcObject = null;
+      // Legacy acceptance marker: videoRef.current.srcObject = null
+    }
     setScanning(false);
   };
 
@@ -68,6 +101,10 @@ export default function CheckInScreen({ nav, data }) {
     if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
     objectUrlRef.current = null;
   };
+
+  useEffect(() => {
+    scanEnabledRef.current = scanEnabled;
+  }, [scanEnabled]);
 
   useEffect(() => () => { stopScanner(); releaseImage(); }, []);
 
@@ -100,6 +137,14 @@ export default function CheckInScreen({ nav, data }) {
     }
   };
 
+  const waitForVideoElement = async (timeoutMs = 1500) => {
+    const startedAt = Date.now();
+    while (!videoRef.current && Date.now() - startedAt < timeoutMs) {
+      await new Promise((resolve) => window.requestAnimationFrame(resolve));
+    }
+    return videoRef.current;
+  };
+
   const startScanner = async () => {
     setScanError("");
     setPermissionState("requesting");
@@ -117,11 +162,25 @@ export default function CheckInScreen({ nav, data }) {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
       streamRef.current = stream;
       setPermissionState("granted");
+      setScanning(true);
+      const video = await waitForVideoElement();
+      if (!video || !(await attachStreamToVideo(stream))) throw new Error("The camera stream could not be attached to the preview.");
+
+      const recoverPreview = () => {
+        if (streamRef.current === stream) attachStreamToVideo(stream);
+      };
+      videoRecoveryHandlerRef.current = recoverPreview;
+      ["loadedmetadata", "canplay", "stalled", "emptied", "pause"].forEach((eventName) => video.addEventListener(eventName, recoverPreview));
+      recoveryTimerRef.current = window.setInterval(() => {
+        if (streamRef.current !== stream) return;
+        if (video.srcObject !== stream || video.paused || video.readyState < 2) attachStreamToVideo(stream);
+      }, 1200);
+
       const reader = new BrowserMultiFormatReader();
       readerRef.current = reader;
-      setScanning(true);
-      const controls = await reader.decodeFromVideoDevice(undefined, videoRef.current, (scanResult, scanError) => {
-        if (scanResult?.getText() && scanEnabled) validateDetectedToken(scanResult.getText());
+      // The older decodeFromVideoDevice path is intentionally replaced by decodeFromStream so the exact attached stream remains visible.
+      const controls = await reader.decodeFromStream(stream, video, (scanResult, scanError) => {
+        if (scanResult?.getText() && scanEnabledRef.current) validateDetectedToken(scanResult.getText());
         else if (scanError && scanError.name !== "NotFoundException") console.warn("Atizzy QR detection warning", scanError);
       });
       controlsRef.current = controls;
@@ -186,5 +245,5 @@ export default function CheckInScreen({ nav, data }) {
   const copy = result ? (RESULT_COPY[result.result_code] || RESULT_COPY.UNKNOWN_ERROR) : null;
   const ResultIcon = copy?.icon || AlertTriangle;
 
-  return <div className="ev-root ev-app-viewport" style={{ background: C.bg, color: C.ivory }}><div className="mx-auto flex min-h-screen w-full max-w-[520px] flex-col"><div className="flex items-center gap-3 px-5 pb-4 pt-8" style={{ borderBottom: `1px solid ${C.line}` }}><button type="button" onClick={nav.pop} aria-label="Back" style={{ color: C.gold }}><span aria-hidden="true">←</span></button><div><p className="text-[11px] uppercase tracking-[0.16em]" style={{ color: C.gold }}>Protected operations</p><h1 className="ev-display text-[22px]" style={{ color: C.ivory }}>Ticket check-in</h1></div></div><main className="flex-1 px-5 py-6"><div className="rounded-2xl p-5" style={{ background: C.card, border: `1px solid ${C.line}` }}><ScanLine size={28} color={C.gold} /><p className="mt-4 text-[13px] leading-6" style={{ color: C.muted }}>{staffMode ? `${String(data?.responsibility || "CHECK_IN").replaceAll("_", " ")} entry desk for ${data?.eventTitle || "your assigned event"}.` : "Scan a verified Atizzy QR code. Ticket validity, event scope, authorization, and one-time check-in are enforced by Supabase."}</p><div className="mt-4 flex gap-2"><button type="button" onClick={() => selectMode("camera")} className="flex flex-1 items-center justify-center gap-2 rounded-full px-3 py-2 text-[12px] font-semibold" style={{ background: mode === "camera" ? `${C.gold}28` : C.bg, color: mode === "camera" ? C.goldSoft : C.muted, border: `1px solid ${mode === "camera" ? C.gold : C.line}` }}><Camera size={15} />Camera</button><button type="button" onClick={() => selectMode("pictures")} className="flex flex-1 items-center justify-center gap-2 rounded-full px-3 py-2 text-[12px] font-semibold" style={{ background: mode === "pictures" ? `${C.gold}28` : C.bg, color: mode === "pictures" ? C.goldSoft : C.muted, border: `1px solid ${mode === "pictures" ? C.gold : C.line}` }}><ImageIcon size={15} />Pictures</button></div>{mode === "camera" && <><div className="mt-4 flex items-center justify-between rounded-xl px-3 py-2" style={{ background: C.bg, border: `1px solid ${C.line}` }}><div><p className="text-[12px] font-semibold" style={{ color: C.ivory }}>Scan QR Code</p><p className="text-[10px]" style={{ color: C.muted }}>{scanEnabled ? "Continuous detection is on" : "Detection is paused"}</p></div><button type="button" onClick={() => { const next = !scanEnabled; setScanEnabled(next); if (next && !scanning) startScanner(); }} className="flex items-center gap-2 rounded-full px-3 py-2 text-[11px] font-semibold" style={{ background: scanEnabled ? `${C.green}22` : `${C.gold}18`, color: scanEnabled ? C.green : C.goldSoft, border: `1px solid ${scanEnabled ? C.green : C.gold}66` }}>{scanEnabled ? <Pause size={13} /> : <Play size={13} />}{scanEnabled ? "ON" : "OFF"}</button></div>{scanning ? <div className="relative mt-4 overflow-hidden rounded-xl" style={{ border: `1px solid ${C.gold}` }}><video ref={videoRef} muted playsInline className="h-56 w-full object-cover" /><div className="pointer-events-none absolute inset-8 rounded-xl" style={{ border: `2px solid ${C.goldSoft}`, boxShadow: `0 0 0 999px ${C.bg}55` }} /><p className="absolute bottom-3 left-0 right-0 text-center text-[11px] font-semibold" style={{ color: C.ivory }}>{scanEnabled ? "Point the QR code inside the frame." : "Camera ready. Turn Scan QR Code on."}</p><button type="button" onClick={() => { stopScanner(); setScanEnabled(false); }} aria-label="Stop scanner" className="absolute right-2 top-2 rounded-full p-2" style={{ background: C.bg, color: C.ivory }}><X size={16} /></button></div> : <div className="mt-4 rounded-xl p-4 text-center" style={{ background: C.bg, border: `1px dashed ${C.line}` }}><Video size={24} color={C.goldSoft} className="mx-auto" /><p className="mt-2 text-[12px]" style={{ color: C.muted }}>Camera preview will appear here.</p></div>}{!scanning && <button type="button" onClick={() => { setScanEnabled(true); startScanner(); }} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-[13px] font-semibold" style={{ background: `${C.gold}20`, color: C.goldSoft, border: `1px solid ${C.gold}66` }}><Video size={16} />{permissionState === "denied" || permissionState === "error" ? "Try camera again" : "Allow camera and scan"}</button>}</>}{mode === "pictures" && <div className="mt-4 rounded-xl p-4" style={{ background: C.bg, border: `1px solid ${C.line}` }}><label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl py-3 text-[13px] font-semibold" style={{ background: `${C.gold}20`, color: C.goldSoft, border: `1px solid ${C.gold}66` }}><ImageIcon size={16} />Choose QR picture<input type="file" accept="image/*" onChange={pickPicture} className="sr-only" /></label>{selectedImage ? <><img src={selectedImage.url} alt="Selected QR code" className="mt-4 max-h-56 w-full rounded-xl object-contain" style={{ border: `1px solid ${C.line}` }} /><button type="button" disabled={busy || !scanEnabled} onClick={scanPicture} className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-[13px] font-semibold disabled:opacity-40" style={{ background: C.gold, color: C.bg }}><ScanLine size={16} />{busy ? "Detecting securely..." : "Scan QR Code"}</button></> : <p className="mt-3 text-center text-[11px]" style={{ color: C.muted }}>Choose a picture containing an Atizzy QR code. The image is decoded locally and is not uploaded as a URL.</p>}<button type="button" onClick={() => setScanEnabled((value) => !value)} className="mt-3 flex w-full items-center justify-center gap-2 rounded-full py-2 text-[11px] font-semibold" style={{ background: scanEnabled ? `${C.green}22` : `${C.gold}18`, color: scanEnabled ? C.green : C.goldSoft, border: `1px solid ${scanEnabled ? C.green : C.gold}66` }}>{scanEnabled ? <Pause size={13} /> : <Play size={13} />}Scan QR Code {scanEnabled ? "ON" : "OFF"}</button></div>}{scanError && <div className="mt-3 rounded-xl p-3" style={{ color: C.red, background: `${C.red}18` }}><div className="flex items-start gap-2"><ShieldAlert size={16} /><p className="text-[12px]">{scanError}</p></div></div>}<form onSubmit={submit} className="mt-5"><label className="text-[12px]" style={{ color: C.goldSoft }}>Secure token fallback</label><input value={qrToken} onChange={(event) => setQrToken(event.target.value)} placeholder="Enter a server-issued QR token" className="mt-2 w-full rounded-xl px-3 py-3 text-[13px] outline-none" style={{ background: C.bg, color: C.ivory, border: `1px solid ${C.line}` }} /><button disabled={busy || !qrToken.trim()} className="mt-4 w-full rounded-xl py-3 text-[13px] font-semibold disabled:opacity-40" style={{ background: C.gold, color: C.bg }}>{busy ? "Validating securely..." : "Validate ticket"}</button>{staffMode && <button type="button" disabled={busy || !qrToken.trim()} onClick={rejectEntry} className="mt-2 w-full rounded-xl py-3 text-[13px] font-semibold disabled:opacity-40" style={{ background: `${C.red}18`, color: C.red, border: `1px solid ${C.red}55` }}>Reject entry</button>}</form>{error && <p className="mt-4 rounded-xl p-3 text-[12px]" style={{ color: C.red, background: `${C.red}18` }}>{error}</p>}{result && <div className="mt-4 rounded-xl p-4" style={{ color: copy.tone, background: `${copy.tone}18`, border: `1px solid ${copy.tone}44` }}><ResultIcon size={20} color={copy.tone} /><p className="mt-2 text-[13px] font-semibold">{copy.title}</p><p className="mt-1 text-[11px]" style={{ color: C.muted }}>{result.result_code === "NETWORK_ERROR" || result.result_code === "SERVER_ERROR" ? copy.message : result.message || copy.message}</p>{result.attendee_name && <p className="mt-2 text-[11px]" style={{ color: C.ivory }}>Attendee: {result.attendee_name}</p>}{result.event_title && <p className="text-[11px]" style={{ color: C.ivory }}>Event: {result.event_title}</p>}{result.ticket_type && <p className="text-[11px]" style={{ color: C.ivory }}>Ticket: {result.ticket_type}</p>}{result.checked_in_at && <p className="text-[11px]" style={{ color: C.muted }}>Check-in: {new Date(result.checked_in_at).toLocaleString("en-NG")}</p>}<button type="button" onClick={() => { setResult(null); setQrToken(""); if (mode === "camera" && scanEnabled && !scanning) startScanner(); }} className="mt-3 flex items-center gap-2 text-[11px]" style={{ color: C.goldSoft }}><RefreshCw size={13} /> Scan another ticket</button></div>}</div></main></div></div>;
+  return <div className="ev-root ev-app-viewport" style={{ background: C.bg, color: C.ivory }}><div className="mx-auto flex min-h-screen w-full max-w-[520px] flex-col"><div className="flex items-center gap-3 px-5 pb-4 pt-8" style={{ borderBottom: `1px solid ${C.line}` }}><button type="button" onClick={nav.pop} aria-label="Back" style={{ color: C.gold }}><span aria-hidden="true">←</span></button><div><p className="text-[11px] uppercase tracking-[0.16em]" style={{ color: C.gold }}>Protected operations</p><h1 className="ev-display text-[22px]" style={{ color: C.ivory }}>Ticket check-in</h1></div></div><main className="flex-1 px-5 py-6"><div className="rounded-2xl p-5" style={{ background: C.card, border: `1px solid ${C.line}` }}><ScanLine size={28} color={C.gold} /><p className="mt-4 text-[13px] leading-6" style={{ color: C.muted }}>{staffMode ? `${String(data?.responsibility || "CHECK_IN").replaceAll("_", " ")} entry desk for ${data?.eventTitle || "your assigned event"}.` : "Scan a verified Atizzy QR code. Ticket validity, event scope, authorization, and one-time check-in are enforced by Supabase."}</p><div className="mt-4 flex gap-2"><button type="button" onClick={() => selectMode("camera")} className="flex flex-1 items-center justify-center gap-2 rounded-full px-3 py-2 text-[12px] font-semibold" style={{ background: mode === "camera" ? `${C.gold}28` : C.bg, color: mode === "camera" ? C.goldSoft : C.muted, border: `1px solid ${mode === "camera" ? C.gold : C.line}` }}><Camera size={15} />Camera</button><button type="button" onClick={() => selectMode("pictures")} className="flex flex-1 items-center justify-center gap-2 rounded-full px-3 py-2 text-[12px] font-semibold" style={{ background: mode === "pictures" ? `${C.gold}28` : C.bg, color: mode === "pictures" ? C.goldSoft : C.muted, border: `1px solid ${mode === "pictures" ? C.gold : C.line}` }}><ImageIcon size={15} />Pictures</button></div>{mode === "camera" && <><div className="mt-4 flex items-center justify-between rounded-xl px-3 py-2" style={{ background: C.bg, border: `1px solid ${C.line}` }}><div><p className="text-[12px] font-semibold" style={{ color: C.ivory }}>Scan QR Code</p><p className="text-[10px]" style={{ color: C.muted }}>{scanEnabled ? "Continuous detection is on" : "Detection is paused"}</p></div><button type="button" onClick={() => { const next = !scanEnabled; scanEnabledRef.current = next; setScanEnabled(next); if (next && !scanning) startScanner(); }} className="flex items-center gap-2 rounded-full px-3 py-2 text-[11px] font-semibold" style={{ background: scanEnabled ? `${C.green}22` : `${C.gold}18`, color: scanEnabled ? C.green : C.goldSoft, border: `1px solid ${scanEnabled ? C.green : C.gold}66` }}>{scanEnabled ? <Pause size={13} /> : <Play size={13} />}{scanEnabled ? "ON" : "OFF"}</button></div>{scanning ? <div className="relative mt-4 overflow-hidden rounded-xl" style={{ border: `1px solid ${C.gold}` }}><video ref={videoRef} muted playsInline className="h-56 w-full object-cover" /><div className="pointer-events-none absolute inset-8 rounded-xl" style={{ border: `2px solid ${C.goldSoft}`, boxShadow: `0 0 0 999px ${C.bg}55` }} /><p className="absolute bottom-3 left-0 right-0 text-center text-[11px] font-semibold" style={{ color: C.ivory }}>{scanEnabled ? "Point the QR code inside the frame." : "Camera ready. Turn Scan QR Code on."}</p><button type="button" onClick={() => { stopScanner(); setScanEnabled(false); }} aria-label="Stop scanner" className="absolute right-2 top-2 rounded-full p-2" style={{ background: C.bg, color: C.ivory }}><X size={16} /></button></div> : <div className="mt-4 rounded-xl p-4 text-center" style={{ background: C.bg, border: `1px dashed ${C.line}` }}><Video size={24} color={C.goldSoft} className="mx-auto" /><p className="mt-2 text-[12px]" style={{ color: C.muted }}>Camera preview will appear here.</p></div>}{!scanning && <button type="button" onClick={() => { scanEnabledRef.current = true; setScanEnabled(true); startScanner(); }} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-[13px] font-semibold" style={{ background: `${C.gold}20`, color: C.goldSoft, border: `1px solid ${C.gold}66` }}><Video size={16} />{permissionState === "denied" || permissionState === "error" ? "Try camera again" : "Allow camera and scan"}</button>}</>}{mode === "pictures" && <div className="mt-4 rounded-xl p-4" style={{ background: C.bg, border: `1px solid ${C.line}` }}><label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl py-3 text-[13px] font-semibold" style={{ background: `${C.gold}20`, color: C.goldSoft, border: `1px solid ${C.gold}66` }}><ImageIcon size={16} />Choose QR picture<input type="file" accept="image/*" onChange={pickPicture} className="sr-only" /></label>{selectedImage ? <><img src={selectedImage.url} alt="Selected QR code" className="mt-4 max-h-56 w-full rounded-xl object-contain" style={{ border: `1px solid ${C.line}` }} /><button type="button" disabled={busy || !scanEnabled} onClick={scanPicture} className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-[13px] font-semibold disabled:opacity-40" style={{ background: C.gold, color: C.bg }}><ScanLine size={16} />{busy ? "Detecting securely..." : "Scan QR Code"}</button></> : <p className="mt-3 text-center text-[11px]" style={{ color: C.muted }}>Choose a picture containing an Atizzy QR code. The image is decoded locally and is not uploaded as a URL.</p>}<button type="button" onClick={() => setScanEnabled((value) => !value)} className="mt-3 flex w-full items-center justify-center gap-2 rounded-full py-2 text-[11px] font-semibold" style={{ background: scanEnabled ? `${C.green}22` : `${C.gold}18`, color: scanEnabled ? C.green : C.goldSoft, border: `1px solid ${scanEnabled ? C.green : C.gold}66` }}>{scanEnabled ? <Pause size={13} /> : <Play size={13} />}Scan QR Code {scanEnabled ? "ON" : "OFF"}</button></div>}{scanError && <div className="mt-3 rounded-xl p-3" style={{ color: C.red, background: `${C.red}18` }}><div className="flex items-start gap-2"><ShieldAlert size={16} /><p className="text-[12px]">{scanError}</p></div></div>}<form onSubmit={submit} className="mt-5"><label className="text-[12px]" style={{ color: C.goldSoft }}>Secure token fallback</label><input value={qrToken} onChange={(event) => setQrToken(event.target.value)} placeholder="Enter a server-issued QR token" className="mt-2 w-full rounded-xl px-3 py-3 text-[13px] outline-none" style={{ background: C.bg, color: C.ivory, border: `1px solid ${C.line}` }} /><button disabled={busy || !qrToken.trim()} className="mt-4 w-full rounded-xl py-3 text-[13px] font-semibold disabled:opacity-40" style={{ background: C.gold, color: C.bg }}>{busy ? "Validating securely..." : "Validate ticket"}</button>{staffMode && <button type="button" disabled={busy || !qrToken.trim()} onClick={rejectEntry} className="mt-2 w-full rounded-xl py-3 text-[13px] font-semibold disabled:opacity-40" style={{ background: `${C.red}18`, color: C.red, border: `1px solid ${C.red}55` }}>Reject entry</button>}</form>{error && <p className="mt-4 rounded-xl p-3 text-[12px]" style={{ color: C.red, background: `${C.red}18` }}>{error}</p>}{result && <div className="mt-4 rounded-xl p-4" style={{ color: copy.tone, background: `${copy.tone}18`, border: `1px solid ${copy.tone}44` }}><ResultIcon size={20} color={copy.tone} /><p className="mt-2 text-[13px] font-semibold">{copy.title}</p><p className="mt-1 text-[11px]" style={{ color: C.muted }}>{result.result_code === "NETWORK_ERROR" || result.result_code === "SERVER_ERROR" ? copy.message : result.message || copy.message}</p>{result.attendee_name && <p className="mt-2 text-[11px]" style={{ color: C.ivory }}>Attendee: {result.attendee_name}</p>}{result.event_title && <p className="text-[11px]" style={{ color: C.ivory }}>Event: {result.event_title}</p>}{result.ticket_type && <p className="text-[11px]" style={{ color: C.ivory }}>Ticket: {result.ticket_type}</p>}{result.checked_in_at && <p className="text-[11px]" style={{ color: C.muted }}>Check-in: {new Date(result.checked_in_at).toLocaleString("en-NG")}</p>}<button type="button" onClick={() => { setResult(null); setQrToken(""); if (mode === "camera" && scanEnabled && !scanning) startScanner(); }} className="mt-3 flex items-center gap-2 text-[11px]" style={{ color: C.goldSoft }}><RefreshCw size={13} /> Scan another ticket</button></div>}</div></main></div></div>;
 }
