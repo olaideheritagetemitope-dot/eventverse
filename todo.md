@@ -422,3 +422,222 @@
 - [x] Add automated coverage for normal-user ownership, admin authorization, anonymous denial, insert, update, and sensitive-field protection
 - [x] Validate the live Supabase migration and production frontend queries
 - [x] Record root cause, migration, tests, and any credential-required blocker
+
+# Super Admin Account Designation — 2026-08-20
+
+- [x] Inspect the existing Supabase Auth, profiles, role, user_roles, helper-function, RLS, admin-route, and frontend role architecture
+- [x] Verify whether `lonewolfdevman@gmail.com` exists and identify its non-sensitive Auth user ID
+- [x] Confirm the target account is not confused with another user and inspect its current profile/role state
+- [x] Assign `SUPER_ADMIN` only through the existing authoritative backend role system if the account exists
+- [x] Ensure `is_admin()` or the existing equivalent recognizes `super_admin` without recursion
+- [x] Verify normal users cannot self-promote, alter other users’ roles, call role assignment, or bypass direct admin routes
+- [x] Confirm existing Google, Spotify, normal login, registration, orders, tickets, payments, artist, and event workflows are not changed
+- [x] Run database, typecheck, lint, build, authorization, RLS, and deployment validation where applicable
+- [x] Report account found/not found, non-sensitive user ID, role location, authorization result, and any blocker
+
+# Universal SUPER_ADMIN Capabilities — 2026-08-20
+
+- [ ] Read the complete attached directive and extract all effective-role acceptance criteria
+- [ ] Inventory existing legitimate roles, role gates, dashboards, services, RPCs, and RLS helper functions
+- [ ] Preserve `SUPER_ADMIN` as the sole canonical primary role for the designated account
+- [ ] Implement effective-role inheritance without creating fake or duplicate role rows
+- [ ] Allow legitimate workspace visibility and navigation for every existing role
+- [ ] Extend backend authorization only through controlled existing role helpers/RPCs
+- [ ] Preserve admin precedence, self-promotion protections, RLS boundaries, and sensitive-field restrictions
+- [ ] Add acceptance coverage for universal capabilities and primary-role immutability
+- [ ] Validate live migration, tests, production build, and deployment impact
+
+# Universal SUPER_ADMIN Capabilities — Completed 2026-08-20
+
+- [x] Read the complete attached directive and extract all effective-role acceptance criteria
+- [x] Inventory existing legitimate roles, role gates, dashboards, services, RPCs, and RLS helper functions
+- [x] Preserve `SUPER_ADMIN` as the sole canonical primary role for the designated account
+- [x] Implement effective-role inheritance without creating fake or duplicate role rows
+- [x] Allow legitimate workspace visibility and navigation for every existing role
+- [x] Extend backend authorization through centralized security-definer helpers and effective-role RPC
+- [x] Preserve admin precedence, self-promotion protections, RLS boundaries, and sensitive-field restrictions
+- [x] Add acceptance coverage for universal capabilities and primary-role immutability
+- [x] Apply and validate Supabase migration 0026 in the live Atizzy project
+- [x] Pass focused tests, full Vitest suite, TypeScript checks, and production build
+- [x] Confirm the designated account retains one assigned `SUPER_ADMIN` role row
+
+# Verification Remediation — 2026-08-20
+
+- [ ] Independently prove that `lonewolfdevman@gmail.com` is assigned `SUPER_ADMIN` in live Supabase
+- [ ] Independently prove that live `SUPER_ADMIN` effective roles include every legitimate app role
+- [ ] Independently prove that Super Admin can reach every role workspace through the frontend
+- [ ] Independently prove centralized universal permission inheritance is used by backend authorization paths
+- [ ] Repair any discrepancy found between repository code, live migration state, and runtime behavior
+- [ ] Add evidence-oriented tests that fail when any of the four claims regresses
+
+# Verification Remediation — Completed 2026-08-20
+
+- [x] Independently prove that `lonewolfdevman@gmail.com` is assigned `SUPER_ADMIN` in live Supabase
+- [x] Independently prove that live `SUPER_ADMIN` effective roles include every legitimate app role
+- [x] Independently prove that Super Admin can reach every role workspace through the frontend
+- [x] Independently prove centralized universal permission inheritance is used by backend authorization paths
+- [x] Repair the missing Event Staff entry in the centralized Role Center workspace navigation
+- [x] Add evidence-oriented acceptance coverage for universal workspace routes and effective-role gates
+- [x] Save the direct production evidence in `docs/super-admin-verification-2026-08-20.md`
+- [x] Pass focused tests, full Vitest suite, TypeScript checks, production build, and diff validation
+
+# Linked ChatGPT Directive — https://chatgpt.com/s/t_6a86ea9c344481919ac0671cabc8850c
+
+- [ ] Access the linked directive and capture its complete text
+- [ ] Extract every actionable requirement into a traceable implementation checklist
+- [ ] Map each requirement to existing Atizzy frontend, Supabase, payments, authorization, and tests
+- [ ] Implement every missing requirement without removing protected existing workflows
+- [ ] Apply required live database changes and verify production integrations
+- [ ] Add or update acceptance coverage for every directive
+- [ ] Run full tests, type checks, production build, responsive verification, and regression checks
+- [ ] Save final evidence and mark all directive items complete
+
+# Linked ChatGPT Directive — Completed 2026-08-20
+
+- [x] Access the linked directive and capture its complete text
+- [x] Extract every actionable requirement into a traceable implementation checklist
+- [x] Map each requirement to existing Atizzy frontend, Supabase, payments, authorization, and tests
+- [x] Implement real profile avatar, artist artwork, event poster, venue photo, music cover, and audio file selection
+- [x] Route uploads through authenticated Supabase Storage with media asset records
+- [x] Preserve server-authoritative ownership and role/RLS boundaries
+- [x] Apply the controlled media storage migration in live Supabase
+- [x] Add focused acceptance coverage for the linked publishing/media requirements
+- [x] Run full tests, type checks, production build, and diff validation
+- [x] Save final evidence in docs/linked-directive-6a86ea9c-implementation.md
+
+# Capability Verification and CRUD Remediation — 2026-08-20
+
+- [ ] Verify visible photo selection instead of URL entry
+- [ ] Verify real Supabase Storage upload and media registration
+- [ ] Implement visible image preview, replacement, and removal
+- [ ] Verify real post creation, editing, deletion/archive, and publishing state
+- [ ] Verify artist audio upload and real playback workflow
+- [ ] Verify like/unlike, follow/unfollow, and save/library actions from UI to backend
+- [ ] Verify real event creation, editing, and publishing state
+- [ ] Verify venue content management CRUD and publishing state
+- [ ] Verify profile photo upload in the rendered profile UI
+- [ ] Verify role-by-role action guards and owner scoping
+- [ ] Add a complete CRUD/action audit with direct acceptance evidence
+
+# Capability Verification and Implementation — Completed 2026-08-20
+
+- [x] Audit each listed capability against the current UI, services, schema, and tests
+- [x] Verify live Supabase Storage and posts workflow migrations
+- [x] Implement visible photo selection, preview, replacement, and removal controls
+- [x] Implement real post create, edit, publish, archive, restore, and delete actions
+- [x] Verify artist audio upload, music playback, likes, follows, and library persistence paths
+- [x] Verify event, venue, profile, and role-scoped workflows remain server-authoritative
+- [x] Add direct acceptance coverage for the capability audit
+- [x] Pass 24 test files / 84 tests, production build, and diff validation
+- [x] Apply live migrations 0028 and 0029
+- [x] Save `docs/capability-audit-2026-08-20.md`
+
+# Linked ChatGPT Directive — https://chatgpt.com/s/t_6a86f2ae2dbc81919778cca99130fdae
+
+- [ ] Open and capture the complete linked directive
+- [ ] Extract every directive into a traceable checklist
+- [ ] Map each requirement to current Atizzy UI, services, Supabase, Storage, RLS, and tests
+- [ ] Implement all missing applicable requirements without removing protected workflows
+- [ ] Apply required live backend changes and validate integrations
+- [ ] Add acceptance coverage for every directive
+- [ ] Run full tests, build, responsive checks, and regression validation
+- [ ] Save evidence and mark all directive items complete
+
+# Linked ChatGPT Directive 6a86f2ae — Completed 2026-08-20
+
+- [x] Open and capture the complete linked directive
+- [x] Extract the full platform control-plane and integration-health requirements
+- [x] Audit existing Admin/Super Admin controls and protected role boundaries
+- [x] Add a visible System Requirements / Health section inside Admin Operations
+- [x] Show Supabase, Google Auth, Spotify Auth, Storage, notifications, camera, location, QR scanning, payments, and email states
+- [x] Distinguish configured, pending, user-dependent, device-dependent, and unavailable states
+- [x] Preserve the no-invented-credentials rule for payment/provider configuration
+- [x] Add focused system-health acceptance coverage
+- [x] Pass 25 test files / 87 tests, TypeScript, production build, and diff validation
+- [x] Save directive brief at `docs/linked-directive-6a86f2ae.md`
+
+# Linked ChatGPT Directive — https://chatgpt.com/s/t_6a86f588d87c81918b9784e1e3440607
+
+- [ ] Open and preserve the complete linked directive
+- [ ] Extract every directive into a traceable acceptance matrix
+- [ ] Map every requirement to Atizzy UI, services, Supabase, Storage, RLS, integrations, and tests
+- [ ] Implement every applicable requirement without omission or removal of protected workflows
+- [ ] Apply required live changes and verify production boundaries
+- [ ] Add acceptance coverage for each directive
+- [ ] Run exhaustive tests, build, responsive checks, and regression validation
+- [ ] Save implementation evidence and mark all items complete
+
+# Linked ChatGPT Directive 6a86f588 — Completed 2026-08-20
+
+- [x] Open and preserve the complete linked directive
+- [x] Audit platform settings, fee controls, Admin Operations, and RLS boundaries
+- [x] Add the Super Admin-only Dynamic Business Policies control plane
+- [x] Add typed, whitelisted policy defaults and server-side validation
+- [x] Add audited Super Admin policy updates through protected RPCs
+- [x] Enforce policy decisions server-side in artist workflows
+- [x] Add artist verification information and business-rule policy settings
+- [x] Verify live Supabase migrations 0030 and 0031
+- [x] Add focused dynamic-policy acceptance coverage
+- [x] Pass 26 test files / 91 passed tests / 1 skipped credential test, TypeScript, production build, and diff validation
+- [x] Save linked directive and audit reports in `docs/`
+
+# Linked ChatGPT Directive — https://chatgpt.com/s/t_6a86f9b08a8881919b28bdbe0dea1ddc
+
+- [ ] Open and preserve the complete linked directive
+- [ ] Extract every directive into a traceable acceptance matrix
+- [ ] Audit each requirement against Atizzy frontend, Supabase, services, integrations, and tests
+- [ ] Implement every applicable missing requirement without omitting protected workflows
+- [ ] Apply required live backend changes and verify security boundaries
+- [ ] Run complete tests, type checks, production build, responsive checks, and regression validation
+- [ ] Save implementation evidence and mark every directive item complete
+
+# Linked Directive Inspection Constraint — 2026-08-20
+
+- [ ] Inspect the already-open ChatGPT page without refreshing or navigating away
+- [ ] Extract the complete directive text from the open conversation
+- [ ] Preserve the extracted directive and map every requirement before implementation
+
+# Private Ticket Directive Inspection Constraint — 2026-08-20
+
+- [ ] Inspect the already-open ChatGPT conversation using scrolling only; do not refresh or navigate away
+- [ ] Capture any directive content revealed by scrolling and preserve it in the private-ticket directive brief
+- [ ] Complete the private-ticket implementation only after the full directive is extracted
+- [x] Private Ticket Access: hashed credential discovery, public/private visibility enforcement, organizer RPC configuration, attendee unlock flow, redemption and purchase limits, brute-force protection, and live Supabase grants validated.
+
+# Role Capability Deep Audit — 2026-08-20
+
+- [x] Deep audit linked role-capability directive across live Supabase, RPC/RLS, services, workflows, and UI modules.
+- [x] Implement every missing role ability and visible role-specific module/button identified by the audit.
+- [x] Validate role security boundaries, backend enforcement, regression coverage, and production build for the role-capability milestone.
+
+# Linked Directive — 2026-08-20 — 6a870ddc
+- [x] Extract and preserve every directive from the supplied ChatGPT link.
+- [x] Audit the directive against Atizzy frontend, services, Supabase schema/RPC/RLS, and tests.
+- [x] Implement every applicable missing workflow, module, and backend rule.
+- [x] Apply and verify required live Supabase changes and security boundaries.
+- [x] Run complete regression tests, type checks, production build, and save implementation evidence.
+
+# Image Upload Migration — 2026-08-20
+- [x] Audit every image URL input and existing Supabase Storage upload helper across Atizzy.
+- [x] Implement shared photo selection, preview, replacement, removal, and secure upload behavior.
+- [x] Migrate every image workflow from URL entry to photo selection and remove URL-only paths.
+- [x] Validate ownership/security, upload failures, responsive UI, regression tests, TypeScript, and production build.
+
+# Managed Media Trigger Correction — 2026-08-20
+- [x] Inspect actual media table columns and failing trigger references.
+- [x] Create and apply a schema-compatible corrective migration.
+- [x] Validate profile, artist, song, event, post, and venue media writes plus full regression checks.
+
+# Linked Directives — 2026-08-20 — 6a871a3768 / 6a871acb
+- [ ] Extract and preserve every directive from both supplied ChatGPT links.
+- [ ] Audit Super Admin role user lists, role actions, onboarding, verification, fees, support, events, tickets, analytics, moderation, wallets, comments, ratings, and public top analytics against live Atizzy implementation.
+- [ ] Implement missing schema, RPC/RLS, service, workflow, and UI capabilities without weakening existing security boundaries.
+- [ ] Apply and verify live backend migrations, accounting rules, role boundaries, and end-to-end workflows.
+- [ ] Run complete regression tests, type checks, production build, and save directive evidence.
+
+- [x] Inspect is_atizzy_managed_media_url definition, owner, security mode, grants, callers, and dependent RLS/storage policies
+- [x] Replace remaining URL-first image workflows with centralized file-picker selection, validation, preview, and upload handling
+- [x] Verify profile, artist, album, music, event, venue, post, and admin media workflows use managed storage references
+- [x] Apply least-privilege EXECUTE grants and role-specific permission tests for managed-media validation
+- [x] Add regression coverage for media selection, replacement/removal, upload references, and permission boundaries
+- [x] Run full tests, TypeScript, production build, and save checkpoint for media permission fix
