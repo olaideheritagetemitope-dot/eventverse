@@ -239,3 +239,83 @@ export async function updateArtistFee(key, amount, userId) {
   if (error) throw error;
   return data;
 }
+
+
+export async function loadOrganizerApplication(userId) {
+  if (!userId) return null;
+  const { data, error } = await supabase.from("organizer_applications").select("id,user_id,status,display_name,reason,created_at,updated_at,activated_at").eq("user_id", userId).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function applyAsOrganizer(userId, displayName, reason) {
+  if (!userId) throw new Error("Sign in to become an Organizer.");
+  const { data, error } = await supabase.rpc("apply_as_organizer", { p_display_name: displayName?.trim() || null, p_reason: reason?.trim() || null });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+
+export async function loadOrganizerEvents(userId) {
+  if (!userId) return [];
+  const { data, error } = await supabase.from("events").select("id,organizer_id,venue_id,title,description,event_type,city,starts_at,ends_at,cover_url,status,created_at,updated_at,venues(name,address,capacity),ticket_types(id,name,price,capacity,sold,reserved,sales_start,sales_end,maximum_per_customer)").eq("organizer_id", userId).order("starts_at", { ascending: true }).limit(100);
+  if (error) throw error;
+  return data || [];
+}
+
+export async function createOrganizerEvent(userId, payload) {
+  if (!userId) throw new Error("Organizer access is required.");
+  const body = { organizer_id: userId, title: payload.title?.trim(), description: payload.description?.trim() || null, event_type: payload.event_type?.trim() || null, city: payload.city?.trim(), starts_at: payload.starts_at, ends_at: payload.ends_at || null, cover_url: payload.cover_url?.trim() || null, venue_id: payload.venue_id || null, status: "DRAFT" };
+  if (!body.title || !body.description || !body.city || !body.starts_at) throw new Error("Title, description, city, and start date are required.");
+  const { data, error } = await supabase.from("events").insert(body).select("id,organizer_id,venue_id,title,description,event_type,city,starts_at,ends_at,cover_url,status,created_at,updated_at").single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateOrganizerEvent(eventId, userId, payload) {
+  if (!eventId || !userId) throw new Error("Organizer event access is required.");
+  const body = { title: payload.title?.trim(), description: payload.description?.trim() || null, event_type: payload.event_type?.trim() || null, city: payload.city?.trim(), starts_at: payload.starts_at, ends_at: payload.ends_at || null, cover_url: payload.cover_url?.trim() || null, venue_id: payload.venue_id || null, updated_at: new Date().toISOString() };
+  const { data, error } = await supabase.from("events").update(body).eq("id", eventId).eq("organizer_id", userId).select("id,organizer_id,venue_id,title,description,event_type,city,starts_at,ends_at,cover_url,status,created_at,updated_at").single();
+  if (error) throw error;
+  return data;
+}
+
+export async function addOrganizerTicketType(eventId, userId, payload) {
+  if (!eventId || !userId) throw new Error("Organizer ticket access is required.");
+  const { data: ownedEvent, error: ownedError } = await supabase.from("events").select("id").eq("id", eventId).eq("organizer_id", userId).single();
+  if (ownedError || !ownedEvent) throw ownedError || new Error("Event is not owned by this Organizer.");
+  const body = { event_id: eventId, name: payload.name?.trim(), price: Number(payload.price), capacity: Number(payload.capacity), sales_start: payload.sales_start || null, sales_end: payload.sales_end || null, maximum_per_customer: Number(payload.maximum_per_customer || 4) };
+  if (!body.name || !Number.isFinite(body.price) || body.price < 0 || !Number.isInteger(body.capacity) || body.capacity < 1) throw new Error("Enter a valid ticket name, price, and capacity.");
+  const { data, error } = await supabase.from("ticket_types").insert(body).select("id,event_id,name,price,capacity,sold,reserved,sales_start,sales_end,maximum_per_customer").single();
+  if (error) throw error;
+  return data;
+}
+
+export async function linkOrganizerArtist(eventId, userId, artistId) {
+  if (!eventId || !userId || !artistId) throw new Error("Event and Artist are required.");
+  const { data: ownedEvent, error: ownedError } = await supabase.from("events").select("id").eq("id", eventId).eq("organizer_id", userId).single();
+  if (ownedError || !ownedEvent) throw ownedError || new Error("Event is not owned by this Organizer.");
+  const { data, error } = await supabase.from("event_artists").upsert({ event_id: eventId, artist_id: artistId }, { onConflict: "event_id,artist_id" }).select("event_id,artist_id").single();
+  if (error) throw error;
+  return data;
+}
+
+export async function publishOrganizerEvent(eventId) {
+  if (!eventId) throw new Error("Event is required.");
+  const { data, error } = await supabase.rpc("publish_organizer_event", { p_event_id: eventId });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+
+export async function cancelOrganizerEvent(eventId) {
+  if (!eventId) throw new Error("Event is required.");
+  const { data, error } = await supabase.rpc("cancel_organizer_event", { p_event_id: eventId });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+
+export async function loadOrganizerEventDashboard(eventId) {
+  if (!eventId) throw new Error("Event is required.");
+  const { data, error } = await supabase.rpc("get_organizer_event_dashboard", { p_event_id: eventId });
+  if (error) throw error;
+  return data;
+}

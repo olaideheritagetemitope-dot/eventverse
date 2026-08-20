@@ -230,19 +230,26 @@
 
 # Artist Acceptance Checklist — GitHub Now
 
-- [ ] Verify artist_registration_fee exists in GitHub code and live Supabase
-- [ ] Verify artist_verification_fee exists in GitHub code and live Supabase
-- [ ] Verify Become an Artist workflow is complete
-- [ ] Verify artist application/registration entity is complete
-- [ ] Verify registration payment workflow is complete
-- [ ] Verify server-side registration payment verification is complete
-- [ ] Verify automatic Artist role activation is complete
-- [ ] Verify registration webhook is complete
-- [ ] Verify duplicate registration protection is complete
-- [ ] Verify Super Admin Artist fee setting is complete
-- [ ] Verify Artist verification payment is complete
-- [ ] Verify server-side verification webhook is complete
-- [ ] Verify golden verification state is complete
-- [ ] Verify golden checkbox UI workflow is complete
-- [ ] Verify Super Admin verification fee is complete
-- [ ] Push and verify the completed implementation on GitHub main
+- [x] Verify artist_registration_fee exists in GitHub code and live Supabase
+- [x] Verify artist_verification_fee exists in GitHub code and live Supabase
+- [x] Verify Become an Artist workflow is complete
+- [x] Verify artist application/registration entity is complete
+- [x] Verify registration payment workflow is complete
+- [x] Verify server-side registration payment verification is complete
+- [x] Verify automatic Artist role activation is complete
+- [x] Verify registration webhook is complete
+- [x] Verify duplicate registration protection is complete
+- [x] Verify Super Admin Artist fee setting is complete
+- [x] Verify Artist verification payment is complete
+- [x] Verify server-side verification webhook is complete
+- [x] Verify golden verification state is complete
+- [x] Verify golden checkbox UI workflow is complete
+- [x] Verify Super Admin verification fee is complete
+- [x] Push and verify the completed implementation on GitHub main
+
+# Shared ChatGPT Directive — 6a869b29325c8191afd377524a87d9d8
+
+- [x] Open and extract the complete shared ChatGPT directive
+- [x] Map every directive requirement to the current Atizzy codebase and identify gaps
+- [x] Implement every actionable directive while preserving approved Atizzy UI
+- [x] Validate all directive requirements across build, tests, Supabase, Paystack, responsive behavior, and GitHub
