@@ -35,9 +35,9 @@ button { cursor: pointer; }
 }
 button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--ev-gold); outline-offset: 2px; }
 .ev-page-shell { width: 100%; max-width: 1180px; margin: 0 auto; padding: 24px clamp(18px, 3vw, 42px) 40px; }
-.ev-atizzy-pattern { position: absolute; inset: 0; z-index: 0; pointer-events: none; background-image: linear-gradient(180deg, rgba(5,4,3,.82), rgba(5,4,3,.94)), url('/assets/atizzy-pattern.png'); background-repeat: repeat; background-size: auto, 164px auto; background-position: center, center top; opacity: .32; mix-blend-mode: screen; }
-@media (max-width: 680px) { .ev-atizzy-pattern { background-size: auto, 124px auto; opacity: .24; } }
-@media (prefers-reduced-motion: reduce) { .ev-atizzy-pattern { opacity: .2; } }
+.ev-atizzy-pattern { position: absolute; inset: 0; z-index: 0; pointer-events: none; background-image: linear-gradient(180deg, rgba(5,4,3,.68), rgba(5,4,3,.84)), url('/assets/atizzy-pattern.png'); background-repeat: repeat; background-size: auto, 164px auto; background-position: center, center top; opacity: .46; mix-blend-mode: screen; }
+@media (max-width: 680px) { .ev-atizzy-pattern { background-size: auto, 124px auto; opacity: .38; } }
+@media (prefers-reduced-motion: reduce) { .ev-atizzy-pattern { opacity: .34; } }
  .ev-global-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 58px; border-bottom: 1px solid var(--ev-line); }
 .ev-bottom-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; padding: 8px 10px max(8px, env(safe-area-inset-bottom)); pointer-events: none; }
 .ev-bottom-nav-inner { display: flex; align-items: stretch; justify-content: space-around; gap: 4px; width: 100%; max-width: 640px; min-height: 62px; margin: 0 auto; padding: 6px 5px; border: 1px solid rgba(215,173,97,.32); border-radius: 22px; background: rgba(11,10,8,.78); box-shadow: 0 12px 34px rgba(0,0,0,.38), 0 2px 10px rgba(0,0,0,.22); backdrop-filter: blur(18px) saturate(1.08); -webkit-backdrop-filter: blur(18px) saturate(1.08); pointer-events: auto; }

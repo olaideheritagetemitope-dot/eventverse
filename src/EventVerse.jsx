@@ -3,7 +3,7 @@ import {
   Search, Bell, Menu, ChevronLeft, ChevronRight, Play, Pause,
   SkipBack, SkipForward, Heart, Share2, Star, MapPin, Calendar,
   Clock, Minus, Plus, Check, ShieldCheck, Home, Compass, Music2,
-  Ticket, User, X, QrCode, Shuffle, Repeat, ListMusic, ChevronDown,
+  Ticket, User, LogOut, X, QrCode, Shuffle, Repeat, ListMusic, ChevronDown,
 } from "lucide-react";
 import { supabase } from "./lib/supabase";
 import { loadCatalog, loadEventDetail, loadVenueDetail, searchCatalog, formatFollowers } from "./services/catalog";
@@ -1432,6 +1432,20 @@ function Profile({ nav, player, account }) {
   return (
     <Phone>
       <div className="px-5 pt-2 pb-4 flex flex-col items-center">
+        <div className="w-full flex items-center justify-between mb-3">
+          <span className="ev-display text-[22px]" style={{ color: C.ivory }}>Profile</span>
+          <button
+            type="button"
+            onClick={signOut}
+            disabled={busy}
+            aria-label="Log out of Atizzy"
+            className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-[12px] font-semibold"
+            style={{ color: busy ? C.muted : "#E98979", background: C.card, border: `1px solid ${C.line}` }}
+          >
+            <LogOut size={14} aria-hidden="true" />
+            {busy ? "Signing out..." : "Log out"}
+          </button>
+        </div>
         <div className="w-20 h-20 rounded-full mb-3 overflow-hidden" style={{ background: `linear-gradient(135deg, ${C.wood}, ${C.green})` }}>
           {account?.profile?.avatar_url && <img src={account.profile.avatar_url} alt="Profile avatar" className="w-full h-full object-cover" />}
         </div>
@@ -1458,9 +1472,6 @@ function Profile({ nav, player, account }) {
             <ChevronRight size={15} color={C.muted} />
           </button>
         ))}
-      </div>
-      <div className="px-5 pb-3">
-        <button onClick={signOut} disabled={busy} className="w-full py-3 rounded-2xl text-[13px] font-semibold" style={{ background: C.card, color: busy ? C.muted : "#E98979", border: `1px solid ${C.line}` }}>{busy ? "Signing out..." : "Log out"}</button>
       </div>
       <MiniPlayer song={player.song} playing={player.playing} onToggle={player.toggle} onOpen={() => nav.push("musicPlayer")} />
       <BottomNav current="profile" go={nav.tab} />

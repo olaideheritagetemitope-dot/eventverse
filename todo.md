@@ -368,3 +368,13 @@
 - [x] Preserve active states, accessibility names, keyboard behavior, and role-based navigation visibility
 - [x] Add focused acceptance coverage for fixed positioning, no horizontal overflow, content clearance, and route preservation
 - [x] Validate required mobile widths plus desktop behavior, tests, production build, and deployment
+
+# Targeted UI Correction — Background Watermark + Profile Logout — 2026-08-20
+
+- [ ] Read the attached directive and map its constraints to the current Atizzy implementation
+- [ ] Increase visibility of the existing Atizzy decorative watermark without duplicating the asset
+- [ ] Move the single Profile Logout action to the top profile area and remove any bottom duplicate
+- [ ] Preserve fixed bottom navigation, safe-area clearance, routing, auth, backend, roles, and commerce workflows
+- [ ] Add focused acceptance coverage for watermark visibility and Profile Logout placement/clickability
+- [ ] Run lint, typecheck, production build, responsive checks, profile navigation checks, and deployment verification
+- [ ] Record changed files, exact implementation details, commit SHA, and deployment status
