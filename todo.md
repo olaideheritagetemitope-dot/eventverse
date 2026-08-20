@@ -641,3 +641,9 @@
 - [x] Apply least-privilege EXECUTE grants and role-specific permission tests for managed-media validation
 - [x] Add regression coverage for media selection, replacement/removal, upload references, and permission boundaries
 - [x] Run full tests, TypeScript, production build, and save checkpoint for media permission fix
+
+- [x] Inspect linked ChatGPT directive 6a87283beea881919be8c5f739e973e8 and extract all actionable requirements
+- [x] Reconcile every linked requirement with the current Atizzy schema, services, UI, and tests
+- [x] Implement all missing linked-directive capabilities with server-authoritative security boundaries
+- [x] Add focused acceptance coverage for the linked directive
+- [x] Run full regression, TypeScript, production build, and save implementation evidence
