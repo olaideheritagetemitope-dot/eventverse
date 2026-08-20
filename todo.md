@@ -667,3 +667,10 @@
 - [x] Wire all visible controls to real server-authoritative actions and live updated UI states
 - [x] Add focused acceptance coverage for every restored governance workflow
 - [x] Run full tests, TypeScript, production build, live smoke validation, and save a checkpoint
+
+- [x] Audit all frontend files for mock, demo, hardcoded, static fallback, and fabricated data sources
+- [x] Replace every mock source with the appropriate live Supabase/domain service without changing existing UI structure
+- [x] Verify Home, Explore, Search, Music, Artists, Events, Venues, Tickets, Profile, and Notifications use live data and working actions
+- [x] Verify Artist, Organizer, Venue Manager, Event Staff, Admin, and Super Admin workspaces use live data and protected mutations
+- [x] Add direct acceptance coverage for the no-mock-data contract and all listed module surfaces
+- [x] Run full regression, TypeScript, production build, responsive smoke checks, and save a checkpoint
