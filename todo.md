@@ -342,3 +342,13 @@
 - [x] Validate Atizzy preview loads at the current Vite preview URL
 - [x] Run 18 acceptance test files: 57 passing tests, 1 intentionally skipped credential test
 - [x] Run production Vite build successfully
+
+# Linked Atizzy Directive — 2026-08-20
+
+- [x] Open and extract all directives from ChatGPT link `6a86cee9ae608191ae7fa7eaacb076c2`
+- [x] Inspect the supplied square Atizzy logo reference and tall patterned background reference
+- [x] Map every linked directive to existing Atizzy screens, services, migrations, and tests
+- [x] Implement all feasible linked directives without changing protected workflows or branding decisions
+- [x] Apply supplied image references only where the directive requires the visual treatment
+- [x] Validate responsive behavior, security boundaries, acceptance tests, and production build
+- [x] Record any action that requires user credentials, provider configuration, or explicit confirmation
