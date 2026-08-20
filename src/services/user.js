@@ -180,6 +180,17 @@ export async function checkInTicketWithToken(qrToken) {
   return data;
 }
 
+export async function validateTicketQr(qrToken, expectedEventId = null) {
+  if (!qrToken || !String(qrToken).trim()) throw new Error("A QR token is required.");
+  const { data, error } = await supabase.rpc("validate_ticket_qr", {
+    p_qr_token: String(qrToken).trim(),
+    p_expected_event_id: expectedEventId || null,
+  });
+  if (error) throw error;
+  if (!data || typeof data !== "object") throw new Error("Ticket verification returned no result.");
+  return data;
+}
+
 export async function updateProfile(userId, updates) {
   if (!userId) throw new Error("Sign in to edit your profile.");
   const payload = {

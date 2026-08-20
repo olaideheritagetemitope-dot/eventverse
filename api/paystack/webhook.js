@@ -95,15 +95,14 @@ function isExpectedCurrency(data) {
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return json(res, 405, { error: "Method not allowed" });
-  if (!process.env.PAYSTACK_SECRET_KEY || !process.env.SUPABASE_SERVICE_ROLE_KEY || !SUPABASE_URL) {
-    return json(res, 503, { error: "Payment verification is not configured" });
-  }
-
   try {
     const rawBody = typeof req.body === "string" ? req.body : JSON.stringify(req.body || {});
     if (!verifySignature(rawBody, req.headers["x-paystack-signature"])) {
       logWebhook("warn", { failure_category: "invalid_signature" });
       return json(res, 401, { error: "Invalid signature" });
+    }
+    if (!process.env.PAYSTACK_SECRET_KEY || !process.env.SUPABASE_SERVICE_ROLE_KEY || !SUPABASE_URL) {
+      return json(res, 503, { error: "Payment verification is not configured" });
     }
 
     const event = JSON.parse(rawBody);

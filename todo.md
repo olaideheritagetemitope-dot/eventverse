@@ -867,3 +867,16 @@
 - [x] Fix production Vercel Supabase environment variables so the app never resolves to missing-supabase-config.invalid
 - [x] Verify the deployed app can initialize the Supabase client and reach the intended project without mock-data fallback
 - [x] Revalidate production authentication and live catalog request behavior after redeployment
+
+# QR Ticket Scanner Rebuild — 2026-08-20
+
+- [x] Extract and reconcile the complete QR scanner directive against the current Atizzy UI and backend
+- [x] Audit existing ticket QR, check-in, staff authorization, camera, and image-picker implementation
+- [x] Implement backend-authoritative QR validation with atomic idempotent check-in
+- [x] Implement live camera and photo-library QR input modes without URL-based image handling
+- [x] Implement continuous scanning, scan toggle, duplicate suppression, mode switching, and Scan Another flow
+- [x] Implement explicit valid, already-used, invalid, expired, cancelled, refunded, revoked, wrong-event, unauthorized, rejected, network, server, and unknown result states
+- [x] Preserve existing Atizzy scanner visual language and responsive layout
+- [x] Add regression and acceptance coverage for scanner flows, security boundaries, and failure states
+- [x] Run TypeScript, tests, production build, and live deployment smoke validation
+- [x] Document implementation evidence and create a project checkpoint
