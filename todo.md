@@ -267,3 +267,10 @@
 - [x] Map every requirement to the current Atizzy codebase and identify gaps
 - [x] Implement every actionable directive without removing approved Atizzy UI or workflows
 - [x] Validate all directive requirements and deployment readiness
+
+# Shared ChatGPT Directive — 6a86a65439d08191af0b24a8bd7939da
+
+- [x] Open and extract the complete shared ChatGPT directive
+- [x] Map every directive requirement to the current Atizzy codebase and identify gaps
+- [x] Implement every actionable directive while preserving approved Atizzy UI
+- [x] Validate all directive requirements across tests, builds, live services, responsive behavior, and GitHub
