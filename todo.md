@@ -411,3 +411,14 @@
 - [x] Preserve modal layering, route persistence, and desktop behavior
 - [x] Add acceptance coverage for fixed positioning, playback state, controls, responsive widths, and no overflow
 - [x] Validate mobile, tablet, desktop, scrolling, tests, production build, and deployment
+
+# Critical Supabase Orders RLS Fix — 2026-08-20
+
+- [x] Read the complete attached orders-RLS directive and extract all acceptance criteria
+- [x] Inspect live `public.orders` policies, related functions, triggers, foreign keys, roles, payments, tickets, and order relationships
+- [x] Identify and document the exact direct or indirect RLS recursion chain
+- [x] Implement a minimal server-authoritative migration without disabling RLS or weakening payment security
+- [x] Preserve live ticket purchase, history, payment confirmation, and order-detail workflows
+- [x] Add automated coverage for normal-user ownership, admin authorization, anonymous denial, insert, update, and sensitive-field protection
+- [x] Validate the live Supabase migration and production frontend queries
+- [x] Record root cause, migration, tests, and any credential-required blocker
