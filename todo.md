@@ -401,3 +401,13 @@
 - [x] Keep the pattern subtle, readable, pointer-transparent, and behind content/fixed navigation
 - [x] Validate 320/360/375/390/414/430px mobile widths and 1024/1280/1440/1920px desktop behavior
 - [x] Validate scrolling, overflow, performance, acceptance tests, production build, and deployment
+
+# Fixed Mini Player Directive — 2026-08-20
+
+- [x] Inspect current music playback state, compact player markup, scroll container, and fixed bottom-navigation geometry
+- [x] Render the compact player only for an active real track and keep it fixed directly above bottom navigation
+- [x] Preserve existing artwork, title, artist, play/pause, progress, menu, and full-player interactions
+- [x] Add safe-area-aware content clearance for mini-player plus bottom navigation
+- [x] Preserve modal layering, route persistence, and desktop behavior
+- [x] Add acceptance coverage for fixed positioning, playback state, controls, responsive widths, and no overflow
+- [x] Validate mobile, tablet, desktop, scrolling, tests, production build, and deployment

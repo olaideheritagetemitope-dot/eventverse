@@ -3,7 +3,7 @@ import {
   Search, Bell, Menu, ChevronLeft, ChevronRight, Play, Pause,
   SkipBack, SkipForward, Heart, Share2, Star, MapPin, Calendar,
   Clock, Minus, Plus, Check, ShieldCheck, Home, Compass, Music2,
-  Ticket, User, LogOut, X, QrCode, Shuffle, Repeat, ListMusic, ChevronDown,
+  Ticket, User, LogOut, X, QrCode, Shuffle, Repeat, ListMusic, ChevronDown, MoreVertical,
 } from "lucide-react";
 import { supabase } from "./lib/supabase";
 import { loadCatalog, loadEventDetail, loadVenueDetail, searchCatalog, formatFollowers } from "./services/catalog";
@@ -261,18 +261,23 @@ function BottomNav({ current, go }) {
 function MiniPlayer({ song, playing, onToggle, onOpen }) {
   if (!song) return null;
   return (
-    <button onClick={onOpen} className="mx-3 mb-2 rounded-2xl px-3 py-2.5 flex items-center gap-3" style={{ background: `linear-gradient(135deg, ${C.wood}, ${C.card})`, border: `1px solid ${C.line}` }}>
-      <div className="w-9 h-9 rounded-lg flex-shrink-0" style={{ background: `linear-gradient(135deg, ${C.greenLight}, ${C.gold}55)` }} />
-      <div className="flex-1 text-left min-w-0">
-        <p className="text-[12.5px] font-semibold truncate" style={{ color: C.ivory }}>{song.title}</p>
-        <p className="text-[11px] truncate" style={{ color: C.muted }}>{song.artist}</p>
+    <div className="ev-mini-player" role="region" aria-label="Now playing">
+      <div className="ev-mini-player-inner">
+        <button type="button" onClick={onOpen} className="ev-mini-player-main" aria-label={`Open player for ${song.title || "current song"}`}>
+          <div className="ev-mini-player-art" style={imageStyle(song.coverUrl, `linear-gradient(135deg, ${C.greenLight}, ${C.gold}55)`)} aria-hidden="true" />
+          <div className="flex-1 text-left min-w-0">
+            <p className="text-[12.5px] font-semibold truncate" style={{ color: C.ivory }}>{song.title || "Now playing"}</p>
+            <p className="text-[11px] truncate" style={{ color: C.muted }}>{song.artist || "Atizzy music"}</p>
+          </div>
+        </button>
+        <button type="button" onClick={onToggle} className="ev-mini-player-control" aria-label={playing ? "Pause current song" : "Play current song"}>
+          {playing ? <Pause size={15} color="#1A1408" /> : <Play size={15} color="#1A1408" fill="#1A1408" />}
+        </button>
+        <button type="button" onClick={onOpen} className="ev-mini-player-menu" aria-label="Open player options">
+          <MoreVertical size={18} color={C.muted} />
+        </button>
       </div>
-      <SkipBack size={15} color={C.muted} />
-      <span onClick={(e) => { e.stopPropagation(); onToggle(); }} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: C.gold }}>
-        {playing ? <Pause size={14} color="#1A1408" /> : <Play size={14} color="#1A1408" fill="#1A1408" />}
-      </span>
-      <SkipForward size={15} color={C.muted} />
-    </button>
+    </div>
   );
 }
 
