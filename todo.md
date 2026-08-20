@@ -681,3 +681,10 @@
 - [x] Ensure live Supabase/media services drive popular, trending, nearby, and counter-based sections
 - [x] Add acceptance coverage for no fabricated data, preserved UI structure, live media references, dynamic counters, and empty states
 - [x] Run full tests, TypeScript, production build, responsive checks, and save a checkpoint
+
+- [x] Extract the complete urgent deployed-Home mock-data directive and save its acceptance criteria
+- [x] Trace Burna Boy, The Summit, Eko Convention Centre, The Vibes Fest, Freedom Park, Wizkid Live In Concert, and ABC Event Centre across all frontend, build, seed, migration, service, and configuration files
+- [x] Determine whether the visible records come from Supabase, a static fallback, a stale bundle, or a wrong deployment/environment
+- [x] Preserve Home featured, upcoming, artist, venue, pills, navigation, background, and card structures while removing only fake content
+- [x] Verify production build, generated bundle, GitHub/Vercel/environment/Supabase alignment, and deployed Home behavior
+- [x] Add regression coverage, run full validation, and save a deployment-safe checkpoint

@@ -1,5 +1,44 @@
 import { supabase } from "../lib/supabase";
 
+// These IDs come only from the original synthetic catalog seed. They are excluded at the
+// domain-service boundary so real dependent orders are never deleted from production.
+export const SYNTHETIC_CATALOG_IDS = Object.freeze({
+  events: new Set([
+    "40000000-0000-0000-0000-000000000001",
+    "40000000-0000-0000-0000-000000000002",
+    "40000000-0000-0000-0000-000000000003",
+    "40000000-0000-0000-0000-000000000004",
+    "40000000-0000-0000-0000-000000000005",
+    "40000000-0000-0000-0000-000000000006",
+  ]),
+  venues: new Set([
+    "20000000-0000-0000-0000-000000000001",
+    "20000000-0000-0000-0000-000000000002",
+    "20000000-0000-0000-0000-000000000003",
+    "20000000-0000-0000-0000-000000000004",
+    "20000000-0000-0000-0000-000000000005",
+    "20000000-0000-0000-0000-000000000006",
+  ]),
+  artists: new Set([
+    "30000000-0000-0000-0000-000000000001",
+    "30000000-0000-0000-0000-000000000002",
+    "30000000-0000-0000-0000-000000000003",
+    "30000000-0000-0000-0000-000000000004",
+    "30000000-0000-0000-0000-000000000005",
+    "30000000-0000-0000-0000-000000000006",
+  ]),
+  songs: new Set([
+    "60000000-0000-0000-0000-000000000001",
+    "60000000-0000-0000-0000-000000000002",
+    "60000000-0000-0000-0000-000000000003",
+    "60000000-0000-0000-0000-000000000004",
+    "60000000-0000-0000-0000-000000000005",
+  ]),
+});
+
+export const isSyntheticCatalogRecord = (kind, record) => Boolean(record?.id && SYNTHETIC_CATALOG_IDS[kind]?.has(record.id));
+export const filterLiveCatalogRows = (kind, rows) => (rows || []).filter((row) => !isSyntheticCatalogRecord(kind, row));
+
 export const formatFollowers = (value) => {
   const count = Number(value || 0);
   if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
@@ -69,11 +108,11 @@ export async function loadCatalog() {
   const firstError = [eventResult, artistResult, songResult, categoryResult, venueResult].find((result) => result.error)?.error;
   if (firstError) throw firstError;
   return {
-    events: (eventResult.data || []).map(toEvent),
-    artists: (artistResult.data || []).map(toArtist),
-    songs: (songResult.data || []).map(toSong),
+    events: filterLiveCatalogRows("events", eventResult.data).map(toEvent),
+    artists: filterLiveCatalogRows("artists", artistResult.data).map(toArtist),
+    songs: filterLiveCatalogRows("songs", songResult.data).map(toSong),
     categories: categoryResult.data || [],
-    venues: venueResult.data || [],
+    venues: filterLiveCatalogRows("venues", venueResult.data),
   };
 }
 
@@ -90,10 +129,10 @@ export async function searchCatalog(query) {
   const firstError = [eventResult, artistResult, songResult, venueResult].find((result) => result.error)?.error;
   if (firstError) throw firstError;
   return {
-    events: (eventResult.data || []).map(toEvent),
-    artists: (artistResult.data || []).map(toArtist),
-    songs: (songResult.data || []).map(toSong),
-    venues: venueResult.data || [],
+    events: filterLiveCatalogRows("events", eventResult.data).map(toEvent),
+    artists: filterLiveCatalogRows("artists", artistResult.data).map(toArtist),
+    songs: filterLiveCatalogRows("songs", songResult.data).map(toSong),
+    venues: filterLiveCatalogRows("venues", venueResult.data),
   };
 }
 
@@ -105,11 +144,12 @@ export async function loadEventDetail(eventId) {
   ]);
   const firstError = [eventResult, artistResult, ticketResult].find((result) => result.error)?.error;
   if (firstError) throw firstError;
+  const liveEvent = isSyntheticCatalogRecord("events", eventResult.data) ? null : eventResult.data;
   return {
-    ...toEvent(eventResult.data || {}),
-    description: eventResult.data?.description || "",
-    artists: (artistResult.data || []).map((row) => toArtist(row.artists)).filter((artist) => artist.id),
-    ticketTypes: ticketResult.data || [],
+    ...(liveEvent ? toEvent(liveEvent) : { id: eventId, title: "", venue: "Venue pending", date: "Date pending", time: "Time pending", price: null, rating: null, reviews: 0, coverUrl: null, img: null, tag: null }),
+    description: liveEvent?.description || "",
+    artists: filterLiveCatalogRows("artists", (artistResult.data || []).map((row) => row.artists)).map(toArtist).filter((artist) => artist.id),
+    ticketTypes: liveEvent ? ticketResult.data || [] : [],
   };
 }
 
@@ -120,5 +160,8 @@ export async function loadVenueDetail(venueId) {
   ]);
   const firstError = [venueResult, eventResult].find((result) => result.error)?.error;
   if (firstError) throw firstError;
-  return { venue: venueResult.data, events: (eventResult.data || []).map(toEvent) };
+  return {
+    venue: isSyntheticCatalogRecord("venues", venueResult.data) ? null : venueResult.data,
+    events: filterLiveCatalogRows("events", eventResult.data).map(toEvent),
+  };
 }
