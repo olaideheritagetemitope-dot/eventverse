@@ -25,9 +25,11 @@ The runtime hardening and service-role tests now read the same environment varia
 | Vite production build | Passed; only the existing large-chunk advisory remains |
 | Forbidden mock/fallback source scan | No matches in `src/**` or live payment route configuration |
 | Vercel project | `eventverse`, Vite, production domain `eventverse-eight.vercel.app` |
-| Latest Vercel production deployment | READY, but built from GitHub SHA `7e7954794e729d6d16114dc484384189355ecf0f` with commit `Fix recursive orders RLS authorization` |
-| Current audited source | Local `main` is ahead of that deployment and still requires a production push/deploy to reflect this audit |
+| Latest Vercel production deployment | READY from GitHub SHA `884aea96c38233b68686cdac1f51ba47c095a7c7`, commit `fix: complete strict live backend wiring audit` |
+| Production domain smoke test | `https://eventverse-eight.vercel.app` returned HTTP 200 and served the Atizzy shell |
+| Vercel environment values | Secret values are not exposed by the available metadata API; exact value comparison remains a Vercel Settings responsibility |
+| Current audited source | Pushed to `main` and served by the READY production deployment |
 
 ## Production conclusion
 
-The code-side strict-fix is validated. Vercel is linked to the correct GitHub repository and production domain, but the currently reported production deployment predates the latest local strict-fix source. The final operational step is to commit and push the audited changes to `main`, then confirm the resulting Vercel production deployment is `READY` and uses the intended Supabase environment variables. The Vercel project metadata endpoint available in this session exposes project and deployment metadata but not secret values, so exact variable-value comparison must be completed in the Vercel project settings or deployment build environment without exposing credentials.
+The code-side strict-fix is validated and the audited commit is now pushed to `main`. Vercel built that commit successfully as a READY production deployment and the production domain returned HTTP 200 with the Atizzy shell. The Vercel project metadata endpoint available in this session exposes project and deployment metadata but not secret values, so exact variable-value comparison must still be completed in the Vercel project settings or deployment build environment without exposing credentials.
