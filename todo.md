@@ -288,3 +288,11 @@
 - [x] Implement staff dashboard, assigned-event operations, notifications/tasks, and check-in permissions with live data
 - [x] Enforce Event Staff isolation from unassigned events and platform-level settings through backend authorization and RLS
 - [x] Validate Event Staff workflows, security boundaries, responsive behavior, production build, live migration, and GitHub delivery
+
+# Event Operations Responsibilities Expansion
+- [x] Audit existing Event Staff responsibility, assignment, check-in, and dashboard contracts
+- [x] Add responsibility-aware Security/Gate, Check-in, Registration, General Staff, and Event Operations permissions
+- [x] Add server-authoritative entry decision and attendance-recording workflows for assigned responsibilities
+- [x] Expand Organizer assignment controls and Event Staff operational dashboards without creating global Security roles
+- [x] Add acceptance and security coverage for responsibility isolation and invalid/expired/already-used ticket handling
+- [x] Apply live migration, validate build and responsive preview, and push the completed responsibility expansion

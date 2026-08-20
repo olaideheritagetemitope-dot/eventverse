@@ -496,3 +496,9 @@ export async function markEventStaffNotificationRead(notificationId) {
   if (error) throw error;
   return data;
 }
+
+export async function eventStaffEntryDecision(qrToken, decision = "ACCEPT") {
+  const { data, error } = await supabase.rpc("event_staff_entry_decision", { p_qr_token: qrToken, p_decision: decision });
+  if (error) throw error;
+  return data;
+}
