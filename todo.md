@@ -654,3 +654,9 @@
 - [x] Connect shell states to dynamic Supabase/Auth/Storage/payment/role/configuration services with loading, empty, error, and success states
 - [x] Add regression coverage proving structural UI preservation and backend feature extension points
 - [x] Run full tests, TypeScript, production build, live smoke validation, and save implementation evidence
+
+- [x] Inspect linked ChatGPT directive 6a872e5095d8819192b4df614518354e and extract every actionable requirement
+- [x] Map every linked requirement against the current Atizzy UI shell, services, Supabase schema, RLS, and tests
+- [x] Implement all missing linked-directive requirements without removing existing structural UI
+- [x] Add focused acceptance coverage and live workflow validation for the linked directive
+- [x] Run full regression, TypeScript, production build, and save implementation evidence
