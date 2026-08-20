@@ -10,6 +10,7 @@ import { loadCatalog, loadEventDetail, loadVenueDetail, searchCatalog, formatFol
 import CheckInScreen from "./components/CheckInScreen";
 import { loadCurrentUser, loadFavoriteState, toggleEventFavorite, toggleArtistFollow, toggleMusicFavorite, loadMusicFavorites, recordPlay, loadPlaylists, createPlaylist, submitBooking, loadRoleDashboard, loadArtistWorkspace, updateArtistProfile, updateArtistSong, artistUpdateBookingStatus, issueTicketQrToken, updateProfile, loadArtistOnboarding, initializeArtistFeePayment, loadArtistFeeTransaction, loadArtistAdminOverview, updateArtistFee, loadOrganizerApplication, applyAsOrganizer, loadOrganizerEvents, createOrganizerEvent, updateOrganizerEvent, addOrganizerTicketType, discoverPrivateTicket, linkOrganizerArtist, publishOrganizerEvent, cancelOrganizerEvent, loadOrganizerEventDashboard, loadVenueManagerWorkspace, applyAsVenueManager, createOwnedVenue, updateOwnedVenue, requestVenueBooking, respondVenueBooking, setVenueAvailability, initializeVenueBookingPayment, loadAvailableVenues, searchOrganizerArtists, searchEventStaffUsers, assignEventStaff, loadEventStaffForOrganizer, updateEventStaffShift, revokeEventStaffAssignment, loadEventStaffWorkspace, respondEventStaffAssignment, acknowledgeEventStaffTask, loadSuperAdminAnalytics, loadAdminDashboardSnapshot, adminListUsers, adminSuspendUser, adminReviewEvent, loadAdminPaymentSupport, loadAdminAuditLogs, loadUserExperienceSnapshot, loadUserCollections, recordUserSearch, clearUserSearchHistory, updateUserPreferences, markUserNotificationRead, markAllUserNotificationsRead, createSupportRequest, uploadMediaFile, loadMyPosts, createPost, updatePost, setPostStatus, deletePost, removeMediaAsset, loadPolicySettings, updatePolicySetting, loadRoleCapabilityMatrix, loadAdminPermissionGrants, setAdminPermission, loadRoleGovernanceSnapshot, loadOnboardingConfig, saveOnboardingQuestion, submitRoleApplication, reviewRoleApplication, creditWalletForCancelledOrder, loadPublicContentAnalytics, createContentComment, setContentRating, setContentLike, setRoleFeePolicy, adminSetEventStatus, loadGovernanceEvents, loadContentEngagement } from "./services/user";
 import QRCode from "qrcode";
+import { ATIZZY_TOKENS, EMPTY_CATALOG, normalizeCatalog, resourceState } from "./ui/designSystem";
 
 /* ============================== DESIGN TOKENS ==============================
    Black (bg)        #0B0A08  — dominant surface
@@ -20,22 +21,7 @@ import QRCode from "qrcode";
    Gold (accent)      #CDA349  — CTAs, active states, premium markers
    Ivory (text)       #F3EEE3  — primary text
 ============================================================================ */
-const C = {
-  bg: "#0B0A08",
-  card: "#17140F",
-  card2: "#1D1811",
-  blue: "#12141C",
-  wood: "#3A2A1B",
-  woodLight: "#4A3624",
-  green: "#16261D",
-  greenLight: "#1E3327",
-  gold: "#CDA349",
-  goldSoft: "#E4C179",
-  ivory: "#F3EEE3",
-  muted: "#8B8577",
-  line: "#2A2419",
-  red: "#E98979",
-};
+const C = ATIZZY_TOKENS;
 
 async function ensureUserProfile(user) {
   if (!user?.id) return;
@@ -54,7 +40,7 @@ const font = `
 `;
 
 /* ============================== LIVE DATA HELPERS ============================== */
-const EMPTY_CATALOG = { events: [], artists: [], songs: [], categories: [], venues: [] };
+
 const categoryLabel = (category) => category?.name || category?.slug || "Uncategorized";
 const imageStyle = (url, fallback = C.card) => url ? { backgroundImage: `url(${url})`, backgroundSize: "cover", backgroundPosition: "center" } : { background: fallback };
 
@@ -628,6 +614,7 @@ function AttendeeHome({ nav, player, catalog, account, loading, error }) {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const liveLocation = events.find((event) => event.city || event.venues?.city)?.city || events.find((event) => event.venues?.city)?.venues?.city || "Location unavailable";
+  const eventsState = resourceState({ loading, error, data: events });
   return (
     <Phone>
       <div className="flex items-center justify-between px-5 pt-1 pb-3">
@@ -655,10 +642,10 @@ function AttendeeHome({ nav, player, catalog, account, loading, error }) {
         </div>
 
         <div className="px-5 mb-6">
-          {loading && <p className="text-[13px] py-3 text-center" style={{ color: C.muted }}>Loading live events...</p>}
-          {!loading && error && <AuthMessage error={error} />}
+          {eventsState.loading && <p className="text-[13px] py-3 text-center" style={{ color: C.muted }}>Loading live events...</p>}
+          {eventsState.status === "error" && <AuthMessage error={eventsState.error} />}
           {events[0] ? <EventCard ev={events[0]} wide onClick={() => nav.push("eventDetail", events[0])} /> : <EmptyEventCard wide />}
-          {!loading && !error && !events.length && <p className="text-[11px] mt-2 text-center" style={{ color: C.muted }}>Featured event content will appear here when published.</p>}
+          {eventsState.status === "success" && eventsState.isEmpty && <p className="text-[11px] mt-2 text-center" style={{ color: C.muted }}>Featured event content will appear here when published.</p>}
         </div>
 
         <div className="mb-6">
@@ -1961,7 +1948,7 @@ export default function EventVerseApp() {
       setCatalogLoading(true);
       try {
         const liveCatalog = await loadCatalog();
-        if (mounted) setCatalog(liveCatalog);
+        if (mounted) setCatalog(normalizeCatalog(liveCatalog));
       } catch (error) {
         if (mounted) setCatalogError(error.message || "Unable to load live catalog.");
       } finally {

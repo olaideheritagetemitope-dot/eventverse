@@ -647,3 +647,10 @@
 - [x] Implement all missing linked-directive capabilities with server-authoritative security boundaries
 - [x] Add focused acceptance coverage for the linked directive
 - [x] Run full regression, TypeScript, production build, and save implementation evidence
+
+- [x] Inspect linked UI-shell explanation 6a872c1d2f948191bfe11ea238ef18e1 and preserve its problem statement
+- [x] Audit original Atizzy cards, boards, pills, sections, navigation, detail layouts, hierarchy, and hardcoded data boundaries
+- [x] Define durable Atizzy design-system tokens and shared shell primitives without changing existing visual structure
+- [x] Connect shell states to dynamic Supabase/Auth/Storage/payment/role/configuration services with loading, empty, error, and success states
+- [x] Add regression coverage proving structural UI preservation and backend feature extension points
+- [x] Run full tests, TypeScript, production build, live smoke validation, and save implementation evidence
