@@ -1079,9 +1079,13 @@ function Payment({ nav, data }) {
     if (method !== "paystack") return setError("Paystack is the only live payment provider currently enabled.");
     setBusy(true); setError("");
     try {
-      const [{ data: sessionData }, { data: userData }] = await Promise.all([supabase.auth.getSession(), supabase.auth.getUser()]);
+      // The authenticated session already contains the user email. Avoid a second
+      // getUser() network round trip; the server still re-authorizes the order and
+      // recalculates the payable amount before contacting Paystack.
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       const session = sessionData?.session;
-      const user = userData?.user;
+      const user = session?.user;
+      if (sessionError) throw sessionError;
       if (!session?.access_token || !user?.email) throw new Error("A verified account email is required to start payment.");
       const callbackUrl = `${window.location.origin}/?payment=callback`;
       const response = await fetch("/api/paystack/initialize", {

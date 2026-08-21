@@ -914,3 +914,13 @@
 - [x] Add regression coverage for Super Admin workspace access and no-profile states
 - [x] Run TypeScript, tests, production build, and deployment validation
 - [x] Document and push the workspace access fix
+
+# Paystack Checkout Latency Fix — 2026-08-21
+
+- [ ] Measure the time spent in frontend payment preparation, Atizzy payment initialization, Supabase calls, and Paystack handoff
+- [ ] Identify avoidable serial requests or duplicate payment initialization work
+- [ ] Optimize checkout startup without moving pricing, order creation, or verification authority to the client
+- [ ] Preserve idempotency, webhook verification, and payment failure handling
+- [ ] Add timing/regression coverage for the optimized payment path
+- [ ] Run tests, TypeScript, production build, and production deployment validation
+- [ ] Document and push the payment performance fix
