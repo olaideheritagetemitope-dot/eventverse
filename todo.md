@@ -883,10 +883,34 @@
 
 # Live Camera Preview Persistence Fix — 2026-08-21
 
-- [ ] Reproduce and inspect why the camera indicator remains active while the video preview disappears
-- [ ] Keep the active MediaStream attached to the rendered video element for the complete scan session
-- [ ] Add camera track and video playback recovery when the element detaches, pauses, or becomes invisible
-- [ ] Prevent scanner decode-loop cleanup from stopping the live preview prematurely
-- [ ] Add regression coverage for stream attachment, playback recovery, and camera stop behavior
-- [ ] Run TypeScript, tests, production build, and mobile/live scanner validation
-- [ ] Document and push the camera-preview fix
+- [x] Reproduce and inspect why the camera indicator remains active while the video preview disappears
+- [x] Keep the active MediaStream attached to the rendered video element for the complete scan session
+- [x] Add camera track and video playback recovery when the element detaches, pauses, or becomes invisible
+- [x] Prevent scanner decode-loop cleanup from stopping the live preview prematurely
+- [x] Add regression coverage for stream attachment, playback recovery, and camera stop behavior
+- [x] Run TypeScript, tests, production build, and mobile/live scanner validation
+- [x] Document and push the camera-preview fix
+
+# Paystack Production Configuration Fix — 2026-08-21
+
+- [x] Inspect why production payment initialization reports that the provider is not configured
+- [x] Configure the Paystack live public key for the browser payment flow
+- [x] Configure the Paystack live secret key only for server-side initialization, verification, and webhooks
+- [x] Confirm no Paystack secret is bundled into frontend source or exposed in client responses
+- [x] Redeploy production and verify payment initialization configuration status
+- [x] Document the payment configuration repair and validation evidence
+
+- [x] Add SUPABASE_SERVICE_ROLE_KEY as a server-only Vercel Production/Preview variable
+- [x] Redeploy after adding the service-role secret and verify Paystack initialization no longer reports missing configuration
+- [x] Document the completed Paystack and Supabase payment configuration repair
+
+# Super Admin Workspace Access Fix — 2026-08-21
+
+- [x] Trace why inherited Super Admin access reports no linked Artist profile
+- [x] Trace why inherited Super Admin access asks for a separate Venue Manager sign-in
+- [x] Make Artist workspace launch use Super Admin effective-role context and safe live profile fallback
+- [x] Make Venue Manager workspace launch use Super Admin effective-role context and safe live profile fallback
+- [x] Preserve ordinary Artist and Venue Manager authentication and ownership boundaries
+- [x] Add regression coverage for Super Admin workspace access and no-profile states
+- [x] Run TypeScript, tests, production build, and deployment validation
+- [x] Document and push the workspace access fix

@@ -39,3 +39,17 @@ The code-side strict-fix is validated and the audited commit is now pushed to `m
 The mobile screenshot reproduced a deployment configuration failure: the browser was directed to `missing-supabase-config.invalid`, the application’s explicit missing-configuration sentinel. Vercel project inspection showed that no project environment variables were configured. The project was repaired by adding `VITE_SUPABASE_URL` for `https://blalvoelllndmbppbkcy.supabase.co` and `VITE_SUPABASE_ANON_KEY` to the Vercel Production and Preview environments, followed by a production redeployment.
 
 The new deployment `dpl_5G19h5Zfntb13f4JQAG51R8hS8xH` is READY and serves the canonical `eventverse-eight.vercel.app` alias. The live page now loads the Atizzy login shell instead of the sentinel domain. A read-only browser request to the intended Supabase REST endpoint returned HTTP 200 with an empty JSON collection, confirming backend reachability without introducing synthetic data. The empty result is expected under the clean-slate catalog policy.
+
+## Paystack production configuration repair — 2026-08-21
+
+The live payment error was traced to missing deployment configuration rather than a frontend fallback. Vercel Production and Preview now contain the sensitive variables `VITE_PAYSTACK_PUBLIC_KEY`, `PAYSTACK_SECRET_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`. The Paystack secret and Supabase service-role key remain server-only; only the publishable key is intended for browser initialization.
+
+A production redeployment was created from GitHub `main` using the existing source and latest project settings. Vercel deployment `dpl_CvmKgiyctnEHoR4Cm3AtFAryahqD` reached `READY` and is aliased to `eventverse-eight.vercel.app`. The payment route’s configuration guard now has the required deployment inputs for server-authoritative Paystack initialization and Supabase mutation handling. No mock payment path was added.
+
+## Super Admin workspace access repair — 2026-08-21
+
+The Super Admin workspace review exposed two misleading states. Artist workspace loading could report that no linked Artist profile was available even when the account was using inherited SUPER_ADMIN access. Venue Manager workspace loading also depended on the wrong account identifier in the launch context, causing the workspace to fall into a separate-sign-in path.
+
+The repair preserves ordinary Artist and Venue Manager ownership boundaries while making Super Admin access explicit. Artist workspace now recognizes SUPER_ADMIN through the effective-role context and presents a live Artist operations directory when no separate Artist-owned profile exists. Venue Manager workspace now uses the authenticated account user ID consistently for loading and venue creation, and only shows the sign-in-required state when no authenticated user ID exists.
+
+Validation passed with TypeScript, 39 Vitest files, 136 passing tests and 2 skipped credential-dependent tests, and the Vite production build. No mock catalog data was added.
