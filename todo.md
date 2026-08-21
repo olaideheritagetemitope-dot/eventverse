@@ -917,10 +917,19 @@
 
 # Paystack Checkout Latency Fix — 2026-08-21
 
-- [ ] Measure the time spent in frontend payment preparation, Atizzy payment initialization, Supabase calls, and Paystack handoff
-- [ ] Identify avoidable serial requests or duplicate payment initialization work
-- [ ] Optimize checkout startup without moving pricing, order creation, or verification authority to the client
-- [ ] Preserve idempotency, webhook verification, and payment failure handling
-- [ ] Add timing/regression coverage for the optimized payment path
-- [ ] Run tests, TypeScript, production build, and production deployment validation
-- [ ] Document and push the payment performance fix
+- [x] Measure the time spent in frontend payment preparation, Atizzy payment initialization, Supabase calls, and Paystack handoff
+- [x] Identify avoidable serial requests or duplicate payment initialization work
+- [x] Optimize checkout startup without moving pricing, order creation, or verification authority to the client
+- [x] Preserve idempotency, webhook verification, and payment failure handling
+- [x] Add timing/regression coverage for the optimized payment path
+- [x] Run tests, TypeScript, production build, and production deployment validation
+- [x] Document and push the payment performance fix
+
+# image_url Schema Mismatch Fix — 2026-08-21
+
+- [ ] Trace the failing insert or update that sends image_url to a table without that column
+- [ ] Compare the write payload with the live Supabase table and migration schema
+- [ ] Align the service or database contract without restoring URL-only image handling
+- [ ] Add regression coverage for new record creation and image upload metadata
+- [ ] Run TypeScript, tests, production build, and live schema validation
+- [ ] Document and push the schema fix
