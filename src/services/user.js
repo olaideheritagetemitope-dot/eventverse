@@ -14,7 +14,7 @@ const managedMediaUrl = (value, label = "image") => {
 export async function uploadMediaFile(userId, file, mediaKind, entityType = null, entityId = null) {
   if (!userId) throw new Error("Authentication required");
   if (!file || typeof file !== "object") throw new Error("Choose a file before uploading");
-  if (!MEDIA_TYPES.has(file.type)) throw new Error("Unsupported file type. Choose a supported image or audio file.");
+  if (!MEDIA_TYPES.has(file.type)) throw new Error("Unsupported file type. Choose a supported image, audio, or video file.");
   if (file.size > MEDIA_LIMIT_BYTES) throw new Error("File is too large. The maximum upload size is 50 MB.");
   const path = `${userId}/${mediaKind.toLowerCase()}/${crypto.randomUUID()}-${safeFileName(file.name)}`;
   const { error: uploadError } = await supabase.storage.from(MEDIA_BUCKET).upload(path, file, { contentType: file.type, upsert: false, cacheControl: "3600" });
@@ -213,7 +213,7 @@ export async function loadArtistWorkspace(userId) {
   if (artistError) throw artistError;
   if (!artist) return { artist: null, songs: [], events: [], bookings: [] };
   const [songsResult, eventLinksResult, bookingsResult] = await Promise.all([
-    supabase.from("songs").select("id,artist_id,title,duration_seconds,audio_url,cover_url,play_count,created_at").eq("artist_id", artist.id).order("created_at", { ascending: false }),
+    supabase.from("songs").select("id,artist_id,title,duration_seconds,audio_url,cover_url,music_video_url,lyrics_text,play_count,status,published_at,created_at").eq("artist_id", artist.id).order("created_at", { ascending: false }),
     supabase.from("event_artists").select("event_id,events(id,title,description,city,starts_at,ends_at,cover_url,status,venue_id,venues(name,address,capacity))").eq("artist_id", artist.id),
     supabase.from("artist_booking_requests").select("id,requester_id,artist_id,event_name,event_type,event_date,expected_audience,budget,message,status,created_at,updated_at").eq("artist_id", artist.id).order("created_at", { ascending: false }),
   ]);
@@ -289,11 +289,36 @@ export async function updateArtistProfile(artistId, userId, updates) {
   return data;
 }
 
+export async function createArtistSong(artistId, userId, input) {
+  if (!artistId || !userId) throw new Error("Artist profile access is required.");
+  if (!input?.title?.trim()) throw new Error("Song title is required.");
+  const duration = Number(input.duration_seconds);
+  if (!Number.isInteger(duration) || duration <= 0) throw new Error("Song duration must be a positive number of seconds.");
+  const { data, error } = await supabase.from("songs").insert({
+    artist_id: artistId,
+    title: input.title.trim(),
+    duration_seconds: duration,
+    audio_url: managedMediaUrl(input.audio_url, "audio file"),
+    cover_url: managedMediaUrl(input.cover_url, "song cover"),
+    music_video_url: managedMediaUrl(input.music_video_url, "music video"),
+    lyrics_text: input.lyrics_text?.trim() || null,
+    status: "DRAFT",
+  }).select("id,artist_id,title,duration_seconds,audio_url,cover_url,music_video_url,lyrics_text,play_count,status,published_at,created_at").single();
+  if (error) throw error;
+  return data;
+}
+
+export async function setArtistSongStatus(songId, status) {
+  const { data, error } = await supabase.rpc("set_artist_song_status", { p_song_id: songId, p_status: status });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+
 export async function updateArtistSong(songId, artistId, updates) {
   if (!songId || !artistId) throw new Error("Artist song access is required.");
-  const payload = { title: updates?.title?.trim(), cover_url: managedMediaUrl(updates?.cover_url, "song cover"), audio_url: managedMediaUrl(updates?.audio_url, "audio file") };
+  const payload = { title: updates?.title?.trim(), cover_url: managedMediaUrl(updates?.cover_url, "song cover"), audio_url: managedMediaUrl(updates?.audio_url, "audio file"), music_video_url: managedMediaUrl(updates?.music_video_url, "music video"), lyrics_text: updates?.lyrics_text?.trim() || null };
   if (!payload.title) throw new Error("Song title is required.");
-  const { data, error } = await supabase.from("songs").update(payload).eq("id", songId).eq("artist_id", artistId).select("id,artist_id,title,duration_seconds,audio_url,cover_url,play_count,created_at").single();
+  const { data, error } = await supabase.from("songs").update(payload).eq("id", songId).eq("artist_id", artistId).select("id,artist_id,title,duration_seconds,audio_url,cover_url,music_video_url,lyrics_text,play_count,status,published_at,created_at").single();
   if (error) throw error;
   return data;
 }

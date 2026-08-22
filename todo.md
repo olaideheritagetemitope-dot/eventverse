@@ -1242,3 +1242,48 @@
 - [ ] Validate manual assignment for Artist, Organizer, and Venue Manager
 - [ ] Deploy and checkpoint the repair
 
+
+# Manual Role Assignment Profile Fallback Schema Repair — Completion — 2026-08-22
+
+- [x] Confirmed user_profiles contains full_name but no email column
+- [x] Replaced invalid profile email access with auth.users.email joined to user_profiles.full_name
+- [x] Applied live migration 0064 successfully
+- [x] Preserved direct manual activation, onboarding/payment bypass, Artist profile linking, Venue Manager approval, and audit history
+- [x] Added profile-fallback regression coverage
+- [x] Passed 52 Vitest files / 172 tests, TypeScript, and production build
+- [x] Pushed commit cbe9cab to GitHub
+- [ ] Execute a live authenticated Artist and Venue Manager assignment from the deployed UI
+
+
+# Strict Supabase Role Assignment Uniqueness Root Fix — 2026-08-22
+
+- [x] Audit all live role-assignment tables, duplicate/conflicting RPCs, triggers, indexes, constraints, and RLS
+- [x] Identify the exact columns representing the unique user-plus-role relationship
+- [x] Remove or reconcile duplicate legacy role-assignment paths around one authoritative implementation
+- [x] Add the matching unique constraint/index and align the Super Admin UPSERT target exactly
+- [x] Validate no-role → Artist → Organizer → Venue Manager → duplicate Artist → remove → reassign lifecycle
+- [x] Validate assignment to a second user and audit-log behavior
+- [x] Verify permissions, navigation, workspace access, and frontend refresh after each assignment
+- [x] Add regression coverage, deploy, and checkpoint only after live transaction verification
+
+
+# Artist Media and Publishing Root Fix — 2026-08-22
+
+- [ ] Audit Artist profile-picture, artwork, video, and song upload paths from picker/URL through Storage, database, URL resolution, RLS, and rendering
+- [ ] Audit Artist song create/save/publish mutations, publish-state projection, and workspace UI actions
+- [ ] Fix profile pictures and other Artist images/videos so persisted live media renders in all relevant cards and detail views
+- [ ] Fix Artist song creation and publishing so songs persist, publish successfully, and appear in live catalog/workspace views
+- [ ] Add regression coverage for media visibility and song publishing
+- [ ] Validate live Supabase media and publishing transitions and deploy the verified fix
+
+- [x] Fix Artist media upload failure: media_assets_media_kind_check rejects one or more Artist upload kinds
+- [x] Verify all Artist image, audio, video, thumbnail, and avatar media kinds against live database constraints and rendering paths
+
+- [x] Add a usable Artist Music publishing workspace with song metadata, artwork, and audio inputs
+- [x] Connect draft save, edit, publish, and library refresh to live Supabase records
+- [x] Add regression coverage for the Artist Music publishing flow
+
+- [ ] Fix mobile Artist Workspace Music tab still rendering the stale unavailable empty state
+- [ ] Expose visible live song publishing controls in the mobile Artist Workspace
+- [ ] Support optional music-video attachment and lyrics persistence/playback metadata for songs
+- [ ] Verify mobile route, backend data, and frontend state refresh remain connected
