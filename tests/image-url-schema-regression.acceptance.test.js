@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 const migrationPaths = [
   'supabase/0047_fix_managed_media_trigger_regression.sql',
   'supabase/0074_fix_shared_media_trigger_avatar_regression.sql',
+  'supabase/0075_fix_managed_media_helper_permissions.sql',
 ].map((relativePath) => path.resolve(process.cwd(), relativePath));
 
 const historicalArtistMigration = fs.readFileSync(
@@ -34,6 +35,8 @@ describe('managed media image_url schema regression', () => {
   it('uses JSONB accessors for venue media and preserves the venue image_urls contract', () => {
     const latest = migrations.at(-1).source;
     expect(latest).toContain("v_row -> 'image_urls'");
+    expect(latest).toContain('security definer');
+    expect(latest).toContain('revoke all on function public.is_atizzy_managed_media_url(text)');
     expect(latest).toContain('before insert or update of image_urls on public.venues');
     expect(latest).not.toMatch(/\bnew\.(avatar_url|image_url|image_urls)\b/i);
   });

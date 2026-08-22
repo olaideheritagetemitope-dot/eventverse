@@ -1515,3 +1515,13 @@
 - [x] Pass TypeScript validation and production Vite build
 - [ ] Save a final checkpoint for this fix
 - [ ] Authenticated venue-post smoke test with a real uploaded photo remains pending
+
+# Event Creation `is_atizzy_managed_media_url` Permission Root Fix — 2026-08-23
+- [x] Trace the event creation RPC, media validation trigger, helper function ownership, and EXECUTE grants
+- [x] Confirm whether event creation runs under SECURITY DEFINER or invoker privileges
+- [x] Add a forward-only migration that restores private SECURITY DEFINER helper execution and preserves validation
+- [x] Apply the migration to the live Atizzy Supabase project
+- [x] Add regression coverage for event media authorization and trigger safety
+- [x] Validate focused tests, full Vitest suite: 55 files, 187 passed, 2 skipped, TypeScript, and production build
+- [ ] Save a checkpoint for the event authorization fix
+- [ ] Authenticated event-post smoke test with a real uploaded cover remains pending
