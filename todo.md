@@ -1061,8 +1061,107 @@
 
 ## Questionnaire-before-fee regression — 2026-08-22
 
-- [ ] Reproduce the Artist fee-first render shown in the production screenshot
-- [ ] Trace onboarding questionnaire/config/application state initialization for all three roles
-- [ ] Fix route and shared component gating so no fee/payment is rendered before questionnaire completion and PENDING_REVIEW/approval
-- [ ] Add regression coverage proving questionnaire fields render before fee/payment for Artist, Organizer, and Venue Manager
-- [ ] Validate and redeploy the corrected onboarding screen, then verify production parity
+- [x] Reproduce the Artist fee-first render shown in the production screenshot
+- [x] Trace onboarding questionnaire/config/application state initialization for all three roles
+- [x] Fix route and shared component gating so no fee/payment is rendered before questionnaire completion and PENDING_REVIEW/approval
+- [x] Add regression coverage proving questionnaire fields render before fee/payment for Artist, Organizer, and Venue Manager
+- [x] Validate and redeploy the corrected onboarding screen, then verify production parity
+
+## Absolute Super Admin role authority — 2026-08-22
+
+- [ ] Audit every Super Admin role assignment, removal, revoke, restore, suspension, verification, and activation restriction
+- [ ] Allow Super Admin to assign any available role to any authenticated user without onboarding, approval, or payment gates
+- [ ] Preserve simultaneous multi-role assignments and immediate role-profile/workspace projection
+- [ ] Make role status changes and permission/configuration changes authoritative and auditable without audit-based blocking
+- [ ] Ensure ordinary users cannot self-grant privileged roles
+- [ ] Add regression coverage for unrestricted Super Admin mutations and immediate frontend projection
+- [ ] Validate live database transitions, build, deployment, and production parity
+
+# Strict Super Admin Authority Alignment — 2026-08-22
+
+- [x] Apply live status-aware effective-role projection while preserving universal Super Admin inheritance
+- [x] Correct Super Admin role mutation type contract against live bigint role IDs
+- [x] Preserve unrestricted multi-role assign, remove, restore, suspend, reactivate, verify, and deactivate actions with audit logging
+- [x] Automatically link Artist profile records on manual Super Admin assignment
+- [x] Automatically approve and link Venue Manager workspace application on manual Super Admin assignment
+- [x] Thread root account refresh through GovernanceDashboard after role mutations
+- [x] Restore inherited artist verification acceptance coverage without changing visible design
+- [x] Run full Vitest suite, TypeScript validation, and production build
+- [ ] Execute a real-user lifecycle test with user-provided live account access
+- [ ] Verify the latest production deployment after checkpoint publication
+
+
+# Super Admin Question and Manual Role Controls — 2026-08-22
+
+- [ ] Add Super Admin delete/deactivate/edit/publish lifecycle controls for Artist onboarding questions
+- [ ] Add Super Admin delete/deactivate/edit/publish lifecycle controls for Organizer onboarding questions
+- [ ] Add Super Admin delete/deactivate/edit/publish lifecycle controls for Venue Manager onboarding questions
+- [ ] Expose a clear live authenticated-user role assignment area in the Super Admin dashboard
+- [ ] Support assigning, removing, restoring, suspending, reactivating, verifying, and deactivating any role for any user from the UI
+- [ ] Refresh account capabilities and workspace access immediately after manual role changes
+- [ ] Validate live question lifecycle and multi-role assignment workflows
+
+
+# Super Admin Question and Manual Role Management — 2026-08-22
+
+- [x] Inspect live onboarding-question schema and preserve historical answers
+- [x] Add live Super Admin question lifecycle RPC for delete/deactivate, publish, and restore
+- [x] Show active and inactive Artist, Organizer, and Venue Manager questions in governance
+- [x] Add visible Delete and Publish/Restore controls to the existing question UI
+- [x] Add a dedicated Role Assignment Center under Super Admin → People
+- [x] Expose all supported role codes and unrestricted role actions through the existing modal
+- [x] Preserve immediate account refresh, profile linking, and audit logging contracts
+- [x] Add regression coverage for question lifecycle and manual role assignment
+- [x] Pass 49 Vitest files / 165 tests, TypeScript validation, and production build
+- [ ] Perform a live browser test as Super Admin using the user's authenticated session
+
+
+# Strict Payment Transaction Reference Root Fix — 2026-08-22
+
+- [ ] Audit every payment table and transaction-reference column in live Supabase
+- [ ] Audit all payment RPCs, Edge Functions, server handlers, callbacks, and webhooks
+- [ ] Audit ticket, Artist, Organizer, Venue Manager, wallet, and other payment initiation paths
+- [ ] Add or repair database UNIQUE enforcement for transaction references after duplicate cleanup
+- [ ] Implement collision-safe server-generated references for every new payment attempt
+- [ ] Preserve same-attempt idempotent retries while issuing new references for new attempts
+- [ ] Remove frontend/predictable/hardcoded reference generation paths
+- [ ] Add regression coverage for duplicate-reference prevention and retry semantics
+- [ ] Validate all payment types and payment lifecycle transitions end to end
+
+
+# Strict Payment Transaction Reference Root Fix — 2026-08-22 Completion
+
+- [x] Audited ticket, Artist, role-application, Venue, webhook, callback, and frontend initiation paths
+- [x] Added global server-minted payment transaction-reference registry
+- [x] Added collision-safe UUID reference generation with database-backed collision retry
+- [x] Added non-null unique transaction-reference indexes to all payment tables
+- [x] Backfilled legacy payment rows into the registry
+- [x] Removed booking/application-level constraints that blocked genuinely new attempts
+- [x] Preserved same-attempt idempotency-key replay semantics
+- [x] Replaced predictable Artist, role, Venue, and ticket references in Paystack handlers
+- [x] Added per-attempt ticket idempotency-key generation in the existing UI
+- [x] Added regression coverage for all payment domains and reference contracts
+- [x] Passed 50 Vitest files / 168 tests, TypeScript validation, and production build
+- [x] Verify live duplicate counts and constraints after migration
+- [ ] Run a real Paystack sandbox/live test for each payment domain
+
+
+
+# Strict Payment Transaction Reference Root Fix — Completion Record — 2026-08-22
+
+- [x] Audit payment tables, RPCs, API handlers, frontend initiation, callbacks, and webhooks
+- [x] Add collision-safe server-generated transaction references and unique database enforcement
+- [x] Preserve same-attempt idempotent retries and issue new references for new attempts
+- [x] Remove predictable Artist, role, Venue, and ticket reference fallbacks
+- [x] Add regression coverage and pass 50 Vitest files / 168 tests plus TypeScript and production build
+- [x] Verify live payment tables contain no null or duplicate transaction references
+- [ ] Run real provider lifecycle tests for ticket, Artist/Organizer/Venue verification, Venue booking, and wallet payments
+
+# Onboarding Question Delete UI Regression — 2026-08-22
+
+- [x] Expose a visible delete action on every configured Artist, Organizer, and Venue Manager question row
+- [x] Connect the row action to the live Super Admin delete/deactivate mutation
+- [x] Refresh the question list and preserve existing Atizzy row styling after deletion
+- [x] Add regression coverage for the screenshot-confirmed missing action
+- [ ] Verify the live UI with a real configured question
+
