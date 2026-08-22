@@ -845,6 +845,17 @@ export async function saveOnboardingQuestion(question = {}) {
   return Array.isArray(data) ? data[0] : data;
 }
 
+export async function setOnboardingQuestionStatus(questionId, action, reason = "") {
+  if (!questionId || !action) throw new Error("Question and action are required.");
+  const { data, error } = await supabase.rpc("set_onboarding_question_status", {
+    p_id: questionId,
+    p_action: action,
+    p_reason: reason || null,
+  });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+
 export async function submitRoleApplication(roleCode, answers) {
   const { data, error } = await supabase.rpc("submit_role_application", { p_role_code: roleCode, p_answers: answers || {} });
   if (error) throw error;
@@ -980,4 +991,16 @@ export async function loadRoleAssignmentHistory(targetUserId = null) {
   const { data, error } = await query;
   if (error) throw error;
   return data || [];
+}
+
+export async function superAdminSetRolePermission(roleCode, permissionCode, granted, reason = "") {
+  if (!roleCode || !permissionCode) throw new Error("Role and permission are required.");
+  const { data, error } = await supabase.rpc("super_admin_set_role_permission", {
+    p_role_code: roleCode,
+    p_permission_code: permissionCode,
+    p_granted: Boolean(granted),
+    p_reason: reason || null,
+  });
+  if (error) throw error;
+  return data;
 }

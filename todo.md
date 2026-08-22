@@ -1165,3 +1165,24 @@
 - [x] Add regression coverage for the screenshot-confirmed missing action
 - [ ] Verify the live UI with a real configured question
 
+
+# Onboarding Question Delete — Deployment Root-Cause Investigation — 2026-08-22
+
+- [ ] Identify the authoritative production project and deployment connected to the user’s screenshot
+- [ ] Trace the deployed bundle to the actual configured-question row component
+- [ ] Verify whether the delete control is removed by route selection, stale deployment, CSS/layout, or data-shape branching
+- [ ] Fix the authoritative live path and deploy it
+- [ ] Verify the deployed screenshot contains the delete action and that deletion refreshes live data
+
+
+# Onboarding Question Delete — Deployment Root-Cause Resolution — 2026-08-22
+
+- [x] Confirmed commit 436b299 was blocked by a Vercel build error, not by the question-row UI logic
+- [x] Found the exact failure: AdvancedGovernancePanels imported setOnboardingQuestionStatus, but user.js did not export it
+- [x] Added the missing RPC wrapper using set_onboarding_question_status(uuid,text,text)
+- [x] Removed the duplicate wrapper introduced during repair
+- [x] Focused regression passed
+- [x] TypeScript validation passed
+- [x] Production Vite build passed
+- [ ] Deploy the corrected build and verify the live screenshot shows Delete question
+
