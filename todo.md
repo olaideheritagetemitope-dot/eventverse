@@ -927,9 +927,63 @@
 
 # image_url Schema Mismatch Fix — 2026-08-21
 
-- [ ] Trace the failing insert or update that sends image_url to a table without that column
-- [ ] Compare the write payload with the live Supabase table and migration schema
-- [ ] Align the service or database contract without restoring URL-only image handling
-- [ ] Add regression coverage for new record creation and image upload metadata
-- [ ] Run TypeScript, tests, production build, and live schema validation
-- [ ] Document and push the schema fix
+- [x] Trace the failing insert or update that sends image_url to a table without that column
+- [x] Compare the write payload with the live Supabase table and migration schema
+- [x] Align the service or database contract without restoring URL-only image handling
+- [x] Add regression coverage for new record creation and image upload metadata
+- [x] Run TypeScript, tests, production build, and live schema validation
+- [x] Document and push the schema fix
+
+# Live Media Upload Verification — 2026-08-21
+
+- [ ] Validate authenticated Storage-backed upload and trigger acceptance for user_profiles avatar_url
+- [ ] Validate authenticated Storage-backed upload and trigger acceptance for artists image_url
+- [ ] Validate authenticated Storage-backed upload and trigger acceptance for events cover_url
+- [ ] Validate authenticated Storage-backed upload and trigger acceptance for posts image_url
+- [ ] Validate authenticated Storage-backed upload and trigger acceptance for songs cover_url and audio_url
+- [ ] Validate authenticated Storage-backed upload and trigger acceptance for venues image_urls
+- [ ] Validate invalid/non-managed media rejection without leaving test rows or objects
+- [ ] Clean up all temporary Storage objects, media rows, and test records
+- [ ] Document live results and any authentication-required limitation
+
+# Strict Capability Projection and P0 Root-Cause Remediation — 2026-08-21
+
+## P0 root blockers
+
+- [ ] Reproduce and trace all live `is_admin()` authorization failures across RPCs, services, and UI actions
+- [ ] Replace the failing `is_admin()` runtime path with a centralized server-authoritative effective-role/permission contract
+- [ ] Reconcile managed-media trigger columns, Storage object registration, OAuth avatar writes, and every profile/media mutation
+- [ ] Trace the complete catalog data path and prove no synthetic events, artists, songs, venues, or related records can reach rendered UI
+- [ ] Add fail-closed loading, empty, and error states for every catalog source that cannot be read live
+
+## P0 capability-driven UI projection
+
+- [ ] Build a live capability inventory from Supabase schema, RPCs, roles, permissions, and feature configuration
+- [ ] Project each capability into the existing Atizzy role-scoped UI without creating isolated replacement dashboards
+- [ ] Complete Super Admin authority, entity directories, action modules, audit visibility, and universal effective-role controls
+- [ ] Complete Admin entity directories and role-scoped actions
+- [ ] Complete frontend/backend capability reconciliation and action-state mapping
+
+## P1 domains and workflows
+
+- [ ] Complete Organizer onboarding, verification, event lifecycle, and command center UI
+- [ ] Unify verification questions, fees, review windows, and status workflows across applicable roles
+- [ ] Implement live Albums domain and detail/library workflows
+- [ ] Implement live Music Video domain and detail/engagement workflows
+- [ ] Complete cross-domain content analytics for music, albums, videos, artists, events, venues, organizers, and likes
+- [ ] Complete notification deep-link matrix and dropdown integration
+- [ ] Complete wallet cancellation, credit, reconciliation, and purchase-history UI
+- [ ] Complete QR scanner camera, picture, continuous, and result-state production proof
+
+## P2 validation and performance
+
+- [ ] Add full browser/device E2E coverage for role, media, content, commerce, notification, and wallet lifecycles
+- [ ] Reduce frontend bundle size without changing Atizzy UI or live-data behavior
+- [ ] Run complete TypeScript, test, build, Supabase, Vercel, and production workflow validation
+- [ ] Document all implemented capabilities, evidence, limitations, and user-required actions
+- [x] Fix Supabase content_comments → user_profiles relationship/schema-cache error and validate comment loading/posting
+- [x] Implement attached directive: safely add the author foreign key, audit relational queries, complete comment workflows, verify RLS, and validate live deployment
+- [x] Implement attached media directive: audit Storage, policies, canonical references, upload/render pipeline, role workflows, mock media paths, responsive rendering, and production verification
+- [x] Implement attached venue-payment directive: trace all writes, preserve unique booking payment invariant, add atomic idempotent initialization/retries/webhooks, and validate the full lifecycle
+- [ ] Fix venue payment error: Paystack authorization URL is missing from the initialization response and validate new/reused checkout paths
+- [ ] Diagnose persistent live Paystack authorization failure at the deployed API, provider payload, or persisted checkout layer

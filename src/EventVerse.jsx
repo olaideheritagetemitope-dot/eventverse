@@ -28,8 +28,10 @@ const C = ATIZZY_TOKENS;
 async function ensureUserProfile(user) {
   if (!user?.id) return;
   const fullName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split("@")[0] || null;
+  // OAuth providers may return external avatar URLs. Managed-media policy requires
+  // Storage-backed URLs only, so bootstrap identity metadata without writing them.
   const { error } = await supabase.from("user_profiles").upsert(
-    { id: user.id, full_name: fullName, avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null },
+    { id: user.id, full_name: fullName },
     { onConflict: "id", ignoreDuplicates: false },
   );
   if (error) console.error("EventVerse profile bootstrap failed", error);
@@ -820,18 +822,27 @@ function EngagementPanel({ targetType, targetId, account }) {
 }
 
 function EventDetail({ nav, data, account }) {
-  const [event, setEvent] = useState(data || null);
+  const [event, setEvent] = useState(null);
+  const [artists, setArtists] = useState([]);
   const [favorite, setFavorite] = useState(false);
+  const [loading, setLoading] = useState(Boolean(data?.id));
   const [error, setError] = useState("");
   const ev = event;
   useEffect(() => {
     if (!data?.id) return;
     let mounted = true;
-    loadEventDetail(data.id).then((detail) => { if (mounted) setEvent(detail); }).catch((loadError) => { if (mounted) setError(loadError.message || "Unable to load event details."); });
+    setLoading(true);
+    loadEventDetail(data.id).then((detail) => {
+      if (mounted) {
+        setEvent(detail?.event || null);
+        setArtists(Array.isArray(detail?.artists) ? detail.artists : []);
+      }
+    }).catch((loadError) => { if (mounted) setError(loadError.message || "Unable to load event details."); }).finally(() => { if (mounted) setLoading(false); });
     if (account?.user?.id) loadFavoriteState(account.user.id, data.id, null).then((state) => { if (mounted) setFavorite(state.eventFavorite); }).catch(() => {});
     return () => { mounted = false; };
   }, [data?.id, account?.user?.id]);
-  if (!ev) return <Phone><div className="flex-1 flex items-center justify-center px-6 text-center" style={{ color: C.muted }}>{error || "Event details are unavailable."}</div></Phone>;
+  if (loading) return <Phone><TopBack title="Event" onBack={nav.pop} /><div className="flex-1 flex items-center justify-center px-6 text-center" style={{ color: C.muted }}>Loading event details...</div></Phone>;
+  if (!ev) return <Phone><TopBack title="Event" onBack={nav.pop} /><div className="flex-1 flex items-center justify-center px-6 text-center" style={{ color: C.muted }}>{error || "This event is unavailable or has not been published."}</div></Phone>;
   const setEventFavorite = async () => {
     try { const next = !favorite; await toggleEventFavorite(account?.user?.id, ev.id, next); setFavorite(next); } catch (toggleError) { setError(toggleError.message || "Unable to update favorite."); }
   };
@@ -873,15 +884,15 @@ function EventDetail({ nav, data, account }) {
 
         <p className="text-[13px] font-semibold mb-3" style={{ color: C.ivory }}>Performing Artists</p>
         <div className="flex gap-4 mb-5">
-          {(ev.artists || []).slice(0, 3).map((a) => (
+          {artists.slice(0, 3).map((a) => (
             <div key={a.id} className="flex flex-col items-center gap-1">
               <div className="w-12 h-12 rounded-full" style={{ background: a.img }} />
               <span className="text-[10.5px]" style={{ color: C.muted }}>{a.name}</span>
             </div>
           ))}
-          <div className="flex flex-col items-center justify-center w-12 h-12 rounded-full self-start" style={{ background: C.card, color: C.muted }}>
-            <span className="text-[11px]">+2</span>
-          </div>
+          {artists.length > 3 && <div className="flex flex-col items-center justify-center w-12 h-12 rounded-full self-start" style={{ background: C.card, color: C.muted }}>
+            <span className="text-[11px]">+{artists.length - 3}</span>
+          </div>}
         </div>
 
         <p className="text-[13px] font-semibold mb-2" style={{ color: C.ivory }}>About Venue</p>
@@ -1523,7 +1534,7 @@ function VenueManagerWorkspace({ nav, account }) {
   useEffect(() => { void load(); }, [userId]);
   const create = async (event) => { event.preventDefault(); if (!userId) { setError("Sign in to create a venue."); return; } setBusy(true); setError(""); try { const photo = venuePhotoFile ? await uploadMediaFile(userId, venuePhotoFile, "VENUE_PHOTO", "venues", null) : null; await createOwnedVenue(userId, { ...form, capacity: Number(form.capacity), pricing: form.pricing ? { base: Number(form.pricing) } : {}, image_urls: photo?.public_url ? [photo.public_url] : [] }); setVenuePhotoFile(null); setForm(blankVenue); await load(); } catch (err) { setError(err.message || "Unable to create venue."); } finally { setBusy(false); } };
   const updateVenue = async (event) => { event.preventDefault(); if (!editingVenue?.id) return; setBusy(true); setError(""); try { await updateOwnedVenue(editingVenue.id, { ...editingVenue, capacity: Number(editingVenue.capacity), pricing: editingVenue.pricing || {} }); setEditingVenue(null); await load(); } catch (err) { setError(err.message || "Unable to update venue."); } finally { setBusy(false); } };
-  const payForBooking = async (booking) => { setPaymentBusy(true); setError(""); try { const transaction = await initializeVenueBookingPayment(booking.id, `venue-${booking.id}-${Date.now()}`); if (!transaction?.authorization_url) throw new Error("Paystack authorization was not returned."); window.location.assign(transaction.authorization_url); } catch (err) { setError(err.message || "Unable to initialize venue payment."); } finally { setPaymentBusy(false); } };
+  const payForBooking = async (booking) => { setPaymentBusy(true); setError(""); try { const session = (await supabase.auth.getSession()).data.session; if (!session?.access_token) throw new Error("Please sign in again before starting payment."); const response = await fetch("/api/paystack/venue-initialize", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ bookingId: booking.id, email: account.user.email, idempotencyKey: `venue-${booking.id}`, callbackUrl: `${window.location.origin}/?venue-payment=callback` }) }); const payload = await response.json().catch(() => ({})); if (!response.ok) throw new Error(payload.error || "Unable to initialize venue payment."); const authorizationUrl = payload?.authorizationUrl || payload?.authorization_url || payload?.data?.authorizationUrl || payload?.data?.authorization_url; if (!authorizationUrl) throw new Error(payload?.message || "Paystack authorization was not returned."); window.location.assign(authorizationUrl); } catch (err) { setError(err.message || "Unable to initialize venue payment."); } finally { setPaymentBusy(false); } };
   const respond = async (booking, status) => { setBusy(true); setError(""); try { await respondVenueBooking(booking.id, status, status === "REJECTED" ? reason : null); setReason(""); await load(); } catch (err) { setError(err.message || "Unable to update booking."); } finally { setBusy(false); } };
   const block = async (event) => { event.preventDefault(); setBusy(true); setError(""); try { await setVenueAvailability(availability.venue_id, availability); setAvailability({ venue_id: "", starts_at: "", ends_at: "", status: "BLOCKED", note: "" }); await load(); } catch (err) { setError(err.message || "Unable to save availability."); } finally { setBusy(false); } };
   if (!userId) return <Phone><TopBack title="Venue Manager" onBack={nav.pop} /><div className="flex-1 px-5 py-10"><EmptyResourceCard label="Sign in required" description="Your authenticated session is required before the Venue Manager workspace can load." /></div></Phone>;
@@ -1617,7 +1628,7 @@ function PostWorkspace({ account }) {
   return <div className="rounded-2xl p-4 mt-4" style={{ background: C.card, border: `1px solid ${C.line}` }}><div className="flex items-center justify-between mb-3"><div><p className="text-[14px] font-semibold" style={{ color: C.ivory }}>Posts</p><p className="text-[11px] mt-1" style={{ color: C.muted }}>Create, edit, publish, or archive live content.</p></div>{editingId && <button type="button" onClick={reset} className="text-[11px]" style={{ color: C.gold }}>New post</button>}</div>{error && <AuthMessage error={error} />}{message && <p className="text-[11px] mb-3" style={{ color: C.green }}>{message}</p>}<form onSubmit={save}><textarea value={caption} onChange={(event) => setCaption(event.target.value)} rows={3} placeholder="Write a caption..." className="w-full rounded-xl px-3 py-3 text-[13px] outline-none resize-none" style={{ background: C.card2, color: C.ivory, border: `1px solid ${C.line}` }} /><div className="mt-3"><MediaUploadField label={imagePreview ? "Replace photo" : "Select photo"} accept="image/png,image/jpeg,image/webp" value={imageFile} onChange={selectImage} hint="Optional image · PNG, JPG, or WebP · max 5 MB" /></div>{imagePreview && <div className="mt-3 relative"><img src={imagePreview} alt="Post preview" className="w-full max-h-56 rounded-xl object-cover" /><button type="button" onClick={() => { selectImage(null); setImagePreview(""); }} className="absolute top-2 right-2 rounded-full p-2" style={{ background: "rgba(11,10,8,.86)", color: C.ivory }} aria-label="Remove post image"><X size={14} /></button></div>}<button disabled={busy || (!caption.trim() && !imagePreview)} className="w-full mt-3 py-3 rounded-xl text-[12px] font-semibold disabled:opacity-40" style={{ background: C.gold, color: C.bg }}>{busy ? "Saving..." : editingId ? "Save draft changes" : "Create draft"}</button></form><div className="mt-5">{!posts.length ? <EmptyResourceCard label="No posts yet" description="Create a draft above, then publish it when ready." /> : posts.map((post) => <div key={post.id} className="py-3 border-b last:border-b-0" style={{ borderColor: C.line }}><div className="flex items-start gap-3">{post.image_url ? <img src={post.image_url} alt="" className="w-14 h-14 rounded-xl object-cover" /> : <div className="w-14 h-14 rounded-xl" style={{ background: C.card2 }} />}<div className="flex-1"><p className="text-[12px]" style={{ color: C.ivory }}>{post.caption || "Untitled post"}</p><p className="text-[10px] uppercase mt-1" style={{ color: post.status === "PUBLISHED" ? C.goldSoft : C.muted }}>{post.status}</p></div></div><div className="flex gap-2 mt-3"><button type="button" onClick={() => edit(post)} className="text-[11px]" style={{ color: C.gold }}>Edit</button>{post.status !== "PUBLISHED" && <button type="button" disabled={busy} onClick={() => changeStatus(post, "PUBLISHED")} className="text-[11px]" style={{ color: C.goldSoft }}>Publish</button>}{post.status === "PUBLISHED" && <button type="button" disabled={busy} onClick={() => changeStatus(post, "DRAFT")} className="text-[11px]" style={{ color: C.muted }}>Unpublish</button>}{post.status !== "ARCHIVED" && <button type="button" disabled={busy} onClick={() => changeStatus(post, "ARCHIVED")} className="text-[11px]" style={{ color: C.red }}>Archive</button>}<button type="button" disabled={busy} onClick={() => removePost(post)} className="text-[11px]" style={{ color: C.red }}>Delete</button></div></div>)}</div></div>;
 }
 
-function Profile({ nav, player, account }) {
+function Profile({ nav, player, account, onAccountUpdated }) {
   const items = ["My Tickets", "Music Library", "Followed Artists", "Liked Music", "Recently Played", "Activity", "Preferences", "Notifications", "Security", "Help & Support"];
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -1632,7 +1643,7 @@ function Profile({ nav, player, account }) {
   const saveProfile = async (event) => {
     event.preventDefault();
     setBusy(true); setMessage("");
-    try { const avatar = avatarFile ? await uploadMediaFile(account?.user?.id, avatarFile, "AVATAR", "user_profiles", account?.user?.id) : null; await updateProfile(account?.user?.id, { ...form, avatar_url: avatar?.public_url || form.avatar_url }); setMessage("Profile saved."); setAvatarFile(null); setEditing(false); } catch (error) { setMessage(error.message || "Unable to save profile."); } finally { setBusy(false); }
+    try { const avatar = avatarFile ? await uploadMediaFile(account?.user?.id, avatarFile, "AVATAR", "user_profiles", account?.user?.id) : null; const savedProfile = await updateProfile(account?.user?.id, { ...form, avatar_url: avatar?.public_url || form.avatar_url }); onAccountUpdated?.(savedProfile); setForm((current) => ({ ...current, ...savedProfile })); setMessage("Profile saved."); setAvatarFile(null); setEditing(false); } catch (error) { setMessage(error.message || "Unable to save profile."); } finally { setBusy(false); }
   };
   return (
     <Phone>
@@ -2095,7 +2106,7 @@ export default function EventVerseApp() {
     digitalTicket: <DigitalTicket nav={nav} data={current.data} />,
     myTickets: <MyTickets nav={nav} player={player} />,
     tickets_tab: null,
-    profile: <Profile nav={nav} player={player} account={account} />,
+    profile: <Profile nav={nav} player={player} account={account} onAccountUpdated={(profile) => setAccount((current) => ({ ...current, profile: { ...current.profile, ...profile } }))} />,
     userExperience: <UserExperience nav={nav} account={account} initialTab={current.data?.initialTab || "Preferences"} />, profileCollections: <ProfileCollections nav={nav} account={account} initialTab={current.data?.initialTab || "Followed Artists"} />,
     artist: <ArtistProfile nav={nav} data={current.data} account={account} catalog={catalog} />,
     booking: <Booking nav={nav} data={current.data} account={account} />,

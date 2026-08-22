@@ -49,13 +49,15 @@ export async function loadCurrentUser() {
   if (profileError) throw profileError;
   if (roleError) throw roleError;
   const assignedRoles = (roleRows || []).map((row) => row.roles).filter(Boolean);
-  const fallbackEffectiveRoles = assignedRoles.map((role) => typeof role === "string" ? role : role.code).filter(Boolean);
+  const roleContextFailed = Boolean(roleContextError);
   return {
     user,
     profile,
     roles: assignedRoles,
-    effectiveRoles: Array.isArray(roleContext?.effective_roles) ? roleContext.effective_roles : fallbackEffectiveRoles,
-    primaryRole: roleContext?.primary_role || assignedRoles[0]?.code || null,
+    // Effective permissions are authoritative. Do not silently fall back to
+    // assigned roles when the security-definer role-context RPC fails.
+    effectiveRoles: roleContextFailed ? [] : (Array.isArray(roleContext?.effective_roles) ? roleContext.effective_roles : []),
+    primaryRole: roleContextFailed ? null : (roleContext?.primary_role || null),
     roleContextError: roleContextError?.message || null,
   };
 }
@@ -865,16 +867,17 @@ export async function loadGovernanceEvents() {
 export async function loadContentEngagement(targetType, targetId, userId = null) {
   if (!targetType || !targetId) return { comments: [], averageRating: 0, ratingCount: 0, likeCount: 0, liked: false };
   const [{ data: comments, error: commentsError }, { data: ratings, error: ratingsError }, { data: likes, error: likesError }] = await Promise.all([
-    supabase.from("content_comments").select("id,body,author_id,created_at,user_profiles(full_name,avatar_url)").eq("target_type", targetType).eq("target_id", targetId).eq("status", "VISIBLE").order("created_at", { ascending: false }).limit(50),
+    supabase.from("content_comments").select("id,body,author_id,created_at,user_profiles(id,full_name,avatar_url)").eq("target_type", targetType).eq("target_id", targetId).eq("status", "VISIBLE").order("created_at", { ascending: false }).limit(50),
     supabase.from("content_ratings").select("rating,user_id").eq("target_type", targetType).eq("target_id", targetId).limit(1000),
     supabase.from("content_likes").select("user_id").eq("target_type", targetType).eq("target_id", targetId).limit(1000),
   ]);
   const firstError = [commentsError, ratingsError, likesError].find(Boolean);
   if (firstError) throw firstError;
+  const commentRows = comments || [];
   const ratingRows = ratings || [];
   const likeRows = likes || [];
   return {
-    comments: comments || [],
+    comments: commentRows.map((comment) => ({ ...comment, user_profiles: comment.user_profiles || null })),
     averageRating: ratingRows.length ? ratingRows.reduce((sum, row) => sum + Number(row.rating || 0), 0) / ratingRows.length : 0,
     ratingCount: ratingRows.length,
     likeCount: likeRows.length,

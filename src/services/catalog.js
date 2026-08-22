@@ -146,8 +146,7 @@ export async function loadEventDetail(eventId) {
   if (firstError) throw firstError;
   const liveEvent = isSyntheticCatalogRecord("events", eventResult.data) ? null : eventResult.data;
   return {
-    ...(liveEvent ? toEvent(liveEvent) : { id: eventId, title: "", venue: "Venue pending", date: "Date pending", time: "Time pending", price: null, rating: null, reviews: 0, coverUrl: null, img: null, tag: null }),
-    description: liveEvent?.description || "",
+    event: liveEvent ? { ...toEvent(liveEvent), description: liveEvent.description || "" } : null,
     artists: filterLiveCatalogRows("artists", (artistResult.data || []).map((row) => row.artists)).map(toArtist).filter((artist) => artist.id),
     ticketTypes: liveEvent ? ticketResult.data || [] : [],
   };

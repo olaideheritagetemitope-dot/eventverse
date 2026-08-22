@@ -50,7 +50,7 @@ async function findVenuePaymentByReference(reference) {
 
 async function markVenueFailure(payment) {
   const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  await fetch(`${SUPABASE_URL}/rest/v1/venue_booking_payments?id=eq.${encodeURIComponent(payment.id)}`, { method: "PATCH", headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}`, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ status: "FAILED", updated_at: new Date().toISOString() }) });
+  await fetch(`${SUPABASE_URL}/rest/v1/venue_booking_payments?id=eq.${encodeURIComponent(payment.id)}&status=neq.SUCCESS`, { method: "PATCH", headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}`, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ status: "FAILED", updated_at: new Date().toISOString() }) });
 }
 
 async function findPaymentByReference(reference) {

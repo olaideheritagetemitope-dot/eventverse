@@ -13,9 +13,9 @@ async function paystackInitialize({ email, amount, reference, callbackUrl }) {
   if (!response.ok || payload?.status !== true) throw new Error(payload?.message || "Paystack transaction initialization failed");
   return payload.data;
 }
-async function attachProviderReference(paymentId, reference) {
+async function attachProviderCheckout(paymentId, paystack) {
   const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/venue_booking_payments?id=eq.${encodeURIComponent(paymentId)}`, { method: "PATCH", headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}`, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ provider_reference: reference, updated_at: new Date().toISOString() }) });
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/venue_booking_payments?id=eq.${encodeURIComponent(paymentId)}`, { method: "PATCH", headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}`, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ provider_reference: paystack.reference, authorization_url: paystack.authorization_url, access_code: paystack.access_code, updated_at: new Date().toISOString() }) });
   if (!response.ok) throw new Error("Unable to attach venue payment provider reference");
 }
 export default async function handler(req, res) {
@@ -27,10 +27,12 @@ export default async function handler(req, res) {
     const { bookingId, email, idempotencyKey, callbackUrl } = req.body || {};
     if (!bookingId || !email || !idempotencyKey) return json(res, 400, { error: "bookingId, email, and idempotencyKey are required" });
     const payment = await supabaseRpc("initialize_venue_booking_payment", { p_booking_id: bookingId, p_idempotency_key: idempotencyKey }, authorization);
-    const reference = `ATZ-VENUE-${payment.id}`;
+    const reference = payment.provider_reference || `ATZ-VENUE-${payment.id}`;
+    if (payment.status === "SUCCESS") return json(res, 409, { error: "Venue booking payment is already complete", paymentId: payment.id, bookingId: payment.booking_id, reference, amount: payment.amount, currency: payment.currency });
+    if (payment.provider_reference && payment.authorization_url) return json(res, 200, { paymentId: payment.id, bookingId: payment.booking_id, reference: payment.provider_reference, authorizationUrl: payment.authorization_url, authorization_url: payment.authorization_url, accessCode: payment.access_code, access_code: payment.access_code, amount: payment.amount, currency: payment.currency, reused: true });
     const paystack = await paystackInitialize({ email, amount: payment.amount, reference, callbackUrl: callbackUrl || `${req.headers.origin || "https://eventverse-eight.vercel.app"}/?venue-payment=callback` });
-    await attachProviderReference(payment.id, paystack.reference);
-    return json(res, 200, { paymentId: payment.id, bookingId: payment.booking_id, reference: paystack.reference, authorizationUrl: paystack.authorization_url, accessCode: paystack.access_code, amount: payment.amount, currency: payment.currency });
+    await attachProviderCheckout(payment.id, paystack);
+    return json(res, 200, { paymentId: payment.id, bookingId: payment.booking_id, reference: paystack.reference, authorizationUrl: paystack.authorization_url, authorization_url: paystack.authorization_url, accessCode: paystack.access_code, access_code: paystack.access_code, amount: payment.amount, currency: payment.currency, reused: false });
   } catch (error) {
     console.error("Venue Paystack initialization error", error);
     return json(res, 400, { error: error instanceof Error ? error.message : "Unable to initialize venue payment" });

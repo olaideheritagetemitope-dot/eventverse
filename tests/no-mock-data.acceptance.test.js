@@ -204,3 +204,23 @@ describe("linked directive capability matrix controls", () => {
     }
   });
 });
+
+
+describe("Strict detail null-contract", () => {
+  it("requires EventDetail to unwrap the live event payload and preserve missing-record states", () => {
+    const source = readSource();
+    expect(source).toContain("detail?.event || null");
+    expect(source).toContain("This event is unavailable or has not been published.");
+    expect(source).not.toContain('venue: "Venue pending"');
+  });
+});
+
+
+describe("Catalog detail service contract", () => {
+  it("returns an explicit null event when a live event record is absent", () => {
+    const source = fs.readFileSync(path.join(root, "src/services/catalog.js"), "utf8");
+    expect(source).toContain("event: liveEvent ?");
+    expect(source).toContain("} : null");
+    expect(source).toContain("ticketTypes: liveEvent ?");
+  });
+});

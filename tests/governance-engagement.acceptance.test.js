@@ -21,3 +21,11 @@ describe("governance and engagement UI wiring", () => {
     expect(source).toContain("Rate ${value} stars");
   });
 });
+
+describe("content comment profile relationship contract", () => {
+  it("uses the declared live PostgREST author relationship", () => {
+    expect(service).toContain('from("content_comments").select("id,body,author_id,created_at,user_profiles(id,full_name,avatar_url)")');
+    expect(service).toContain("user_profiles: comment.user_profiles || null");
+    expect(service).not.toContain("profileById.get(comment.author_id)");
+  });
+});

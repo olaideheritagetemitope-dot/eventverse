@@ -91,6 +91,27 @@ describe("Venue Manager directive acceptance", () => {
     has(webhook, "verify_venue_booking_payment");
   });
 
+  it("preserves one authoritative payment per booking across retries", () => {
+    const idempotency = fs.readFileSync(path.join(root, "supabase/0051_venue_payment_idempotency.sql"), "utf8");
+    const checkout = fs.readFileSync(path.join(root, "supabase/0052_venue_payment_checkout_idempotency.sql"), "utf8");
+    has(idempotency, "on conflict (booking_id) do update");
+    has(idempotency, "if p.status = 'SUCCESS'");
+    has(idempotency, "if p.status = 'FAILED'");
+    has(checkout, "authorization_url");
+    has(checkout, "access_code");
+    has(paymentApi, "payment.provider_reference && payment.authorization_url");
+    has(paymentApi, "authorization_url: payment.authorization_url");
+    has(paymentApi, "authorization_url: paystack.authorization_url");
+    has(ui, "payload?.authorization_url");
+    has(ui, "payload?.data?.authorization_url");
+    has(paymentApi, "reused: true");
+    has(ui, "idempotencyKey: `venue-${booking.id}`");
+  });
+
+  it("does not let duplicate failure webhooks overwrite successful payments", () => {
+    has(webhook, "status=neq.SUCCESS");
+  });
+
   it("keeps ownership and role checks server-authoritative", () => {
     expect(workflow.toLowerCase()).toContain("security definer");
     expect(completion.toLowerCase()).toContain("security definer");
