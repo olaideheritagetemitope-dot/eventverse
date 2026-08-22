@@ -7,7 +7,7 @@ const app = fs.readFileSync(path.join(root, "src/EventVerse.jsx"), "utf8");
 
 describe("live playback synchronization", () => {
   it("uses the real audio element as the source of current time and duration", () => {
-    expect(app).toContain('["loadedmetadata", "loadeddata", "durationchange", "timeupdate"');
+    expect(app).toContain('["loadedmetadata", "loadeddata", "canplay", "durationchange", "timeupdate"');
     expect(app).toContain('audio.addEventListener(eventName, sync)');
     expect(app).toContain('audio.addEventListener("playing", playStarted)');
     expect(app).toContain('audio.addEventListener("pause", playbackStopped)');
@@ -19,9 +19,13 @@ describe("live playback synchronization", () => {
 
   it("keeps position continuously live while playing and freezes it when paused", () => {
     expect(app).toContain('frameRef = useRef(null)');
-    expect(app).toContain('requestAnimationFrame(tick)');
-    expect(app).toContain('if (!audio.paused && !audio.ended)');
+    expect(app).toContain('intervalRef = useRef(null)');
+    expect(app).toContain('intervalRef.current = setInterval(tick, 100)');
+    expect(app).toContain('requestAnimationFrame(frameTick)');
+    expect(app).toContain('if (audio.paused || audio.ended) return stopProgressLoop();');
     expect(app).toContain('audio.pause();\n      syncProgress(audio);\n      stopProgressLoop();');
+    expect(app).toContain('"canplay"');
+    expect(app).toContain('clearInterval(intervalRef.current)');
     expect(app).toContain('syncProgress(audio, { forceEnd: true })');
   });
 

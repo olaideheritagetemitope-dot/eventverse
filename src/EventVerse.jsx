@@ -325,6 +325,7 @@ const formatPlaybackTime = (value) => {
 const AudioController = React.forwardRef(function AudioController({ song, playing, setPlaying, userId, onProgress }, controllerRef) {
   const audioRef = useRef(null);
   const frameRef = useRef(null);
+  const intervalRef = useRef(null);
   const syncProgress = (audio, { forceEnd = false } = {}) => {
     const duration = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 0;
     const rawCurrentTime = Number.isFinite(audio.currentTime) && audio.currentTime >= 0 ? audio.currentTime : 0;
@@ -333,17 +334,27 @@ const AudioController = React.forwardRef(function AudioController({ song, playin
   };
   const stopProgressLoop = () => {
     if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+    if (intervalRef.current !== null) clearInterval(intervalRef.current);
     frameRef.current = null;
+    intervalRef.current = null;
   };
   const startProgressLoop = (audio) => {
     stopProgressLoop();
     const tick = () => {
-      if (audioRef.current !== audio) return;
+      if (audioRef.current !== audio) return stopProgressLoop();
       syncProgress(audio);
-      if (!audio.paused && !audio.ended) frameRef.current = requestAnimationFrame(tick);
-      else frameRef.current = null;
+      if (audio.paused || audio.ended) return stopProgressLoop();
     };
     tick();
+    intervalRef.current = setInterval(tick, 100);
+    if (typeof requestAnimationFrame === "function") {
+      const frameTick = () => {
+        if (audioRef.current !== audio || audio.paused || audio.ended) return;
+        syncProgress(audio);
+        frameRef.current = requestAnimationFrame(frameTick);
+      };
+      frameRef.current = requestAnimationFrame(frameTick);
+    }
   };
 
   useImperativeHandle(controllerRef, () => ({
@@ -371,7 +382,7 @@ const AudioController = React.forwardRef(function AudioController({ song, playin
     audioRef.current = audio;
     const sync = () => syncProgress(audio);
     const playStarted = () => startProgressLoop(audio);
-    const playbackStopped = () => { sync(); stopProgressLoop(); };
+    const playbackStopped = () => { sync(); if (audio.paused || audio.ended) stopProgressLoop(); };
     const ended = () => {
       syncProgress(audio, { forceEnd: true });
       stopProgressLoop();
@@ -379,7 +390,7 @@ const AudioController = React.forwardRef(function AudioController({ song, playin
       void recordPlay(userId, song.id, Math.floor(audio.currentTime || song.duration_seconds || 0));
     };
     const failed = () => { stopProgressLoop(); sync(); setPlaying(false); };
-    ["loadedmetadata", "loadeddata", "durationchange", "timeupdate", "progress", "seeking", "seeked", "ratechange"].forEach((eventName) => audio.addEventListener(eventName, sync));
+    ["loadedmetadata", "loadeddata", "canplay", "durationchange", "timeupdate", "progress", "seeking", "seeked", "ratechange", "playing"].forEach((eventName) => audio.addEventListener(eventName, sync));
     audio.addEventListener("play", playStarted);
     audio.addEventListener("playing", playStarted);
     audio.addEventListener("pause", playbackStopped);
@@ -390,7 +401,7 @@ const AudioController = React.forwardRef(function AudioController({ song, playin
     if (playing) audio.play().catch(() => setPlaying(false));
     return () => {
       stopProgressLoop();
-      ["loadedmetadata", "loadeddata", "durationchange", "timeupdate", "progress", "seeking", "seeked", "ratechange"].forEach((eventName) => audio.removeEventListener(eventName, sync));
+        ["loadedmetadata", "loadeddata", "canplay", "durationchange", "timeupdate", "progress", "seeking", "seeked", "ratechange", "playing"].forEach((eventName) => audio.removeEventListener(eventName, sync));
       audio.removeEventListener("play", playStarted);
       audio.removeEventListener("playing", playStarted);
       audio.removeEventListener("pause", playbackStopped);

@@ -1415,6 +1415,21 @@
 - [x] Ensure track changes reset to the new track’s actual position and duration
 - [x] Add regression coverage for the complete playback lifecycle and cross-screen persistence
 - [x] Run full tests, TypeScript, and production build
-- [ ] Verify the newly pushed production bundle after this playback recheck commit
+- [x] Verify the newly pushed production bundle after this playback recheck commit
 - [ ] Save a checkpoint with the stale-progress root fix
 - [ ] Run authenticated device/production smoke test for playback
+
+# Force Playback Synchronization Root Recheck — 2026-08-22
+- [x] Audit the actual deployed bundle and active source for duplicate or stale player state paths
+- [x] Reproduce why the visible player can remain at a prior position such as 1:32 while audio is playing
+- [x] Trace audio element lifecycle, React subscriptions, navigation persistence, and progress renderer ownership
+- [x] Replace the broken synchronization path with one authoritative reactive playback store
+- [x] Verify continuous progress and elapsed-time updates during playback
+- [x] Verify exact pause/resume position preservation
+- [x] Verify immediate seek synchronization
+- [x] Verify end-of-track 100% state and existing next-track transition
+- [x] Verify track-change reset and actual loaded duration
+- [x] Add deterministic lifecycle regression coverage
+- [x] Run full tests, TypeScript, production build, and deployed-bundle verification
+- [ ] Save a checkpoint and report the force fix
+- [ ] Run authenticated real-device playback smoke testing
