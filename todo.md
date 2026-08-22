@@ -1494,11 +1494,24 @@
 - [ ] Run authenticated device smoke testing for the restored controls
 
 # User-Visible Deployment Mismatch Root Fix — 2026-08-22
-- [ ] Compare active `/home/ubuntu/eventverse` source, current Git commit, GitHub main, managed project root, and Vercel project metadata
-- [ ] Determine which URL/build the user screenshot is actually loading
-- [ ] Verify whether the latest control-row source markers exist in the served production bundle
-- [ ] Inspect stale preview/server logs and configuration for the `/home/ubuntu/evently-mobile` mismatch
+- [x] Compare active `/home/ubuntu/eventverse` source, current Git commit, GitHub main, managed project root, and Vercel project metadata
+- [x] Determine which URL/build the user screenshot is actually loading
+- [x] Verify whether the latest control-row source markers exist in the served production bundle
+- [x] Inspect stale preview/server logs and configuration for the `/home/ubuntu/evently-mobile` mismatch
 - [ ] Correct the managed project/deployment linkage without creating an unrelated frontend
-- [ ] Verify the user-facing URL serves the latest Atizzy source and control-row layout
-- [ ] Run regression tests, TypeScript, and production build after the linkage correction
+- [x] Verify the canonical Vercel user-facing URL serves the latest Atizzy source and control-row layout
+- [x] Run regression tests, TypeScript, and production build after the source/deployment correction
 - [ ] Save a checkpoint and report the exact remaining user-device gate if any
+
+# Venue Posting `avatar_url` Root Fix — 2026-08-22
+- [x] Trace the frontend venue create payload and confirm it uses `image_urls`, not `avatar_url`
+- [x] Identify the later shared media-trigger regression that dereferenced heterogeneous `NEW` fields
+- [x] Add forward-only JSONB-safe trigger migration `0074_fix_shared_media_trigger_avatar_regression.sql`
+- [x] Apply the migration to live Supabase project `blalvoelllndmbppbkcy`
+- [x] Verify the live trigger body and venue trigger definition
+- [x] Add regression coverage for venue media contract and trigger safety
+- [x] Pass focused venue/media regression tests
+- [x] Pass the full Vitest suite: 55 files, 187 passed, 2 skipped
+- [x] Pass TypeScript validation and production Vite build
+- [ ] Save a final checkpoint for this fix
+- [ ] Authenticated venue-post smoke test with a real uploaded photo remains pending
