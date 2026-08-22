@@ -1545,3 +1545,23 @@
 - [x] Validate focused tests, full Vitest suite: 55 files, 190 passed, 2 skipped, TypeScript, and production build
 - [ ] Save a checkpoint for the event and venue media visibility fix
 - [ ] Authenticated smoke test with newly uploaded event and venue images remains pending
+
+# Production Visibility and Venue Deletion Regression Recheck — 2026-08-23
+- [ ] Compare the deployed production bundle against the repaired `main` source and checkpoint
+- [ ] Trace the exact production event/venue image values and URL resolution path end to end
+- [ ] Trace the current production venue delete request, RPC response, and post-delete refresh path
+- [ ] Repair any remaining source, deployment, or stale-build mismatch without changing the UI design
+- [ ] Add regression coverage for the exact reported image and deletion failures
+- [ ] Re-run focused tests, full Vitest suite, TypeScript, and production build
+- [ ] Save a final checkpoint for the regression repair
+- [ ] Authenticated production smoke test remains pending until the updated artifact is opened
+
+# Deep Production Root-Cause Recheck — 2026-08-23
+- [ ] Trace deployed bundle provenance against current GitHub `main` and checkpoint source
+- [ ] Trace actual event and venue media values from Supabase through URL normalization to browser image requests
+- [ ] Trace venue deletion RPC result, dependency behavior, error propagation, and workspace refresh in the deployed path
+- [ ] Repair the remaining authoritative source or deployment mismatch without superficial UI-only patches
+- [ ] Add regression coverage for the reproduced production failures
+- [ ] Run focused tests, full Vitest suite, TypeScript, and production build
+- [ ] Push the repaired source and save a deployment-ready checkpoint
+- [ ] Authenticated production smoke test remains pending until the new artifact is opened
