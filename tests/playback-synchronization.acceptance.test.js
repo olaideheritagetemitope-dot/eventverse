@@ -7,12 +7,27 @@ const app = fs.readFileSync(path.join(root, "src/EventVerse.jsx"), "utf8");
 
 describe("live playback synchronization", () => {
   it("uses the real audio element as the source of current time and duration", () => {
-    expect(app).toContain('audio.addEventListener("timeupdate", sync)');
-    expect(app).toContain('audio.addEventListener("loadedmetadata", sync)');
-    expect(app).toContain('audio.addEventListener("durationchange", sync)');
+    expect(app).toContain('["loadedmetadata", "loadeddata", "durationchange", "timeupdate"');
+    expect(app).toContain('audio.addEventListener(eventName, sync)');
+    expect(app).toContain('audio.addEventListener("playing", playStarted)');
+    expect(app).toContain('audio.addEventListener("pause", playbackStopped)');
     expect(app).toContain('onProgress?.({');
-    expect(app).toContain('currentTime: Number.isFinite(audio.currentTime)');
-    expect(app).toContain('duration: Number.isFinite(audio.duration)');
+    expect(app).toContain('const duration = Number.isFinite(audio.duration)');
+    expect(app).toContain('const rawCurrentTime = Number.isFinite(audio.currentTime)');
+    expect(app).toContain('onProgress?.({ currentTime, duration });');
+  });
+
+  it("keeps position continuously live while playing and freezes it when paused", () => {
+    expect(app).toContain('frameRef = useRef(null)');
+    expect(app).toContain('requestAnimationFrame(tick)');
+    expect(app).toContain('if (!audio.paused && !audio.ended)');
+    expect(app).toContain('audio.pause();\n      syncProgress(audio);\n      stopProgressLoop();');
+    expect(app).toContain('syncProgress(audio, { forceEnd: true })');
+  });
+
+  it("uses only loaded media metadata for the displayed duration", () => {
+    expect(app).toContain('const totalDuration = Number(player.duration || 0);');
+    expect(app).not.toContain('player.duration || Number(song?.duration_seconds || 0)');
   });
 
   it("binds the existing full-player progress surface to live state and supports seeking", () => {

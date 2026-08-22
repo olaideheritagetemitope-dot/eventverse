@@ -1404,3 +1404,17 @@
 - [x] Publish/deploy the validated build and verify the served production bundle
 - [ ] Run authenticated device/production smoke test for playback
 - [ ] Run authenticated device/production smoke test for playback and Artist Profile media
+
+# Now Playing Stale Progress Recheck — 2026-08-22
+- [x] Reproduce the screenshot-reported stale position and elapsed-time behavior in the active Atizzy source
+- [x] Audit audio element events, controller refs, root state updates, and navigation lifecycle for a broken live-position path
+- [x] Ensure continuous real-time progress and elapsed-time updates while playing
+- [x] Ensure pause freezes the exact position and resume continues from it
+- [x] Ensure seek immediately updates both the bar and elapsed time
+- [x] Ensure end-of-track reaches 100% and preserves next-track behavior
+- [x] Ensure track changes reset to the new track’s actual position and duration
+- [x] Add regression coverage for the complete playback lifecycle and cross-screen persistence
+- [x] Run full tests, TypeScript, and production build
+- [ ] Verify the newly pushed production bundle after this playback recheck commit
+- [ ] Save a checkpoint with the stale-progress root fix
+- [ ] Run authenticated device/production smoke test for playback
