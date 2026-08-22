@@ -1038,8 +1038,23 @@
 
 ## Super Admin restructure visibility regression — 2026-08-22
 
-- [ ] Reproduce why the deployed Super Admin restructure is not visible in the rendered UI
-- [ ] Trace the active route, component mount, bundle, and deployment source for the regression
-- [ ] Fix the production-visible route/component wiring without removing authority or existing actions
-- [ ] Add regression coverage for the visible grouped Super Admin shell
-- [ ] Re-run tests/build, deploy, and verify the live rendered production result
+- [x] Reproduce why the deployed Super Admin restructure is not visible in the rendered UI
+- [x] Trace the active route, component mount, bundle, and deployment source for the regression
+- [x] Fix the production-visible route/component wiring without removing authority or existing actions
+- [x] Add regression coverage for the visible grouped Super Admin shell
+- [x] Re-run tests/build, deploy, and verify the live rendered production result
+
+## Strict role-onboarding architecture repair — 2026-08-22
+
+- [ ] Audit Artist, Organizer, and Venue Manager onboarding from role selection through workspace access
+- [ ] Identify and remove duplicate fee/configuration sources; retain one live authoritative config per role
+- [ ] Ensure active Super Admin questionnaires load from Supabase and required answers persist with applications
+- [ ] Enforce PENDING_REVIEW before any verification fee/payment is exposed
+- [ ] Implement review decisions: APPROVE, REJECT, and REQUEST_CHANGES with answer inspection
+- [ ] Gate payment on approval and activate roles only after verified payment
+- [ ] Create or link role profiles and project approved profiles into live directories/workspaces
+- [ ] Complete Super Admin user/role management, suspension, verification, multi-role assignment, and audit history
+- [ ] Add Organizer onboarding through the shared configurable architecture
+- [ ] Remove mock Artist records and project approved Artist profiles from live Supabase
+- [ ] Add end-to-end regression tests for authorization, RLS, payments, activation, directories, and workspaces
+- [ ] Run real-user lifecycle validation, full tests, production build, deployment, and live parity verification

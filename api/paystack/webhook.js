@@ -40,6 +40,19 @@ async function markArtistFailure(transaction) {
   await fetch(`${SUPABASE_URL}/rest/v1/${table}?${key}=eq.${encodeURIComponent(transaction.id)}`, { method: "PATCH", headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}`, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ status: "FAILED", failure_reason: "Paystack reported a failed or disputed charge", updated_at: now }) });
 }
 
+async function findRoleApplicationPaymentByReference(reference) {
+  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/role_application_payments?select=id,application_id,amount,status&provider=eq.paystack&provider_reference=eq.${encodeURIComponent(reference)}&limit=1`, { headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}` } });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload?.message || "Unable to find role application payment");
+  return payload?.[0] || null;
+}
+
+async function markRoleApplicationFailure(payment) {
+  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  await fetch(`${SUPABASE_URL}/rest/v1/role_application_payments?id=eq.${encodeURIComponent(payment.id)}&status=neq.VERIFIED_SUCCESS`, { method: "PATCH", headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}`, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ status: "FAILED", updated_at: new Date().toISOString() }) });
+}
+
 async function findVenuePaymentByReference(reference) {
   const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const response = await fetch(`${SUPABASE_URL}/rest/v1/venue_booking_payments?select=id,booking_id,amount,status&provider=eq.paystack&provider_reference=eq.${encodeURIComponent(reference)}&limit=1`, { headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}` } });
@@ -125,6 +138,26 @@ export default async function handler(req, res) {
       if (["charge.failed", "charge.dispute.create"].includes(event.event)) {
         logWebhook("warn", { event: event.event, reference, transaction_id: artistTransaction.id, failure_category: "artist_charge_failed_or_disputed" });
         await markArtistFailure(artistTransaction);
+        return json(res, 200, { received: true, failed: true });
+      }
+      return json(res, 200, { received: true, ignored: true });
+    }
+
+    const roleApplicationPayment = await findRoleApplicationPaymentByReference(reference);
+    if (roleApplicationPayment) {
+      const expectedKobo = Math.round(Number(roleApplicationPayment.amount) * 100);
+      const receivedKobo = Number(event?.data?.amount);
+      if (event.event === "charge.success") {
+        if (event?.data?.status !== "success" || receivedKobo !== expectedKobo || !isExpectedCurrency(event?.data)) {
+          logWebhook("warn", { event: event.event, reference, payment_id: roleApplicationPayment.id, failure_category: "role_application_amount_currency_or_status_mismatch" });
+          return json(res, 400, { error: "Role verification payment amount, currency, or status mismatch" });
+        }
+        const result = await supabaseRpc("activate_role_application_payment", { p_payment_id: roleApplicationPayment.id, p_provider_reference: reference });
+        return json(res, 200, { received: true, result });
+      }
+      if (["charge.failed", "charge.dispute.create"].includes(event.event)) {
+        await markRoleApplicationFailure(roleApplicationPayment);
+        logWebhook("warn", { event: event.event, reference, payment_id: roleApplicationPayment.id, failure_category: "role_application_charge_failed_or_disputed" });
         return json(res, 200, { received: true, failed: true });
       }
       return json(res, 200, { received: true, ignored: true });

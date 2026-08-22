@@ -362,18 +362,20 @@ export async function updateArtistFee(key, amount, userId) {
 }
 
 
-export async function loadOrganizerApplication(userId) {
-  if (!userId) return null;
-  const { data, error } = await supabase.from("organizer_applications").select("id,user_id,status,display_name,reason,created_at,updated_at,activated_at").eq("user_id", userId).maybeSingle();
+export async function loadRoleApplication(userId, roleCode) {
+  if (!userId || !roleCode) return null;
+  const { data, error } = await supabase.from("role_applications").select("id,user_id,role_code,status,answers,fee_amount,fee_currency,fee_status,submitted_at,review_due_at,reviewed_by,reviewed_at,rejection_reason,profile_id,created_at,updated_at").eq("user_id", userId).eq("role_code", roleCode).order("created_at", { ascending: false }).limit(1).maybeSingle();
   if (error) throw error;
   return data;
 }
 
+export async function loadOrganizerApplication(userId) {
+  return loadRoleApplication(userId, "ORGANIZER");
+}
+
 export async function applyAsOrganizer(userId, displayName, reason) {
   if (!userId) throw new Error("Sign in to become an Organizer.");
-  const { data, error } = await supabase.rpc("apply_as_organizer", { p_display_name: displayName?.trim() || null, p_reason: reason?.trim() || null });
-  if (error) throw error;
-  return Array.isArray(data) ? data[0] : data;
+  return submitRoleApplication("ORGANIZER", { display_name: displayName?.trim() || "", reason: reason?.trim() || "" });
 }
 
 export async function loadOrganizerEvents(userId) {
@@ -501,9 +503,7 @@ export async function loadVenueManagerWorkspace(userId) {
 
 export async function applyAsVenueManager(userId, displayName, reason) {
   if (!userId) throw new Error("Sign in to apply as a Venue Manager.");
-  const { data, error } = await supabase.rpc("apply_as_venue_manager", { p_display_name: displayName, p_reason: reason });
-  if (error) throw error;
-  return data;
+  return submitRoleApplication("VENUE_MANAGER", { display_name: displayName?.trim() || "", reason: reason?.trim() || "" });
 }
 
 export async function createOwnedVenue(userId, payload) {
@@ -851,6 +851,16 @@ export async function submitRoleApplication(roleCode, answers) {
   return Array.isArray(data) ? data[0] : data;
 }
 
+export async function initializeRoleApplicationPayment(applicationId, idempotencyKey, email, callbackUrl) {
+  if (!applicationId || !idempotencyKey || !email) throw new Error("Approved application and authenticated email are required.");
+  const session = (await supabase.auth.getSession()).data.session;
+  if (!session?.access_token) throw new Error("Please sign in again before starting payment.");
+  const response = await fetch("/api/paystack/role-initialize", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ applicationId, idempotencyKey, email, callbackUrl }) });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || "Unable to initialize role verification payment.");
+  return payload;
+}
+
 export async function reviewRoleApplication(applicationId, status, reason = null) {
   const { data, error } = await supabase.rpc("admin_review_role_application", { p_application_id: applicationId, p_status: status, p_reason: reason });
   if (error) throw error;
@@ -949,4 +959,25 @@ export async function loadContentEngagement(targetType, targetId, userId = null)
     liked: Boolean(userId && likeRows.some((row) => row.user_id === userId)),
     userRating: userId ? ratingRows.find((row) => row.user_id === userId)?.rating || 0 : 0,
   };
+}
+
+
+export async function superAdminSetRole(targetUserId, roleCode, action, reason = "") {
+  if (!targetUserId || !roleCode || !action) throw new Error("Role target, role, and action are required.");
+  const { data, error } = await supabase.rpc("super_admin_set_role", {
+    p_target_user_id: targetUserId,
+    p_role_code: roleCode,
+    p_action: action,
+    p_reason: reason || null,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function loadRoleAssignmentHistory(targetUserId = null) {
+  let query = supabase.from("role_assignment_history").select("id,target_user_id,role_id,action,reason,actor_id,created_at,roles(code,label)").order("created_at", { ascending: false }).limit(100);
+  if (targetUserId) query = query.eq("target_user_id", targetUserId);
+  const { data, error } = await query;
+  if (error) throw error;
+  return data || [];
 }
