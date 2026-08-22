@@ -1433,3 +1433,22 @@
 - [x] Run full tests, TypeScript, production build, and deployed-bundle verification
 - [ ] Save a checkpoint and report the force fix
 - [ ] Run authenticated real-device playback smoke testing
+
+# Now Playing Swipeable Experience Upgrade — 2026-08-22
+- [x] Audit current FullPlayer, global player state, song lyrics/music-video fields, and existing playback synchronization before modification
+- [x] Preserve the current Now Playing page and all existing controls and behavior
+- [x] Add a horizontal three-page pager: Now Playing, Lyrics, Music Video
+- [x] Add intentional one-page-per-swipe touch/drag navigation in both directions
+- [x] Add subtle non-interfering page indicators
+- [x] Keep current song, duration, position, play/pause, queue, previous/next, shuffle, and repeat global across pages
+- [x] Add data-driven Lyrics page using live lyrics fields without invented content
+- [x] Add timestamp-aware lyrics presentation when timestamped data is available
+- [x] Add polished lyrics loading, failure, and unavailable states
+- [x] Add data-driven Music Video page using the live music video URL without invented content
+- [x] Preserve one authoritative audio player while integrating video controls
+- [x] Add polished video loading, failure, and unavailable states
+- [x] Handle song changes, rapid swipes, navigation away/return, end-of-track, and playback pause/seek on all pages
+- [x] Add regression coverage for pager behavior, data states, and playback continuity
+- [x] Run focused and full tests, TypeScript, and production build
+- [ ] Save a checkpoint and report the completed player upgrade
+- [ ] Run authenticated device smoke testing for swipe and media playback

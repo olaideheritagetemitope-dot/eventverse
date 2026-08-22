@@ -1972,11 +1972,92 @@ function MusicHome({ nav, player, catalog, account }) {
 }
 
 /* ============================== FULL MUSIC PLAYER ============================== */
+function parseTimestampedLyrics(text) {
+  if (!text) return [];
+  return String(text).split(/\r?\n/).map((line) => {
+    const match = line.match(/^\s*\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\]\s*(.*)$/);
+    if (!match) return { text: line, time: null };
+    const fraction = match[3] ? Number(`0.${match[3]}`) : 0;
+    return { text: match[4], time: Number(match[1]) * 60 + Number(match[2]) + fraction };
+  });
+}
+
+function LyricsPage({ song, player }) {
+  const lyrics = song?.lyricsText;
+  const lines = parseTimestampedLyrics(lyrics);
+  const hasTimestamps = lines.some((line) => line.time !== null);
+  const activeLine = hasTimestamps ? lines.reduce((active, line, index) => line.time !== null && line.time <= Number(player.currentTime || 0) ? index : active, -1) : -1;
+  return (
+    <div className="h-full min-w-0 w-full flex-shrink-0 flex flex-col px-6 pt-2 pb-7">
+      <div className="flex-1 overflow-y-auto no-scrollbar py-5">
+        <p className="text-[11px] uppercase tracking-[0.2em] mb-3" style={{ color: C.gold }}>Lyrics</p>
+        <h2 className="text-[25px] font-semibold leading-tight" style={{ color: C.ivory }}>{song.title}</h2>
+        <p className="text-[13px] mt-1 mb-8" style={{ color: C.muted }}>{song.artist}</p>
+        {lyrics === undefined ? (
+          <div className="flex min-h-[260px] items-center justify-center text-center px-8" style={{ color: C.muted }}>Lyrics are loading for this song.</div>
+        ) : !String(lyrics || '').trim() ? (
+          <div className="flex min-h-[260px] flex-col items-center justify-center text-center px-8">
+            <div className="text-4xl mb-4">♫</div>
+            <p className="text-[15px] font-medium" style={{ color: C.ivory }}>Lyrics aren&apos;t available for this song yet.</p>
+            <p className="text-[12px] mt-2 leading-5" style={{ color: C.muted }}>Check back later — we&apos;re working on it.</p>
+          </div>
+        ) : (
+          <div className="space-y-4 pb-8">
+            {lines.map((line, index) => (
+              <p key={`${line.time ?? 'plain'}-${index}`} className="text-[18px] leading-7 transition-colors" style={{ color: index === activeLine ? C.goldSoft : C.ivory, opacity: hasTimestamps && index !== activeLine ? 0.62 : 1, fontWeight: index === activeLine ? 700 : 500 }}>{line.text || " "}</p>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="flex items-center justify-between border-t pt-4" style={{ borderColor: C.line }}>
+        <span className="text-[11px]" style={{ color: C.muted }}>Playing {formatPlaybackTime(player.currentTime)}</span>
+        <span className="text-[11px]" style={{ color: C.muted }}>{formatPlaybackTime(player.duration)}</span>
+      </div>
+    </div>
+  );
+}
+
+function MusicVideoPage({ song, player }) {
+  const [loading, setLoading] = useState(Boolean(song?.musicVideoUrl));
+  const [failed, setFailed] = useState(false);
+  useEffect(() => { setLoading(Boolean(song?.musicVideoUrl)); setFailed(false); }, [song?.id, song?.musicVideoUrl]);
+  const videoUrl = song?.musicVideoUrl;
+  return (
+    <div className="h-full min-w-0 w-full flex-shrink-0 flex flex-col px-6 pt-2 pb-7">
+      <div className="flex-1 flex flex-col justify-center">
+        <p className="text-[11px] uppercase tracking-[0.2em] mb-3" style={{ color: C.gold }}>Music Video</p>
+        <h2 className="text-[25px] font-semibold leading-tight" style={{ color: C.ivory }}>{song.title}</h2>
+        <p className="text-[13px] mt-1 mb-7" style={{ color: C.muted }}>{song.artist}</p>
+        {!videoUrl || failed ? (
+          <div className="w-full aspect-video rounded-2xl flex flex-col items-center justify-center text-center px-8" style={{ background: `${C.card}cc`, border: `1px solid ${C.line}` }}>
+            <div className="text-4xl mb-4">▣</div>
+            <p className="text-[15px] font-medium" style={{ color: C.ivory }}>No music video available yet.</p>
+            <p className="text-[12px] mt-2 leading-5" style={{ color: C.muted }}>We&apos;ll let you know when one is available.</p>
+          </div>
+        ) : (
+          <div className="relative w-full aspect-video rounded-2xl overflow-hidden" style={{ background: C.card }}>
+            <video src={videoUrl} controls playsInline preload="metadata" muted className="w-full h-full object-contain" onLoadStart={() => setLoading(true)} onLoadedData={() => setLoading(false)} onCanPlay={() => setLoading(false)} onError={() => { setLoading(false); setFailed(true); }} aria-label={`${song.title} music video`} />
+            {loading && <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ background: `${C.card}dd`, color: C.muted }}>Loading music video…</div>}
+          </div>
+        )}
+        <p className="text-[11px] mt-4 text-center" style={{ color: C.muted }}>Audio playback stays with the global Atizzy player.</p>
+      </div>
+      <div className="flex items-center justify-between border-t pt-4" style={{ borderColor: C.line }}>
+        <span className="text-[11px]" style={{ color: C.muted }}>Playing {formatPlaybackTime(player.currentTime)} independently of video controls</span>
+        <span className="text-[11px]" style={{ color: C.muted }}>Use Now Playing for audio</span>
+      </div>
+    </div>
+  );
+}
+
 function FullPlayer({ nav, player, account }) {
   const song = player.song;
   const [liked, setLiked] = useState(Boolean(song?.liked));
+  const [page, setPage] = useState(0);
+  const swipeStart = useRef(null);
   const totalDuration = Number(player.duration || 0);
   const progressPercent = totalDuration > 0 ? Math.min(100, Math.max(0, (Number(player.currentTime || 0) / totalDuration) * 100)) : 0;
+  useEffect(() => { setLiked(Boolean(song?.liked)); }, [song?.id, song?.liked]);
   const seekFromProgress = (event) => {
     if (!totalDuration) return;
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -1987,6 +2068,16 @@ function FullPlayer({ nav, player, account }) {
     if (!totalDuration) return;
     if (event.key === "ArrowLeft") { event.preventDefault(); player.seek(Math.max(0, Number(player.currentTime || 0) - 5)); }
     if (event.key === "ArrowRight") { event.preventDefault(); player.seek(Math.min(totalDuration, Number(player.currentTime || 0) + 5)); }
+  };
+  const handleSwipeStart = (event) => { swipeStart.current = { x: event.clientX, y: event.clientY }; };
+  const handleSwipeEnd = (event) => {
+    if (!swipeStart.current) return;
+    const start = swipeStart.current;
+    swipeStart.current = null;
+    const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
+    if (Math.abs(dx) < 72 || Math.abs(dx) < Math.abs(dy) * 1.25) return;
+    setPage((current) => Math.max(0, Math.min(2, current + (dx < 0 ? 1 : -1))));
   };
   const toggleLike = async () => {
     if (!song?.id || !account?.user?.id) return;
@@ -2001,50 +2092,33 @@ function FullPlayer({ nav, player, account }) {
   if (!song) return <Phone><div className="flex-1 flex items-center justify-center px-6 text-center" style={{ color: C.muted }}>Choose a song from the live music library to start playback.</div></Phone>;
   return (
     <Phone>
-      <div className="flex-1 flex flex-col px-6" style={{ background: `linear-gradient(180deg, ${C.green}, ${C.bg} 60%)` }}>
-        <div className="flex items-center justify-between pt-2 pb-6">
-          <button onClick={nav.pop}><ChevronDown size={20} color={C.ivory} /></button>
-          <span className="text-[11px] uppercase tracking-wide" style={{ color: C.muted }}>Now Playing</span>
+      <div className="flex-1 flex flex-col px-6" style={{ background: `linear-gradient(180deg, ${C.green}, ${C.bg} 60%)` }} onPointerDown={handleSwipeStart} onPointerUp={handleSwipeEnd} onPointerCancel={() => { swipeStart.current = null; }}>
+        <div className="flex items-center justify-between pt-2 pb-3">
+          <button onClick={nav.pop} aria-label="Close now playing"><ChevronDown size={20} color={C.ivory} /></button>
+          <span className="text-[11px] uppercase tracking-wide" style={{ color: C.muted }}>{["Now Playing", "Lyrics", "Music Video"][page]}</span>
           <button type="button" onClick={() => nav.push("music")} aria-label="Open music library"><ListMusic size={18} color={C.ivory} /></button>
         </div>
-        <div className="flex-1 flex flex-col items-center justify-center">
-          <div className="w-full aspect-square rounded-2xl mb-8" style={imageStyle(song.coverUrl, `linear-gradient(150deg, ${C.wood}, ${C.greenLight})`)} />
-          <div className="w-full flex items-center justify-between mb-6">
-            <div>
-              <p className="text-[19px] font-semibold" style={{ color: C.ivory }}>{song.title}</p>
-              <p className="text-[13px]" style={{ color: C.muted }}>{song.artist}</p>
+        <div className="flex items-center justify-center gap-1.5 pb-3" aria-label="Now Playing pages">
+          {["Now Playing", "Lyrics", "Music Video"].map((label, index) => <button key={label} type="button" onClick={() => setPage(index)} aria-label={`Show ${label}`} className="h-1.5 rounded-full" style={{ width: index === page ? 18 : 6, background: index === page ? C.gold : C.line }} />)}
+        </div>
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <div className="flex h-full transition-transform duration-300 ease-out" style={{ width: "300%", transform: `translateX(-${page * (100 / 3)}%)` }}>
+            <div className="h-full min-w-0 w-full flex-shrink-0 flex flex-col items-center justify-center">
+              <div className="w-full aspect-square rounded-2xl mb-8" style={imageStyle(song.coverUrl, `linear-gradient(150deg, ${C.wood}, ${C.greenLight})`)} />
+              <div className="w-full flex items-center justify-between mb-6">
+                <div><p className="text-[19px] font-semibold" style={{ color: C.ivory }}>{song.title}</p><p className="text-[13px]" style={{ color: C.muted }}>{song.artist}</p></div>
+                <button type="button" onClick={toggleLike} aria-label={liked ? "Unlike song" : "Like song"}><Heart size={20} color={liked ? C.gold : C.muted} fill={liked ? C.gold : "none"} /></button>
+              </div>
+              <div className="w-full mb-2">
+                <div className="w-full h-1 rounded-full cursor-pointer" style={{ background: C.line }} role="slider" tabIndex={0} aria-label="Seek through song" aria-valuemin={0} aria-valuemax={Math.floor(totalDuration)} aria-valuenow={Math.floor(Number(player.currentTime || 0))} onClick={seekFromProgress} onKeyDown={seekWithKeyboard}><div className="h-1 rounded-full" style={{ width: `${progressPercent}%`, background: C.gold }} /></div>
+                <div className="flex justify-between mt-1.5"><span className="text-[10.5px]" style={{ color: C.muted }}>{formatPlaybackTime(player.currentTime)}</span><span className="text-[10.5px]" style={{ color: C.muted }}>{formatPlaybackTime(totalDuration)}</span></div>
+              </div>
+              <div className="w-full flex items-center justify-between mt-6">
+                <Shuffle size={17} color={C.muted} /><button type="button" onClick={player.previous} aria-label="Previous song"><SkipBack size={22} color={C.ivory} /></button><button disabled={!song.audioUrl} onClick={player.toggle} aria-label={player.playing ? "Pause song" : "Play song"} className="w-16 h-16 rounded-full flex items-center justify-center disabled:opacity-40" style={{ background: `linear-gradient(135deg, ${C.goldSoft}, ${C.gold})` }}>{player.playing ? <Pause size={24} color="#1A1408" /> : <Play size={24} color="#1A1408" fill="#1A1408" />}</button><button type="button" onClick={player.next} aria-label="Next song"><SkipForward size={22} color={C.ivory} /></button><Repeat size={17} color={C.muted} />
+              </div>
             </div>
-            <button type="button" onClick={toggleLike} aria-label={liked ? "Unlike song" : "Like song"}><Heart size={20} color={liked ? C.gold : C.muted} fill={liked ? C.gold : "none"} /></button>
-          </div>
-          <div className="w-full mb-2">
-            <div
-              className="w-full h-1 rounded-full cursor-pointer"
-              style={{ background: C.line }}
-              role="slider"
-              tabIndex={0}
-              aria-label="Seek through song"
-              aria-valuemin={0}
-              aria-valuemax={Math.floor(totalDuration)}
-              aria-valuenow={Math.floor(Number(player.currentTime || 0))}
-              onClick={seekFromProgress}
-              onKeyDown={seekWithKeyboard}
-            >
-              <div className="h-1 rounded-full" style={{ width: `${progressPercent}%`, background: C.gold }} />
-            </div>
-            <div className="flex justify-between mt-1.5">
-              <span className="text-[10.5px]" style={{ color: C.muted }}>{formatPlaybackTime(player.currentTime)}</span>
-              <span className="text-[10.5px]" style={{ color: C.muted }}>{formatPlaybackTime(totalDuration)}</span>
-            </div>
-          </div>
-          {song.lyricsText && <div className="w-full rounded-2xl p-4 mb-4" style={{ background: `${C.card}cc`, border: `1px solid ${C.line}` }}><p className="text-[11px] uppercase tracking-wide mb-2" style={{ color: C.gold }}>Lyrics</p><p className="text-[12px] leading-5 whitespace-pre-wrap max-h-32 overflow-y-auto" style={{ color: C.ivory }}>{song.lyricsText}</p></div>}
-          <div className="w-full flex items-center justify-between mt-6">
-            <Shuffle size={17} color={C.muted} />
-            <button type="button" onClick={player.previous} aria-label="Previous song"><SkipBack size={22} color={C.ivory} /></button>
-              <button disabled={!song.audioUrl} onClick={player.toggle} className="w-16 h-16 rounded-full flex items-center justify-center disabled:opacity-40" style={{ background: `linear-gradient(135deg, ${C.goldSoft}, ${C.gold})` }}>
-              {player.playing ? <Pause size={24} color="#1A1408" /> : <Play size={24} color="#1A1408" fill="#1A1408" />}
-            </button>
-            <button type="button" onClick={player.next} aria-label="Next song"><SkipForward size={22} color={C.ivory} /></button>
-            <Repeat size={17} color={C.muted} />
+            <LyricsPage song={song} player={player} />
+            <MusicVideoPage song={song} player={player} />
           </div>
         </div>
         <div className="flex items-center justify-between pb-8 pt-4">
