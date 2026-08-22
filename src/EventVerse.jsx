@@ -199,7 +199,7 @@ function MediaUploadField({ label, accept, value, onChange, existingUrl = "", on
 function EventCard({ ev, onClick, wide }) {
   return (
     <button onClick={onClick} className="ev-card flex-shrink-0 text-left rounded-2xl overflow-hidden" style={{ width: wide ? "100%" : 168, background: C.card }}>
-      <div className="relative" style={{ height: wide ? 150 : 100, background: ev.img }}>
+      <div className="relative" style={{ height: wide ? 150 : 100, ...imageStyle(ev.img, `linear-gradient(145deg, ${C.wood}, ${C.green})`) }}>
         <span className="absolute top-2 left-2 text-[10px] font-semibold px-2 py-1 rounded-full" style={{ background: "#00000080", color: C.goldSoft }}>{ev.tag}</span>
         <span className="absolute bottom-2 right-2 text-[10px] font-semibold px-2 py-1 rounded-full" style={{ background: C.gold, color: "#1A1408" }}>{ev.date.split(" ")[0]} {ev.date.split(" ")[1]}</span>
       </div>
@@ -819,7 +819,7 @@ function Explore({ nav, player, catalog }) {
         <Section title="Popular Venues" nav={nav} last>
           {venues.slice(0, 6).map((venue) => (
             <button type="button" key={venue.id} onClick={() => nav.push("venueDetail", venue)} className="flex-shrink-0 w-44 rounded-2xl overflow-hidden text-left" style={{ background: C.card }}>
-              <div style={{ height: 90, background: `linear-gradient(160deg, ${C.wood}, ${C.blue})` }} />
+              <div style={{ height: 90, ...imageStyle(venue.imageUrl, `linear-gradient(160deg, ${C.wood}, ${C.blue})`) }} />
               <div className="p-3">
                 <p className="text-[12.5px] font-semibold" style={{ color: C.ivory }}>{venue.name}</p>
                 <p className="text-[11px]" style={{ color: C.muted }}>{venue.city || venue.address || "Location pending"}</p>
@@ -947,7 +947,7 @@ function EventDetail({ nav, data, account }) {
   };
   return (
     <Phone>
-      <div style={{ height: 240, background: ev.img }} className="relative flex-shrink-0">
+      <div style={{ height: 240, ...imageStyle(ev.img, `linear-gradient(145deg, ${C.wood}, ${C.green})`) }} className="relative flex-shrink-0">
         <div className="flex items-center justify-between px-5 mt-2">
           <button onClick={nav.pop} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "#00000060" }}><ChevronLeft size={18} color="#fff" /></button>
           <div className="flex gap-2">
@@ -1367,7 +1367,7 @@ function MyTickets({ nav, player }) {
         {filtered.map((ticket) => {
           const event = ticket.event || {};
           const start = event.starts_at ? new Date(event.starts_at) : null;
-          return <button key={ticket.id} onClick={() => nav.push("digitalTicket", ticket)} className="w-full flex gap-3 rounded-2xl p-3 mb-3 text-left" style={{ background: C.card }}><div className="w-16 h-16 rounded-xl flex-shrink-0" style={{ background: event.cover_url || `linear-gradient(160deg, ${C.wood}, ${C.green})` }} /><div className="flex-1"><p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{event.title || "Atizzy ticket"}</p><p className="text-[11px] mt-0.5" style={{ color: C.muted }}>{start ? start.toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" }) : "Date pending"}</p><p className="text-[11px]" style={{ color: C.muted }}>{event.venues?.name || event.city || "Venue pending"}</p><p className="text-[11px] mt-1" style={{ color: C.goldSoft }}>{ticket.typeName} · {ticket.status}</p><p className="text-[10px] mt-1" style={{ color: C.muted }}>{ticket.orders?.status || "Order pending"} · {ticket.orders?.total != null ? `${ticket.orders.currency || "NGN"} ${Number(ticket.orders.total).toLocaleString("en-NG")}` : "Amount pending"}</p></div><span className="self-center text-[11px] font-semibold" style={{ color: C.gold }}>View</span></button>;
+          return <button key={ticket.id} onClick={() => nav.push("digitalTicket", ticket)} className="w-full flex gap-3 rounded-2xl p-3 mb-3 text-left" style={{ background: C.card }}><div className="w-16 h-16 rounded-xl flex-shrink-0" style={{ ...imageStyle(event.cover_url, `linear-gradient(160deg, ${C.wood}, ${C.green})`) }} /><div className="flex-1"><p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{event.title || "Atizzy ticket"}</p><p className="text-[11px] mt-0.5" style={{ color: C.muted }}>{start ? start.toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" }) : "Date pending"}</p><p className="text-[11px]" style={{ color: C.muted }}>{event.venues?.name || event.city || "Venue pending"}</p><p className="text-[11px] mt-1" style={{ color: C.goldSoft }}>{ticket.typeName} · {ticket.status}</p><p className="text-[10px] mt-1" style={{ color: C.muted }}>{ticket.orders?.status || "Order pending"} · {ticket.orders?.total != null ? `${ticket.orders.currency || "NGN"} ${Number(ticket.orders.total).toLocaleString("en-NG")}` : "Amount pending"}</p></div><span className="self-center text-[11px] font-semibold" style={{ color: C.gold }}>View</span></button>;
         })}
       </div>
       <MiniPlayer song={player.song} playing={player.playing} onToggle={player.toggle} onPrevious={player.previous} onNext={player.next} onOpen={() => nav.push("musicPlayer")} /><BottomNav current="tickets" go={nav.tab} />
@@ -2187,7 +2187,7 @@ function VenueDetail({ nav, data }) {
     return () => { active = false; };
   }, [data?.id]);
   const venue = state.venue;
-  return <Phone><TopBack title="Venue" onBack={nav.pop} /> <div className="flex-1 overflow-y-auto px-5 pb-6">{loading && <p className="py-8 text-center text-[13px]" style={{ color: C.muted }}>Loading venue...</p>}{error && <AuthMessage error={error} />}{venue && <><div className="rounded-2xl p-5 mb-5" style={{ background: `linear-gradient(145deg, ${C.wood}, ${C.card})` }}><MapPin size={22} color={C.gold} /><h1 className="ev-display text-2xl mt-3" style={{ color: C.ivory }}>{venue.name}</h1><p className="text-[12px] mt-1" style={{ color: C.muted }}>{venue.address || venue.city || "Location pending"}</p><p className="text-[11px] mt-3" style={{ color: C.goldSoft }}>Capacity {venue.capacity ? Number(venue.capacity).toLocaleString() : "pending"}</p></div><p className="text-[12px] font-semibold mb-3" style={{ color: C.muted }}>EVENTS AT THIS VENUE</p>{state.events.map((event) => <div key={event.id} className="mb-3"><EventCard ev={event} wide onClick={() => nav.push("eventDetail", event)} /></div>)}{!loading && !state.events.length && <p className="py-6 text-center text-[13px]" style={{ color: C.muted }}>No published events at this venue yet.</p>}</>}</div></Phone>;
+  return <Phone><TopBack title="Venue" onBack={nav.pop} /> <div className="flex-1 overflow-y-auto px-5 pb-6">{loading && <p className="py-8 text-center text-[13px]" style={{ color: C.muted }}>Loading venue...</p>}{error && <AuthMessage error={error} />}{venue && <><div className="rounded-2xl p-5 mb-5" style={{ ...imageStyle(venue?.imageUrl, `linear-gradient(145deg, ${C.wood}, ${C.card})`), backgroundBlendMode: "overlay" }}><MapPin size={22} color={C.gold} /><h1 className="ev-display text-2xl mt-3" style={{ color: C.ivory }}>{venue.name}</h1><p className="text-[12px] mt-1" style={{ color: C.muted }}>{venue.address || venue.city || "Location pending"}</p><p className="text-[11px] mt-3" style={{ color: C.goldSoft }}>Capacity {venue.capacity ? Number(venue.capacity).toLocaleString() : "pending"}</p></div><p className="text-[12px] font-semibold mb-3" style={{ color: C.muted }}>EVENTS AT THIS VENUE</p>{state.events.map((event) => <div key={event.id} className="mb-3"><EventCard ev={event} wide onClick={() => nav.push("eventDetail", event)} /></div>)}{!loading && !state.events.length && <p className="py-6 text-center text-[13px]" style={{ color: C.muted }}>No published events at this venue yet.</p>}</>}</div></Phone>;
 }
 
 function MusicDetail({ nav, data, player, account }) {

@@ -1535,3 +1535,13 @@
 - [x] Validate focused tests, full Vitest suite: 55 files, 188 passed, 2 skipped, TypeScript, and production build
 - [ ] Save a checkpoint for the venue deletion fix
 - [ ] Authenticated deletion smoke test with a real owned venue remains pending
+
+# Event and Venue Image Visibility Root Fix — 2026-08-23
+- [x] Trace event and venue image picker/upload, Storage bucket, database reference, URL resolver, RLS, and render paths
+- [x] Identify the exact contract mismatch causing successfully posted images to render blank
+- [x] Repair the authoritative media URL/storage mapping without changing existing cards or layouts
+- [x] Verify the existing live media contracts; no new migration was required
+- [x] Add regression coverage for event and venue image rendering and URL normalization
+- [x] Validate focused tests, full Vitest suite: 55 files, 190 passed, 2 skipped, TypeScript, and production build
+- [ ] Save a checkpoint for the event and venue media visibility fix
+- [ ] Authenticated smoke test with newly uploaded event and venue images remains pending

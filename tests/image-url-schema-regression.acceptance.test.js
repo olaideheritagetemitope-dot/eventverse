@@ -51,3 +51,20 @@ describe('managed media image_url schema regression', () => {
     expect(latest).toContain('before insert or update of image_urls on public.venues');
   });
 });
+
+
+describe('event and venue image visibility contract', () => {
+  it('loads venue image_urls in catalog, search, and detail queries and exposes imageUrl', () => {
+    const catalogSource = fs.readFileSync(path.resolve(process.cwd(), 'src/services/catalog.js'), 'utf8');
+    expect(catalogSource).toContain('capacity,status,image_urls');
+    expect(catalogSource).toContain('imageUrl: firstVenueImage(venue)');
+    expect(catalogSource).toContain('mediaUrl(event.cover_url || event.image_url || event.image_urls)');
+  });
+
+  it('passes normalized event and venue images into the existing Atizzy visual surfaces', () => {
+    const appSource = fs.readFileSync(path.resolve(process.cwd(), 'src/EventVerse.jsx'), 'utf8');
+    expect(appSource).toContain('imageStyle(ev.img, `linear-gradient(145deg, ${C.wood}, ${C.green})`)');
+    expect(appSource).toContain('imageStyle(venue.imageUrl, `linear-gradient(160deg, ${C.wood}, ${C.blue})`)');
+    expect(appSource).toContain('imageStyle(venue?.imageUrl, `linear-gradient(145deg, ${C.wood}, ${C.card})`)');
+  });
+});

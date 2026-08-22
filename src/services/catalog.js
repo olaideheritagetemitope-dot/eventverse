@@ -39,6 +39,22 @@ export const SYNTHETIC_CATALOG_IDS = Object.freeze({
 export const isSyntheticCatalogRecord = (kind, record) => Boolean(record?.id && SYNTHETIC_CATALOG_IDS[kind]?.has(record.id));
 export const filterLiveCatalogRows = (kind, rows) => (rows || []).filter((row) => !isSyntheticCatalogRecord(kind, row));
 
+const mediaUrl = (value) => {
+  if (!value) return null;
+  if (typeof value === "string") return value.trim() || null;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const resolved = mediaUrl(item);
+      if (resolved) return resolved;
+    }
+    return null;
+  }
+  if (typeof value === "object") return mediaUrl(value.public_url || value.publicUrl || value.url || value.image_url || value.cover_url || value.path || value.object_path);
+  return null;
+};
+
+const firstVenueImage = (venue) => mediaUrl(venue?.image_urls || venue?.imageUrl || venue?.image_url || venue?.cover_url);
+
 export const formatFollowers = (value) => {
   const count = Number(value || 0);
   if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
@@ -70,8 +86,8 @@ export const toEvent = (event, index = 0) => {
     price: ticketPrices.length ? Math.min(...ticketPrices) : null,
     rating: event.rating == null ? null : Number(event.rating),
     reviews: Number(event.review_count || 0),
-    coverUrl: event.cover_url || null,
-    img: event.cover_url || null,
+    coverUrl: mediaUrl(event.cover_url || event.image_url || event.image_urls),
+    img: mediaUrl(event.cover_url || event.image_url || event.image_urls),
     tag: index === 0 ? "Featured" : index === 1 ? "Trending" : null,
   };
 };
@@ -120,7 +136,7 @@ export async function loadCatalog() {
     supabase.from("artists").select("id,user_id,name,bio,verified,follower_count,image_url,background_url").order("follower_count", { ascending: false }),
     supabase.from("songs").select("id,artist_id,title,duration_seconds,audio_url,cover_url,play_count,artists(id,name,image_url)").order("play_count", { ascending: false }),
     supabase.from("categories").select("id,name,slug").order("name"),
-    supabase.from("venues").select("id,name,city,address,capacity,status").neq("status", "ARCHIVED").order("name"),
+    supabase.from("venues").select("id,name,city,address,capacity,status,image_urls").neq("status", "ARCHIVED").order("name"),
   ]);
   const firstError = [eventResult, artistResult, songResult, categoryResult, venueResult].find((result) => result.error)?.error;
   if (firstError) throw firstError;
@@ -129,7 +145,7 @@ export async function loadCatalog() {
     artists: filterLiveCatalogRows("artists", artistResult.data).map(toArtist),
     songs: filterLiveCatalogRows("songs", songResult.data).map(toSong),
     categories: categoryResult.data || [],
-    venues: filterLiveCatalogRows("venues", venueResult.data),
+    venues: filterLiveCatalogRows("venues", venueResult.data).map((venue) => ({ ...venue, imageUrl: firstVenueImage(venue) })),
   };
 }
 
@@ -141,7 +157,7 @@ export async function searchCatalog(query) {
     supabase.from("events").select("id,organizer_id,venue_id,title,description,event_type,city,starts_at,ends_at,cover_url,status,rating,review_count,venues(id,name,city,address,capacity),ticket_types(id,price)").in("status", ["PUBLISHED", "SOLD_OUT", "LIVE", "COMPLETED"]).or(`title.ilike.${pattern},description.ilike.${pattern},city.ilike.${pattern}`).order("starts_at").limit(20),
     supabase.from("artists").select("id,user_id,name,bio,verified,follower_count,image_url,background_url").or(`name.ilike.${pattern},bio.ilike.${pattern}`).order("follower_count", { ascending: false }).limit(20),
     supabase.from("songs").select("id,artist_id,title,duration_seconds,audio_url,cover_url,play_count,artists(id,name,image_url)").ilike("title", pattern).order("play_count", { ascending: false }).limit(20),
-    supabase.from("venues").select("id,name,city,address,capacity,status").neq("status", "ARCHIVED").or(`name.ilike.${pattern},city.ilike.${pattern},address.ilike.${pattern}`).order("name").limit(20),
+    supabase.from("venues").select("id,name,city,address,capacity,status,image_urls").neq("status", "ARCHIVED").or(`name.ilike.${pattern},city.ilike.${pattern},address.ilike.${pattern}`).order("name").limit(20),
   ]);
   const firstError = [eventResult, artistResult, songResult, venueResult].find((result) => result.error)?.error;
   if (firstError) throw firstError;
@@ -149,7 +165,7 @@ export async function searchCatalog(query) {
     events: filterLiveCatalogRows("events", eventResult.data).map(toEvent),
     artists: filterLiveCatalogRows("artists", artistResult.data).map(toArtist),
     songs: filterLiveCatalogRows("songs", songResult.data).map(toSong),
-    venues: filterLiveCatalogRows("venues", venueResult.data),
+    venues: filterLiveCatalogRows("venues", venueResult.data).map((venue) => ({ ...venue, imageUrl: firstVenueImage(venue) })),
   };
 }
 
@@ -171,13 +187,13 @@ export async function loadEventDetail(eventId) {
 
 export async function loadVenueDetail(venueId) {
   const [venueResult, eventResult] = await Promise.all([
-    supabase.from("venues").select("id,name,city,address,capacity,status").eq("id", venueId).neq("status", "ARCHIVED").maybeSingle(),
+    supabase.from("venues").select("id,name,city,address,capacity,status,image_urls").eq("id", venueId).neq("status", "ARCHIVED").maybeSingle(),
     supabase.from("events").select("id,title,description,event_type,city,starts_at,ends_at,cover_url,status,rating,review_count,venues(id,name,city,address,capacity),ticket_types(id,price)").eq("venue_id", venueId).in("status", ["PUBLISHED", "SOLD_OUT", "LIVE", "COMPLETED"]).order("starts_at").limit(30),
   ]);
   const firstError = [venueResult, eventResult].find((result) => result.error)?.error;
   if (firstError) throw firstError;
   return {
-    venue: isSyntheticCatalogRecord("venues", venueResult.data) ? null : venueResult.data,
+    venue: isSyntheticCatalogRecord("venues", venueResult.data) ? null : venueResult.data ? { ...venueResult.data, imageUrl: firstVenueImage(venueResult.data) } : null,
     events: filterLiveCatalogRows("events", eventResult.data).map(toEvent),
   };
 }
