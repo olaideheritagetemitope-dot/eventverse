@@ -2122,7 +2122,7 @@ export default function EventVerseApp() {
     processing: <Processing nav={nav} data={current.data} />,
     success: <PaymentSuccess nav={nav} data={current.data} />,
     checkIn: <CheckInScreen nav={nav} data={current.data} />,
-    roleCenter: <RoleCenter nav={nav} account={account} data={current.data} />,    roleCapabilities: <RoleCapabilities nav={nav} account={account} />,    adminControlCenter: <AdminControlCenter nav={nav} account={account} />,    governanceDashboard: <GovernanceDashboard nav={nav} account={account} />,    adminWorkspace: <AdminWorkspace nav={nav} account={account} />,
+    roleCenter: <RoleCenter nav={nav} account={account} data={current.data} />,    roleCapabilities: <RoleCapabilities nav={nav} account={account} />,    adminControlCenter: <GovernanceDashboard nav={nav} account={account} />,    governanceDashboard: <GovernanceDashboard nav={nav} account={account} />,    adminWorkspace: <AdminWorkspace nav={nav} account={account} />,
     artistWorkspace: <ArtistWorkspace nav={nav} account={account} catalog={catalog} />,
     artistOnboarding: <ArtistOnboarding nav={nav} account={account} mode="REGISTRATION" />,
     artistVerification: <ArtistOnboarding nav={nav} account={account} mode="VERIFICATION" />,

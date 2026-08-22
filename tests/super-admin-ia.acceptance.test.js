@@ -22,6 +22,8 @@ describe("Super Admin grouped information architecture", () => {
       expect(registry).toContain(token);
     }
     expect(eventVerse).toContain("<SuperAdminModuleRegistry");
+    expect(eventVerse).toContain("adminControlCenter: <GovernanceDashboard");
+    expect(eventVerse).toContain("governanceDashboard: <GovernanceDashboard");
     expect(eventVerse).toContain("reviewRoleApplication");
     expect(eventVerse).toContain("adminSetEventStatus");
   });

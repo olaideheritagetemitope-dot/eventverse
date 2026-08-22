@@ -1034,4 +1034,12 @@
 - [x] Add live search, filters, contextual action menus, and responsive mobile/desktop navigation without mock data
 - [x] Preserve and verify detail-page access for users, verification applications, content, events, tickets, payments, and governance records
 - [x] Add regression coverage proving authority retention, route reachability, and live-data-only rendering
-- [ ] Run the full test suite and production build, verify the production deployment, and save a checkpoint
+- [x] Run the full test suite and production build, verify the production deployment, and save a checkpoint
+
+## Super Admin restructure visibility regression — 2026-08-22
+
+- [ ] Reproduce why the deployed Super Admin restructure is not visible in the rendered UI
+- [ ] Trace the active route, component mount, bundle, and deployment source for the regression
+- [ ] Fix the production-visible route/component wiring without removing authority or existing actions
+- [ ] Add regression coverage for the visible grouped Super Admin shell
+- [ ] Re-run tests/build, deploy, and verify the live rendered production result
