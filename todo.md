@@ -1375,7 +1375,10 @@
 - [x] Repair the root cause in the actually served project without adding a superficial fallback
 - [x] Verify visible background publishing controls and public circular avatar rendering
 - [x] Run focused/full tests, TypeScript, and production build
-- [ ] Save a checkpoint with the verified root fix
+- [x] Save a checkpoint with the verified root fix
+- [x] Push the active source to the GitHub production branch
+- [x] Verify the linked Vercel production deployment serves the repaired bundle
+- [ ] Run authenticated device/production smoke test for Artist Profile media
 
 
 # Now Playing Real Playback Synchronization — 2026-08-22
@@ -1398,5 +1401,6 @@
 - [x] Run focused artist-media and playback acceptance tests
 - [x] Run full Vitest suite: 54 files, 177 passing tests, 2 skipped
 - [x] Run TypeScript validation and production build
-- [ ] Publish/deploy the validated build and verify the served production bundle
+- [x] Publish/deploy the validated build and verify the served production bundle
+- [ ] Run authenticated device/production smoke test for playback
 - [ ] Run authenticated device/production smoke test for playback and Artist Profile media
