@@ -1017,5 +1017,10 @@
 - [x] Add regression coverage for Organizer and Artist workspace visibility
 - [x] Validate 46 Vitest files, 156 passing tests, 3 skipped tests, and production build
 
-- [ ] Deeply diagnose why Become an Event Organizer is absent in the rendered Profile UI, including role-state guards, screen routing, and deployment/source parity
-- [ ] Fix the Organizer button visibility and verify it appears for normal users in the live mobile layout
+- [x] Deeply diagnose why Become an Event Organizer is absent in the rendered Profile UI, including role-state guards, screen routing, and deployment/source parity
+- [x] Fix the Organizer button visibility and verify it appears for normal users in the live mobile layout
+- [x] Fix Profile onboarding guards to use assigned roles for ownership and effective roles only for workspace capability projection
+- [x] Add regression coverage proving elevated/inherited roles do not hide Become an Event Organizer for users without an assigned Organizer role
+- [x] Verify the corrected Profile menu in the deployed bundle and mark the visibility repair complete
+
+> Root-cause note: the current Profile condition uses effectiveRoleCodes(account) to decide whether onboarding is available. Because effective roles intentionally include inherited Super Admin capabilities, this can suppress the onboarding entry even when Organizer is not assigned to the user.
