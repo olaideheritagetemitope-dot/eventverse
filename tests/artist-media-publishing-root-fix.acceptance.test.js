@@ -29,6 +29,7 @@ describe("Artist media and publishing root fix", () => {
     expect(service).toContain('status: \"DRAFT\"');
     expect(service).toContain('p_song_id: songId');
     expect(source).toContain("New song");
+    expect(source).toContain('className="shrink-0 rounded-xl px-3 py-2 text-[11px] font-semibold"');
     expect(source).toContain("publishSong");
     expect(source).toContain("Song published to the live catalog.");
     expect(source).toContain("Music video (optional)");

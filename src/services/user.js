@@ -209,7 +209,7 @@ export async function updateProfile(userId, updates) {
 
 export async function loadArtistWorkspace(userId) {
   if (!userId) throw new Error("Sign in to open the artist workspace.");
-  const { data: artist, error: artistError } = await supabase.from("artists").select("id,user_id,name,bio,verified,follower_count,image_url,created_at,updated_at").eq("user_id", userId).maybeSingle();
+  const { data: artist, error: artistError } = await supabase.from("artists").select("id,user_id,name,bio,verified,follower_count,image_url,background_url,created_at,updated_at").eq("user_id", userId).maybeSingle();
   if (artistError) throw artistError;
   if (!artist) return { artist: null, songs: [], events: [], bookings: [] };
   const [songsResult, eventLinksResult, bookingsResult] = await Promise.all([
@@ -282,9 +282,9 @@ export async function setArtistMusicVideoStatus(videoId, status) {
 
 export async function updateArtistProfile(artistId, userId, updates) {
   if (!artistId || !userId) throw new Error("Artist profile access is required.");
-  const payload = { name: updates?.name?.trim(), bio: updates?.bio?.trim() || null, image_url: managedMediaUrl(updates?.image_url, "artist photo"), updated_at: new Date().toISOString() };
+  const payload = { name: updates?.name?.trim(), bio: updates?.bio?.trim() || null, image_url: managedMediaUrl(updates?.image_url, "artist photo"), background_url: managedMediaUrl(updates?.background_url, "artist background"), updated_at: new Date().toISOString() };
   if (!payload.name) throw new Error("Artist name is required.");
-  const { data, error } = await supabase.from("artists").update(payload).eq("id", artistId).eq("user_id", userId).select("id,user_id,name,bio,verified,follower_count,image_url,created_at,updated_at").single();
+  const { data, error } = await supabase.from("artists").update(payload).eq("id", artistId).eq("user_id", userId).select("id,user_id,name,bio,verified,follower_count,image_url,background_url,created_at,updated_at").single();
   if (error) throw error;
   return data;
 }
@@ -313,6 +313,12 @@ export async function setArtistSongStatus(songId, status) {
   if (error) throw error;
   return Array.isArray(data) ? data[0] : data;
 }
+export async function archiveArtistSong(songId) {
+  if (!songId) throw new Error("Song access is required.");
+  const { data, error } = await supabase.rpc("archive_artist_song", { p_song_id: songId });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
 
 export async function updateArtistSong(songId, artistId, updates) {
   if (!songId || !artistId) throw new Error("Artist song access is required.");
@@ -332,8 +338,8 @@ export async function artistUpdateBookingStatus(bookingId, status) {
 
 export async function loadArtistOnboarding(userId) {
   if (!userId) return { registration: null, verification: null, fees: [] };
-  const [{ data: fees, error: feeError }, { data: registration, error: registrationError }, { data: artist, error: artistError }] = await Promise.all([
-    supabase.from("platform_settings").select("key,amount,currency,description").in("key", ["artist_registration_fee", "artist_verification_fee"]),
+  const [{ data: policy, error: feeError }, { data: registration, error: registrationError }, { data: artist, error: artistError }] = await Promise.all([
+    supabase.rpc("get_role_onboarding_public_config", { p_role_code: "ARTIST" }),
     supabase.from("artist_registrations").select("id,user_id,transaction_id,artist_id,status,failure_reason,submitted_at,activated_at,updated_at").eq("user_id", userId).maybeSingle(),
     supabase.from("artists").select("id,user_id,verified").eq("user_id", userId).maybeSingle(),
   ]);
@@ -346,7 +352,7 @@ export async function loadArtistOnboarding(userId) {
     if (error) throw error;
     verification = data;
   }
-  return { fees: fees || [], registration, verification, artist };
+  return { fees: policy?.fee ? [policy.fee] : [], policy: policy || null, registration, verification, artist };
 }
 
 export async function initializeArtistFeePayment(userId, transactionType) {
@@ -365,25 +371,25 @@ export async function loadArtistFeeTransaction(transactionId) {
 }
 
 export async function loadArtistAdminOverview() {
-  const [{ data: settings, error: settingsError }, { data: registrations, error: registrationsError }, { data: verifications, error: verificationsError }, { data: transactions, error: transactionsError }, { data: auditHistory, error: auditError }] = await Promise.all([
-    supabase.from("platform_settings").select("key,amount,currency,description,updated_by,updated_at").in("key", ["artist_registration_fee", "artist_verification_fee"]),
+  const [{ data: policy, error: policyError }, { data: registrations, error: registrationsError }, { data: verifications, error: verificationsError }, { data: transactions, error: transactionsError }, { data: auditHistory, error: auditError }] = await Promise.all([
+    supabase.from("role_fee_policies").select("role_code,enabled,amount,currency,organizer_review_hours,updated_by,updated_at").eq("role_code", "ARTIST").maybeSingle(),
     supabase.from("artist_registrations").select("id,user_id,transaction_id,artist_id,status,submitted_at,activated_at,updated_at").order("created_at", { ascending: false }).limit(100),
     supabase.from("artist_verifications").select("id,artist_id,user_id,transaction_id,status,requested_at,verified_at,updated_at").order("created_at", { ascending: false }).limit(100),
     supabase.from("artist_fee_transactions").select("id,user_id,artist_id,transaction_type,amount,currency,status,provider_reference,verified_at,created_at").order("created_at", { ascending: false }).limit(100),
-    supabase.from("audit_logs").select("id,actor_id,action,entity_type,metadata,created_at").eq("action", "platform_fee.updated").order("created_at", { ascending: false }).limit(20),
+    supabase.from("audit_logs").select("id,actor_id,action,entity_type,metadata,created_at").in("action", ["role_fee_policy.updated", "role_fee_policy.updated_via_legacy_bridge"]).order("created_at", { ascending: false }).limit(20),
   ]);
-  const firstError = [settingsError, registrationsError, verificationsError, transactionsError, auditError].find(Boolean);
+  const firstError = [policyError, registrationsError, verificationsError, transactionsError, auditError].find(Boolean);
   if (firstError) throw firstError;
-  return { settings: settings || [], registrations: registrations || [], verifications: verifications || [], transactions: transactions || [], auditHistory: auditHistory || [] };
+  const canonical = policy ? { ...policy, key: "artist_verification_fee", description: "Canonical Artist role verification policy" } : null;
+  return { settings: canonical ? [canonical] : [], policy: canonical, registrations: registrations || [], verifications: verifications || [], transactions: transactions || [], auditHistory: auditHistory || [] };
 }
 
 export async function updateArtistFee(key, amount, userId) {
   if (!userId || !key) throw new Error("Fee setting access is required.");
+  if (!["artist_registration_fee", "artist_verification_fee"].includes(key)) throw new Error("Unsupported Artist fee setting.");
   const numericAmount = Number(amount);
   if (!Number.isFinite(numericAmount) || numericAmount < 0) throw new Error("Enter a valid non-negative fee.");
-  const { data, error } = await supabase.rpc("update_platform_setting_fee", { p_key: key, p_amount: numericAmount });
-  if (error) throw error;
-  return Array.isArray(data) ? data[0] : data;
+  return setRoleFeePolicy("ARTIST", true, numericAmount, "NGN", 24);
 }
 
 
@@ -557,6 +563,13 @@ export async function requestVenueBooking(userId, payload) {
 export async function respondVenueBooking(bookingId, status, reason = null) {
   if (!bookingId || !status) throw new Error("Booking response is required.");
   const { data, error } = await supabase.rpc("respond_venue_booking", { p_booking_id: bookingId, p_status: status, p_reason: reason });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+
+export async function archiveOwnedVenue(venueId) {
+  if (!venueId) throw new Error("Venue access is required.");
+  const { data, error } = await supabase.rpc("archive_owned_venue", { p_venue_id: venueId });
   if (error) throw error;
   return Array.isArray(data) ? data[0] : data;
 }
@@ -916,20 +929,27 @@ export async function loadPublicContentAnalytics() {
 }
 
 export async function createContentComment(targetType, targetId, body, authorId) {
+  targetType = normalizeContentTargetType(targetType);
   if (!targetType || !targetId || !body?.trim() || !authorId) throw new Error("Comment details are required.");
   const { data, error } = await supabase.from("content_comments").insert({ target_type: targetType, target_id: targetId, body: body.trim(), author_id: authorId }).select().single();
   if (error) throw error;
   return data;
 }
 
+const normalizeContentTargetType = (targetType) => targetType === "MUSIC" ? "SONG" : targetType;
+
 export async function setContentRating(targetType, targetId, rating, userId) {
+  targetType = normalizeContentTargetType(targetType);
   if (!targetType || !targetId || !userId) throw new Error("Rating details are required.");
-  const { data, error } = await supabase.from("content_ratings").upsert({ target_type: targetType, target_id: targetId, rating: Number(rating), user_id: userId }, { onConflict: "user_id,target_type,target_id" }).select().single();
+  const numericRating = Number(rating);
+  if (!Number.isInteger(numericRating) || numericRating < 1 || numericRating > 5) throw new Error("Rating must be between 1 and 5.");
+  const { data, error } = await supabase.from("content_ratings").upsert({ target_type: targetType, target_id: targetId, rating: numericRating, user_id: userId }, { onConflict: "user_id,target_type,target_id" }).select().single();
   if (error) throw error;
   return data;
 }
 
 export async function setContentLike(targetType, targetId, userId, liked) {
+  targetType = normalizeContentTargetType(targetType);
   if (!targetType || !targetId || !userId) throw new Error("Like details are required.");
   if (liked) {
     const { data, error } = await supabase.from("content_likes").upsert({ target_type: targetType, target_id: targetId, user_id: userId }, { onConflict: "user_id,target_type,target_id" }).select().single();
@@ -976,6 +996,7 @@ export async function loadGovernanceEvents() {
 }
 
 export async function loadContentEngagement(targetType, targetId, userId = null) {
+  targetType = normalizeContentTargetType(targetType);
   if (!targetType || !targetId) return { comments: [], averageRating: 0, ratingCount: 0, likeCount: 0, liked: false };
   const [{ data: comments, error: commentsError }, { data: ratings, error: ratingsError }, { data: likes, error: likesError }] = await Promise.all([
     supabase.from("content_comments").select("id,body,author_id,created_at,user_profiles(id,full_name,avatar_url)").eq("target_type", targetType).eq("target_id", targetId).eq("status", "VISIBLE").order("created_at", { ascending: false }).limit(50),
