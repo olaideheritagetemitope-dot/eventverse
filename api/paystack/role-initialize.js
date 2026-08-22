@@ -43,11 +43,12 @@ export default async function handler(req, res) {
     const { applicationId, email, idempotencyKey, callbackUrl } = req.body || {};
     if (!applicationId || !email || !idempotencyKey) return json(res, 400, { error: "applicationId, email, and idempotencyKey are required" });
     const payment = await supabaseRpc("initialize_role_application_payment", { p_application_id: applicationId, p_idempotency_key: idempotencyKey }, authorization);
-    if (payment.authorization_url) return json(res, 200, { paymentId: payment.id, reference: payment.provider_reference, authorizationUrl: payment.authorization_url, accessCode: payment.access_code, amount: payment.amount, currency: payment.currency, roleCode: payment.role_code });
-    const reference = `ATZ-ROLE-${payment.id}`;
+    if (payment.authorization_url) return json(res, 200, { paymentId: payment.id, reference: payment.provider_reference || payment.transaction_reference, transactionReference: payment.transaction_reference, authorizationUrl: payment.authorization_url, accessCode: payment.access_code, amount: payment.amount, currency: payment.currency, roleCode: payment.role_code, replayed: true });
+    const reference = payment.transaction_reference;
+    if (!reference) throw new Error("Server did not return a transaction reference");
     const paystack = await paystackInitialize({ email, amount: payment.amount, reference, callbackUrl: callbackUrl || `${req.headers.origin || "https://eventverse-eight.vercel.app"}/?role-payment=callback` });
     await attachProviderReference(payment.id, paystack.reference, authorization);
-    return json(res, 200, { paymentId: payment.id, reference: paystack.reference, authorizationUrl: paystack.authorization_url, accessCode: paystack.access_code, amount: payment.amount, currency: payment.currency, roleCode: payment.role_code });
+    return json(res, 200, { paymentId: payment.id, reference: paystack.reference, transactionReference: payment.transaction_reference, authorizationUrl: paystack.authorization_url, accessCode: paystack.access_code, amount: payment.amount, currency: payment.currency, roleCode: payment.role_code, replayed: false });
   } catch (error) {
     console.error("Role application Paystack initialization error", error);
     return json(res, 400, { error: error instanceof Error ? error.message : "Unable to initialize role verification payment" });

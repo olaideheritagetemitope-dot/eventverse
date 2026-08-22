@@ -43,10 +43,11 @@ export default async function handler(req, res) {
     const { transactionType, email, idempotencyKey, callbackUrl } = req.body || {};
     if (!transactionType || !email || !idempotencyKey || !["REGISTRATION", "VERIFICATION"].includes(transactionType)) return json(res, 400, { error: "transactionType, email, and idempotencyKey are required" });
     const transaction = await supabaseRpc("initialize_artist_fee_payment", { p_transaction_type: transactionType, p_idempotency_key: idempotencyKey }, authorization);
-    const reference = `ATZ-ARTIST-${transaction.id}`;
+    const reference = transaction.transaction_reference;
+    if (!reference) throw new Error("Server did not return a transaction reference");
     const paystack = await paystackInitialize({ email, amount: transaction.amount, reference, callbackUrl: callbackUrl || `${req.headers.origin || "https://eventverse-eight.vercel.app"}/?artist-payment=callback` });
     await attachProviderReference(transaction.id, paystack.reference);
-    return json(res, 200, { transactionId: transaction.id, reference: paystack.reference, authorizationUrl: paystack.authorization_url, accessCode: paystack.access_code, amount: transaction.amount, currency: transaction.currency, transactionType });
+    return json(res, 200, { transactionId: transaction.id, reference: paystack.reference, transactionReference: transaction.transaction_reference, authorizationUrl: paystack.authorization_url, accessCode: paystack.access_code, amount: transaction.amount, currency: transaction.currency, transactionType });
   } catch (error) {
     console.error("Artist Paystack initialization error", error);
     return json(res, 400, { error: error instanceof Error ? error.message : "Unable to initialize artist payment" });

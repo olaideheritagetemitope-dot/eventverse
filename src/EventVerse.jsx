@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useImperativeHandle } from "react";
 import {
   Search, Bell, Menu, ChevronLeft, ChevronRight, Play, Pause,
   SkipBack, SkipForward, Heart, Share2, Star, MapPin, Calendar,
@@ -317,17 +317,66 @@ function MiniPlayer({ song, playing, onToggle, onOpen, onPrevious, onNext }) {
   );
 }
 
-function AudioController({ song, playing, setPlaying, userId }) {
+const formatPlaybackTime = (value) => {
+  const seconds = Number.isFinite(Number(value)) && Number(value) >= 0 ? Math.floor(Number(value)) : 0;
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+};
+
+const AudioController = React.forwardRef(function AudioController({ song, playing, setPlaying, userId, onProgress }, controllerRef) {
   const audioRef = useRef(null);
+  const syncProgress = (audio) => {
+    onProgress?.({
+      currentTime: Number.isFinite(audio.currentTime) ? Math.max(0, audio.currentTime) : 0,
+      duration: Number.isFinite(audio.duration) ? Math.max(0, audio.duration) : 0,
+    });
+  };
+
+  useImperativeHandle(controllerRef, () => ({
+    seekTo: (seconds) => {
+      const audio = audioRef.current;
+      if (!audio || !Number.isFinite(Number(seconds))) return;
+      const target = Math.max(0, Math.min(Number(seconds), Number.isFinite(audio.duration) ? audio.duration : Number(seconds)));
+      audio.currentTime = target;
+      syncProgress(audio);
+    },
+  }), []);
+
   useEffect(() => {
-    if (!song?.audioUrl) { if (audioRef.current) audioRef.current.pause(); return; }
+    if (!song?.audioUrl) {
+      audioRef.current?.pause();
+      onProgress?.({ currentTime: 0, duration: 0 });
+      return undefined;
+    }
     const audio = new Audio(song.audioUrl);
+    audio.preload = "metadata";
     audioRef.current = audio;
-    const ended = () => { setPlaying(false); void recordPlay(userId, song.id, Number(song.duration_seconds || 0)); };
+    const sync = () => syncProgress(audio);
+    const ended = () => {
+      sync();
+      setPlaying(false);
+      void recordPlay(userId, song.id, Math.floor(audio.currentTime || song.duration_seconds || 0));
+    };
+    const failed = () => setPlaying(false);
+    audio.addEventListener("loadedmetadata", sync);
+    audio.addEventListener("durationchange", sync);
+    audio.addEventListener("timeupdate", sync);
+    audio.addEventListener("progress", sync);
     audio.addEventListener("ended", ended);
+    audio.addEventListener("error", failed);
+    sync();
     if (playing) audio.play().catch(() => setPlaying(false));
-    return () => { audio.removeEventListener("ended", ended); audio.pause(); audioRef.current = null; };
+    return () => {
+      audio.removeEventListener("loadedmetadata", sync);
+      audio.removeEventListener("durationchange", sync);
+      audio.removeEventListener("timeupdate", sync);
+      audio.removeEventListener("progress", sync);
+      audio.removeEventListener("ended", ended);
+      audio.removeEventListener("error", failed);
+      audio.pause();
+      if (audioRef.current === audio) audioRef.current = null;
+    };
   }, [song?.id, song?.audioUrl]);
+
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -335,7 +384,7 @@ function AudioController({ song, playing, setPlaying, userId }) {
     if (playing) audio.play().catch(() => setPlaying(false)); else audio.pause();
   }, [playing, song?.audioUrl]);
   return null;
-}
+});
 
 /* ============================== ONBOARDING ============================== */
 const SLIDES = [
@@ -1884,6 +1933,19 @@ function MusicHome({ nav, player, catalog, account }) {
 function FullPlayer({ nav, player, account }) {
   const song = player.song;
   const [liked, setLiked] = useState(Boolean(song?.liked));
+  const totalDuration = player.duration || Number(song?.duration_seconds || 0);
+  const progressPercent = totalDuration > 0 ? Math.min(100, Math.max(0, (Number(player.currentTime || 0) / totalDuration) * 100)) : 0;
+  const seekFromProgress = (event) => {
+    if (!totalDuration) return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const ratio = bounds.width ? Math.min(1, Math.max(0, (event.clientX - bounds.left) / bounds.width)) : 0;
+    player.seek(ratio * totalDuration);
+  };
+  const seekWithKeyboard = (event) => {
+    if (!totalDuration) return;
+    if (event.key === "ArrowLeft") { event.preventDefault(); player.seek(Math.max(0, Number(player.currentTime || 0) - 5)); }
+    if (event.key === "ArrowRight") { event.preventDefault(); player.seek(Math.min(totalDuration, Number(player.currentTime || 0) + 5)); }
+  };
   const toggleLike = async () => {
     if (!song?.id || !account?.user?.id) return;
     const next = !liked;
@@ -1913,12 +1975,23 @@ function FullPlayer({ nav, player, account }) {
             <button type="button" onClick={toggleLike} aria-label={liked ? "Unlike song" : "Like song"}><Heart size={20} color={liked ? C.gold : C.muted} fill={liked ? C.gold : "none"} /></button>
           </div>
           <div className="w-full mb-2">
-            <div className="w-full h-1 rounded-full" style={{ background: C.line }}>
-              <div className="h-1 rounded-full" style={{ width: "38%", background: C.gold }} />
+            <div
+              className="w-full h-1 rounded-full cursor-pointer"
+              style={{ background: C.line }}
+              role="slider"
+              tabIndex={0}
+              aria-label="Seek through song"
+              aria-valuemin={0}
+              aria-valuemax={Math.floor(totalDuration)}
+              aria-valuenow={Math.floor(Number(player.currentTime || 0))}
+              onClick={seekFromProgress}
+              onKeyDown={seekWithKeyboard}
+            >
+              <div className="h-1 rounded-full" style={{ width: `${progressPercent}%`, background: C.gold }} />
             </div>
             <div className="flex justify-between mt-1.5">
-              <span className="text-[10.5px]" style={{ color: C.muted }}>1:32</span>
-              <span className="text-[10.5px]" style={{ color: C.muted }}>{song.duration}</span>
+              <span className="text-[10.5px]" style={{ color: C.muted }}>{formatPlaybackTime(player.currentTime)}</span>
+              <span className="text-[10.5px]" style={{ color: C.muted }}>{formatPlaybackTime(totalDuration)}</span>
             </div>
           </div>
           {song.lyricsText && <div className="w-full rounded-2xl p-4 mb-4" style={{ background: `${C.card}cc`, border: `1px solid ${C.line}` }}><p className="text-[11px] uppercase tracking-wide mb-2" style={{ color: C.gold }}>Lyrics</p><p className="text-[12px] leading-5 whitespace-pre-wrap max-h-32 overflow-y-auto" style={{ color: C.ivory }}>{song.lyricsText}</p></div>}
@@ -2035,6 +2108,8 @@ export default function EventVerseApp() {
   });
   const [song, setSong] = useState(null);
   const [playing, setPlaying] = useState(false);
+  const [playback, setPlayback] = useState({ currentTime: 0, duration: 0 });
+  const audioControllerRef = useRef(null);
   const [queue, setQueue] = useState([]);
   const [authReady, setAuthReady] = useState(false);
   const [catalog, setCatalog] = useState(EMPTY_CATALOG);
@@ -2140,10 +2215,13 @@ export default function EventVerseApp() {
     song,
     playing,
     queue,
-    play: (s, nextQueue = catalog?.songs || []) => { setQueue(nextQueue.length ? nextQueue : [s]); setSong(s); setPlaying(true); },
+    currentTime: playback.currentTime,
+    duration: playback.duration,
+    play: (s, nextQueue = catalog?.songs || []) => { setQueue(nextQueue.length ? nextQueue : [s]); setSong(s); setPlayback({ currentTime: 0, duration: 0 }); setPlaying(true); },
     toggle: () => (song ? setPlaying((p) => !p) : null),
-    previous: () => { const index = queue.findIndex((item) => item.id === song?.id); if (index > 0) { setSong(queue[index - 1]); setPlaying(true); } },
-    next: () => { const index = queue.findIndex((item) => item.id === song?.id); if (index >= 0 && index < queue.length - 1) { setSong(queue[index + 1]); setPlaying(true); } },
+    seek: (seconds) => audioControllerRef.current?.seekTo(seconds),
+    previous: () => { const index = queue.findIndex((item) => item.id === song?.id); if (index > 0) { setSong(queue[index - 1]); setPlayback({ currentTime: 0, duration: 0 }); setPlaying(true); } },
+    next: () => { const index = queue.findIndex((item) => item.id === song?.id); if (index >= 0 && index < queue.length - 1) { setSong(queue[index + 1]); setPlayback({ currentTime: 0, duration: 0 }); setPlaying(true); } },
   };
 
   const screens = {
@@ -2197,7 +2275,7 @@ export default function EventVerseApp() {
     <div className="ev-app-viewport flex min-h-screen w-full items-stretch justify-stretch overflow-hidden" style={{ background: C.bg, minHeight: "100dvh", width: "100dvw" }}>
       <style>{font}</style>
       <style>{`.no-scrollbar::-webkit-scrollbar{display:none} .no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}`}</style>
-      <AudioController song={song} playing={playing} setPlaying={setPlaying} userId={account?.user?.id} />
+      <AudioController ref={audioControllerRef} song={song} playing={playing} setPlaying={setPlaying} userId={account?.user?.id} onProgress={setPlayback} />
       <div className="relative flex min-h-0 w-full flex-1 overflow-hidden" style={{ background: C.bg, minHeight: "100dvh", width: "100dvw" }}>
         {screens[current.screen] || screens.home}
       </div>

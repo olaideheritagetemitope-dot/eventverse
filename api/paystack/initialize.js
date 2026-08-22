@@ -73,15 +73,15 @@ export default async function handler(req, res) {
   if (!authorization?.startsWith("Bearer ")) return json(res, 401, { error: "Authentication required" });
 
   try {
-    const { orderId, email, callbackUrl } = req.body || {};
-    if (!orderId || !email) return json(res, 400, { error: "orderId and email are required" });
+    const { orderId, email, callbackUrl, idempotencyKey } = req.body || {};
+    if (!orderId || !email || !idempotencyKey) return json(res, 400, { error: "orderId, email, and idempotencyKey are required" });
 
     const payment = await supabaseRpc(
       "initialize_order_payment",
       {
         p_order_id: orderId,
         p_provider: "paystack",
-        p_idempotency_key: `paystack-${orderId}`,
+        p_idempotency_key: idempotencyKey,
       },
       authorization,
     );
@@ -91,7 +91,8 @@ export default async function handler(req, res) {
       return json(res, 200, {
         paymentId: payment.payment_id,
         orderId: payment.order_id,
-        reference: payment.provider_reference || null,
+        reference: payment.transaction_reference || null,
+        providerReference: payment.provider_reference || null,
         authorizationUrl: persistedAuthorizationUrl,
         authorization_url: persistedAuthorizationUrl,
         accessCode: payment.access_code,
@@ -102,7 +103,8 @@ export default async function handler(req, res) {
       });
     }
 
-    const reference = payment.provider_reference || `ATZ-${payment.payment_id}`;
+    const reference = payment.transaction_reference;
+    if (!reference) throw new Error("Server did not return a transaction reference");
     const paystack = await paystackInitialize({
       email,
       amount: payment.amount,
@@ -126,6 +128,7 @@ export default async function handler(req, res) {
       paymentId: payment.payment_id,
       orderId: payment.order_id,
       reference: paystack.reference,
+      providerReference: paystack.reference,
       authorizationUrl: paystack.authorization_url || null,
       authorization_url: paystack.authorization_url || null,
       accessCode: paystack.access_code || null,

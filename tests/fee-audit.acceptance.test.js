@@ -3,30 +3,39 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const root = path.resolve(process.cwd());
-const migration = fs.readFileSync(path.join(root, "supabase/0017_fee_change_audit.sql"), "utf8");
+const migration = fs.readFileSync(path.join(root, "supabase/0071_canonical_role_policy_bridge.sql"), "utf8");
 const service = fs.readFileSync(path.join(root, "src/services/user.js"), "utf8");
 const ui = fs.readFileSync(path.join(root, "src/EventVerse.jsx"), "utf8");
+const governance = fs.readFileSync(path.join(root, "src/components/AdvancedGovernancePanels.jsx"), "utf8");
 
 const has = (source, value) => expect(source).toContain(value);
 
-describe("Atizzy fee audit acceptance", () => {
-  it("uses a Super Admin-only server RPC for fee changes", () => {
-    has(migration, "update_platform_setting_fee");
-    has(migration, "SUPER_ADMIN");
-    has(migration, "grant execute on function public.update_platform_setting_fee(text, numeric) to authenticated");
-    has(service, 'supabase.rpc("update_platform_setting_fee"');
+describe("Atizzy canonical role-policy acceptance", () => {
+  it("uses role_fee_policies as the authoritative Artist, Organizer, and Venue Manager fee source", () => {
+    has(migration, "role_fee_policies");
+    has(migration, "create or replace function public.initialize_artist_fee_payment");
+    has(migration, "from public.role_fee_policies");
+    has(service, 'supabase.rpc("get_role_onboarding_public_config"');
+    has(service, 'supabase.from("role_fee_policies")');
+    has(service, 'setRoleFeePolicy("ARTIST"');
+    has(governance, 'const ROLE_LABELS = ["ARTIST", "ORGANIZER", "VENUE_MANAGER"]');
+    has(governance, "Role verification policies");
   });
 
-  it("records previous and new fee values in the audit log", () => {
-    has(migration, "platform_fee.updated");
+  it("keeps legacy Artist pricing as a compatibility bridge with audit history only", () => {
+    has(migration, "update_platform_setting_fee");
+    has(migration, "updated_via_legacy_bridge");
     has(migration, "previous_amount");
     has(migration, "new_amount");
-    has(service, 'eq("action", "platform_fee.updated")');
+    expect(service).not.toContain('supabase.rpc("update_platform_setting_fee"');
   });
 
-  it("keeps fee history visible in the existing Super Admin UI", () => {
-    has(ui, "Fee change history");
-    has(ui, "No fee changes have been recorded yet.");
-    has(ui, "overview.auditHistory");
+  it("keeps onboarding-question controls and all role onboarding routes in the existing UI", () => {
+    has(governance, "Configured onboarding questions");
+    has(governance, "Delete question");
+    has(ui, "artistOnboarding");
+    has(ui, "organizerOnboarding");
+    has(ui, "venueOnboarding");
+    has(ui, "Complete the live questionnaire first");
   });
 });

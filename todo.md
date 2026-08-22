@@ -1283,7 +1283,120 @@
 - [x] Connect draft save, edit, publish, and library refresh to live Supabase records
 - [x] Add regression coverage for the Artist Music publishing flow
 
-- [ ] Fix mobile Artist Workspace Music tab still rendering the stale unavailable empty state
-- [ ] Expose visible live song publishing controls in the mobile Artist Workspace
-- [ ] Support optional music-video attachment and lyrics persistence/playback metadata for songs
-- [ ] Verify mobile route, backend data, and frontend state refresh remain connected
+- [x] Fix mobile Artist Workspace Music tab still rendering the stale unavailable empty state
+- [x] Expose visible live song publishing controls in the mobile Artist Workspace
+- [x] Support optional music-video attachment and lyrics persistence/playback metadata for songs
+- [x] Verify mobile route, backend data, and frontend state refresh remain connected
+
+- [x] Trace why the Artist Workspace device still serves the obsolete Music empty-state bundle; root cause was the three-item Music header overflowing horizontally on narrow screens and pushing New song outside the viewport
+- [x] Repair the actual runtime/deployment path serving the Artist frontend by making the existing New song control mobile-visible in the actual ArtistWorkspace route
+- [ ] Verify visible song, artwork, audio, music-video, and lyrics controls on the served route after the next deployed bundle reaches the device
+
+- [x] Render the live Artist profile picture as a circular avatar on the left side of the profile details header
+- [x] Render a live general background picture behind the Artist profile details header
+- [x] Preserve responsive layout and add regression coverage for both profile media placements
+
+- [x] Match Artist detail profile header to the reference setting with a general background image and left circular avatar
+- [x] Keep live name, follower count, follow/share actions, tabs, songs, and Book Artist CTA connected
+- [x] Validate responsive Artist detail rendering and live media fallback behavior
+
+- [ ] Enable owner-authorized deletion/archive for posted Artist music with visible actions and live refresh
+- [ ] Enable authorized deletion/archive for posted venues with visible actions and live refresh
+- [ ] Make fixed music-player previous/next navigation operate from a live queue
+- [ ] Repair content_likes target-type contract so music rating/like actions persist successfully
+- [ ] Add regression coverage for deletion, player navigation, and music rating/like workflows
+
+# Regression Fixes — 2026-08-22
+
+- [x] Add owner-authorized song archive RPC and service mutation
+- [x] Add owner-authorized venue archive RPC and service mutation
+- [x] Exclude archived venues from public catalog, search, and detail loading
+- [x] Expose visible song Delete actions in Artist Workspace and Music Library
+- [x] Expose visible venue Delete action in Venue Manager workspace
+- [x] Normalize legacy MUSIC engagement targets to the live SONG contract
+- [x] Connect mini-player previous/next controls to the live root queue
+- [x] Render current-song lyrics in the full player
+- [x] Run full regression suite, TypeScript validation, and production build
+- [ ] Perform authenticated browser/device smoke test of delete, rating, queue, and lyrics flows
+- [ ] Deploy the validated build through the project publishing workflow
+
+
+# Artist Profile Media Regression — 2026-08-22
+
+- [x] Trace why the uploaded artist avatar is absent on the public artist detail page
+- [x] Verify the artist avatar and background media URL contract from Storage through Supabase and catalog hydration
+- [x] Make artist profile settings visibly expose background-image upload and save controls
+- [x] Repair public circular avatar and background rendering without changing the existing layout
+- [x] Add regression coverage for artist avatar/background persistence and rendering
+- [x] Run TypeScript, Vitest, and production build validation
+- [ ] Save a checkpoint with the verified fix
+
+
+# Canonical Role-Onboarding Policy Consolidation — 2026-08-22
+
+- [ ] Inventory every frontend fee, verification, onboarding-question, policy, governance, and role-onboarding implementation
+- [ ] Inventory every Supabase table, RPC, trigger, policy, and migration involved in role fees and onboarding
+- [ ] Identify and document all platform_settings and role_fee_policies consumers and conflicts
+- [ ] Establish role_fee_policies as the single canonical role-onboarding policy source
+- [ ] Safely migrate or bridge legacy Artist pricing without losing configured values
+- [ ] Consolidate duplicate fees, verification settings, question controls, policy controls, and governance panels
+- [ ] Preserve all existing cards, pills, styling, spacing, routes, actions, and workflow capabilities
+- [ ] Verify Artist onboarding: questions → review → fee → payment → activation
+- [ ] Verify Organizer onboarding: questions → review → fee → payment → activation
+- [ ] Verify Venue Manager onboarding: questions → review → fee → payment → activation
+- [ ] Validate database writes, reads, RLS, RPC authorization, and frontend refresh behavior
+- [ ] Run full regression suite, TypeScript, production build, and deployment-readiness checks
+- [ ] Save a checkpoint with the consolidated architecture
+
+
+# Canonical Role-Policy Consolidation Verification — 2026-08-22
+
+- [x] Inventory frontend, service, migration, RPC, and governance references for duplicate fee/policy implementations
+- [x] Establish `role_fee_policies` as the runtime source for Artist, Organizer, and Venue Manager onboarding fees
+- [x] Bridge legacy `platform_settings` Artist fee writes to canonical policy updates while retaining historical audit records
+- [x] Redirect Artist onboarding fee reads and payment initialization away from legacy runtime fee reads
+- [x] Keep the existing Role Verification Policies and onboarding-question control surface as the authoritative governance UI
+- [x] Preserve onboarding routes and existing Atizzy cards, pills, spacing, styling, and workflow structure
+- [x] Confirm live canonical policy rows exist for ARTIST, ORGANIZER, and VENUE_MANAGER
+- [x] Confirm live onboarding and Artist payment RPCs exist after migration
+- [x] Update acceptance coverage to reject legacy runtime fee writes and require canonical policy consumers
+- [x] Run full Vitest suite: 53 files, 174 passing tests, 2 skipped
+- [x] Run TypeScript validation
+- [x] Run production build
+- [ ] Run authenticated production lifecycle test for all three roles
+- [ ] Publish/deploy the validated build and verify production behavior
+
+
+# Artist Profile Media Visibility Recheck — 2026-08-22
+- [x] Confirm the active frontend project and deployment source actually serving the user-visible UI
+- [x] Trace artist profile navigation and settings reachability in the active source
+- [x] Trace avatar/background values from Storage through Supabase rows, service normalization, route state, and render props
+- [x] Identify why the previous fix did not actualize in the frontend
+- [x] Repair the root cause in the actually served project without adding a superficial fallback
+- [x] Verify visible background publishing controls and public circular avatar rendering
+- [x] Run focused/full tests, TypeScript, and production build
+- [ ] Save a checkpoint with the verified root fix
+
+
+# Now Playing Real Playback Synchronization — 2026-08-22
+- [ ] Inventory audio initialization, playback controls, position/duration state, listeners, and Now Playing consumers
+- [ ] Trace the single-source-of-truth break and lifecycle/navigation causes
+- [ ] Connect progress and elapsed time to the real audio player position without fake timers
+- [ ] Preserve exact pause/resume/seek/track-change/end-of-track behavior
+- [ ] Keep playback-dependent UI updates scoped and avoid unnecessary full-screen rebuilds
+- [ ] Add deterministic regression coverage for position, duration, seeking, pause/resume, navigation, and track changes
+- [ ] Run full tests, TypeScript, production build, and served-source verification
+- [ ] Save a checkpoint with the verified playback synchronization fix
+
+# Now Playing Real Playback Synchronization — Completion Record — 2026-08-22
+- [x] Inventory audio initialization, playback controls, position/duration state, listeners, and Now Playing consumers
+- [x] Trace the single-source-of-truth break in the static progress and elapsed-time UI
+- [x] Connect progress and elapsed time to the real HTML audio element position and metadata
+- [x] Preserve pause/resume, seek, previous/next, and end-of-track behavior
+- [x] Add keyboard-accessible seeking while preserving the existing progress-bar design
+- [x] Add deterministic source-level regression coverage for live position, duration, seeking, and track changes
+- [x] Run focused artist-media and playback acceptance tests
+- [x] Run full Vitest suite: 54 files, 177 passing tests, 2 skipped
+- [x] Run TypeScript validation and production build
+- [ ] Publish/deploy the validated build and verify the served production bundle
+- [ ] Run authenticated device/production smoke test for playback and Artist Profile media
