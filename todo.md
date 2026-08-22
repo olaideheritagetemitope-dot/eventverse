@@ -1452,3 +1452,53 @@
 - [x] Run focused and full tests, TypeScript, and production build
 - [ ] Save a checkpoint and report the completed player upgrade
 - [ ] Run authenticated device smoke testing for swipe and media playback
+
+# Now Playing Master-Page Structural Restoration — 2026-08-22
+- [x] Compare the current swipe pager’s first page against the original Now Playing hierarchy and identify displaced or missing elements
+- [x] Restore the original header, artwork, song information, favorite, progress/timing, five playback controls, and bottom action row as one complete page
+- [x] Preserve real audio position, duration, seek, pause/resume, queue, shuffle, repeat, and track transitions
+- [x] Keep the first page’s artwork proportions, spacing, typography, and responsive composition intact
+- [x] Wrap the restored page in a page-level pager without letting swipes interfere with controls, seeking, or vertical scrolling
+- [x] Preserve live Lyrics and Music Video pages and their unavailable/loading/error states
+- [x] Add or update structural regression coverage for every required Now Playing element and pager boundary
+- [x] Run full tests, TypeScript, and production build
+- [ ] Save a checkpoint and report the structural restoration
+- [ ] Run authenticated device smoke testing against the restored page
+
+# Hard Song and Venue Deletion Root Fix — 2026-08-22
+- [x] Trace Artist Dashboard song deletion UI, confirmation, service/RPC, table, ownership, related rows, storage, RLS, foreign keys, and triggers
+- [x] Trace Venue Dashboard deletion UI, confirmation, service/RPC, table, ownership, related events, storage, RLS, foreign keys, and triggers
+- [x] Capture the actual current Supabase deletion errors instead of swallowing them
+- [x] Determine safe song dependent-record behavior and storage cleanup without deleting shared assets
+- [x] Determine safe venue dependent-event behavior without silently deleting unrelated events
+- [x] Verify DELETE table privileges and owner/manager authorization at database/server level
+- [x] Implement authoritative song deletion with authorization, cleanup, refresh, and truthful success/failure states
+- [x] Implement authoritative venue deletion with authorization, dependency handling, cleanup, refresh, and truthful success/failure states
+- [x] Preserve create, read, update, playback, and other working CRUD flows
+- [x] Add confirmation, deleting state, duplicate-tap protection, success notification, and failure retention behavior
+- [x] Add regression coverage for authorized/unauthorized deletion, dependencies, errors, and state invalidation
+- [x] Run full tests, TypeScript, and production build
+- [ ] Perform real database end-to-end deletion verification where authenticated test access permits
+- [ ] Save a checkpoint and report any remaining user-device or live-account verification gate
+
+# Now Playing Control Row Regression Root Fix — 2026-08-22
+- [x] Audit previous, play/pause, and next control markup, handlers, icon rendering, and pager placement
+- [x] Trace responsive sizing, flex/grid constraints, overflow, clipping, and conditional render paths causing controls to disappear
+- [x] Reproduce the screenshot state in the active source and identify the root layout or wiring failure
+- [x] Restore all three controls visibly without removing shuffle, repeat, playlist, or other existing actions
+- [x] Preserve and verify previous/next queue behavior and exact play/pause audio behavior
+- [x] Ensure the control row remains visible across mobile, desktop, pager pages, and navigation return
+- [x] Add regression coverage for control presence, handler wiring, and responsive layout contracts
+- [x] Run full tests, TypeScript, and production build
+- [ ] Save a checkpoint and report the regression fix
+- [ ] Run authenticated device smoke testing for the restored controls
+
+# User-Visible Deployment Mismatch Root Fix — 2026-08-22
+- [ ] Compare active `/home/ubuntu/eventverse` source, current Git commit, GitHub main, managed project root, and Vercel project metadata
+- [ ] Determine which URL/build the user screenshot is actually loading
+- [ ] Verify whether the latest control-row source markers exist in the served production bundle
+- [ ] Inspect stale preview/server logs and configuration for the `/home/ubuntu/evently-mobile` mismatch
+- [ ] Correct the managed project/deployment linkage without creating an unrelated frontend
+- [ ] Verify the user-facing URL serves the latest Atizzy source and control-row layout
+- [ ] Run regression tests, TypeScript, and production build after the linkage correction
+- [ ] Save a checkpoint and report the exact remaining user-device gate if any

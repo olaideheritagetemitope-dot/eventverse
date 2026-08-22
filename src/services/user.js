@@ -320,6 +320,19 @@ export async function archiveArtistSong(songId) {
   return Array.isArray(data) ? data[0] : data;
 }
 
+export async function deleteArtistSong(songId) {
+  if (!songId) throw new Error("Song access is required.");
+  const { data, error } = await supabase.rpc("delete_artist_song", { p_song_id: songId });
+  if (error) throw error;
+  const result = Array.isArray(data) ? data[0] : data;
+  const paths = Array.isArray(result?.media_paths) ? result.media_paths.filter(Boolean) : [];
+  if (paths.length) {
+    const { error: storageError } = await supabase.storage.from(MEDIA_BUCKET).remove(paths);
+    if (storageError) throw storageError;
+  }
+  return result;
+}
+
 export async function updateArtistSong(songId, artistId, updates) {
   if (!songId || !artistId) throw new Error("Artist song access is required.");
   const payload = { title: updates?.title?.trim(), cover_url: managedMediaUrl(updates?.cover_url, "song cover"), audio_url: managedMediaUrl(updates?.audio_url, "audio file"), music_video_url: managedMediaUrl(updates?.music_video_url, "music video"), lyrics_text: updates?.lyrics_text?.trim() || null };
@@ -572,6 +585,19 @@ export async function archiveOwnedVenue(venueId) {
   const { data, error } = await supabase.rpc("archive_owned_venue", { p_venue_id: venueId });
   if (error) throw error;
   return Array.isArray(data) ? data[0] : data;
+}
+
+export async function deleteOwnedVenue(venueId) {
+  if (!venueId) throw new Error("Venue access is required.");
+  const { data, error } = await supabase.rpc("delete_owned_venue", { p_venue_id: venueId });
+  if (error) throw error;
+  const result = Array.isArray(data) ? data[0] : data;
+  const paths = Array.isArray(result?.media_paths) ? result.media_paths.filter(Boolean) : [];
+  if (paths.length) {
+    const { error: storageError } = await supabase.storage.from(MEDIA_BUCKET).remove(paths);
+    if (storageError) throw storageError;
+  }
+  return result;
 }
 
 export async function updateOwnedVenue(venueId, payload) {

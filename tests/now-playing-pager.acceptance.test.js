@@ -13,6 +13,23 @@ describe("swipeable Now Playing experience", () => {
     expect(app).toContain('aria-label={player.playing ? "Pause song" : "Play song"}');
     expect(app).toContain('Seek through song');
     expect(app).toContain('formatPlaybackTime(player.currentTime)');
+    const firstPageStart = app.indexOf('className="h-full min-w-0 w-1/3 flex-shrink-0 flex flex-col px-6 overflow-y-auto"');
+    const lyricsPageStart = app.indexOf('<LyricsPage song={song} player={player} />');
+    const firstPage = app.slice(firstPageStart, lyricsPageStart);
+    expect(firstPage).toContain('Close now playing');
+    expect(firstPage).toContain('Open music library');
+    expect(firstPage).toContain('song.coverUrl');
+    expect(firstPage).toContain('song.title');
+    expect(firstPage).toContain('Like song');
+    expect(firstPage).toContain('Seek through song');
+    expect(firstPage).toContain('Shuffle');
+    expect(firstPage).toContain('Previous song');
+    expect(firstPage).toContain('Pause song');
+    expect(firstPage).toContain('Next song');
+    expect(firstPage).toContain('Repeat');
+    expect(firstPage).toContain('Share song');
+    expect(firstPage).toContain('Add to Playlist');
+    expect(firstPage).toContain('Open playlists');
   });
 
   it("implements an intentional three-page horizontal pager with indicators", () => {

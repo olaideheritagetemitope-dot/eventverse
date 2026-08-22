@@ -16,6 +16,16 @@ describe("artist creator content capability projection", () => {
     expect(source).toContain("publishMusicVideo");
   });
 
+  it("routes the visible Artist music delete action through the authoritative permanent-delete handler", () => {
+    const workspaceStart = source.indexOf("function ArtistWorkspace");
+    const workspaceEnd = source.indexOf("function ArtistAdminSettings");
+    const workspace = source.slice(workspaceStart, workspaceEnd);
+    expect(workspace).toContain("const archiveSong = async (song)");
+    expect(workspace).toContain("onClick={() => archiveSong(song)}");
+    expect(workspace).not.toContain("onClick={() => archive(song)}");
+    expect(workspace).toContain("deleteArtistSong(song.id)");
+  });
+
   it("uses managed media uploads and explicit live empty states", () => {
     expect(source).toContain('"ALBUM_COVER"');
     expect(source).toContain('"MUSIC_VIDEO_THUMBNAIL"');
