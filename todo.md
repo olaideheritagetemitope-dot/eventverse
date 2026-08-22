@@ -1024,3 +1024,14 @@
 - [x] Verify the corrected Profile menu in the deployed bundle and mark the visibility repair complete
 
 > Root-cause note: the current Profile condition uses effectiveRoleCodes(account) to decide whether onboarding is available. Because effective roles intentionally include inherited Super Admin capabilities, this can suppress the onboarding entry even when Organizer is not assigned to the user.
+
+# Super Admin Dashboard Restructure — Directive 2026-08-22
+
+- [x] Audit every existing Super Admin route, module, authority, and action before rearranging navigation
+- [x] Map all existing capabilities into Overview, People, Verification, Content, Events, Tickets & Payments, Moderation, Analytics, Communications, System Control, and Settings
+- [x] Preserve all existing Super Admin routes and actions behind the new grouped navigation
+- [x] Add compact dropdown navigation with breadcrumbs and clear route titles
+- [x] Add live search, filters, contextual action menus, and responsive mobile/desktop navigation without mock data
+- [x] Preserve and verify detail-page access for users, verification applications, content, events, tickets, payments, and governance records
+- [x] Add regression coverage proving authority retention, route reachability, and live-data-only rendering
+- [ ] Run the full test suite and production build, verify the production deployment, and save a checkpoint
