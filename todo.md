@@ -1186,3 +1186,29 @@
 - [x] Production Vite build passed
 - [ ] Deploy the corrected build and verify the live screenshot shows Delete question
 
+
+# Super Admin Manual Role Assignment and Dashboard Access — 2026-08-22
+
+- [ ] Expose assign-role controls directly in the live Super Admin Users directory
+- [ ] Show each user’s complete active and non-active role set in the directory
+- [ ] Verify manual assignment bypasses questionnaire, review, and payment for every role
+- [ ] Ensure manual assignment immediately activates the role and links the required profile/workspace record
+- [ ] Refresh the assigned user’s capability projection without re-authentication
+- [ ] Expose the corresponding role dashboard and navigation immediately after assignment
+- [ ] Preserve multi-role assignment, removal, suspension, restoration, verification, and audit history
+- [ ] Add regression coverage for directory actions and immediate workspace access
+- [ ] Deploy and verify the live Users directory behavior
+
+
+# Super Admin Manual Role Assignment — Root-Cause Completion — 2026-08-22
+
+- [x] Traced the screenshot path to the legacy GovernanceDashboard Users directory
+- [x] Added visible Manage roles control to live user rows
+- [x] Added all supported role choices and unrestricted lifecycle actions
+- [x] Connected actions to server-authoritative mutation, audit reason, and immediate refresh
+- [x] Preserved onboarding and payment bypass for manual assignments
+- [x] Repaired malformed JSX and validated the mounted route
+- [x] Added regression assertions for the visible Users directory controls
+- [x] Passed 50 Vitest files / 168 tests, TypeScript, and production build
+- [ ] Deploy and verify the live mobile screenshot shows Manage roles and assigned dashboards
+

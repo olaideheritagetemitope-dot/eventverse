@@ -6,6 +6,7 @@ const root = path.resolve(process.cwd());
 const service = fs.readFileSync(path.join(root, "src/services/user.js"), "utf8");
 const panel = fs.readFileSync(path.join(root, "src/components/AdvancedGovernancePanels.jsx"), "utf8");
 const registry = fs.readFileSync(path.join(root, "src/components/SuperAdminModuleRegistry.jsx"), "utf8");
+const appShell = fs.readFileSync(path.join(root, "src/EventVerse.jsx"), "utf8");
 const migration = fs.readFileSync(path.join(root, "supabase/0061_onboarding_question_lifecycle.sql"), "utf8");
 
 describe("Super Admin onboarding and role management", () => {
@@ -27,5 +28,8 @@ describe("Super Admin onboarding and role management", () => {
     expect(registry).toContain("SUPER_ADMIN");
     expect(registry).toContain("VENUE_MANAGER");
     expect(registry).toContain("ORGANIZER");
+    expect(appShell).toContain("Manage roles");
+    expect(appShell).toContain("Manual assignment bypasses onboarding and payment");
+    expect(appShell).toContain("submitDirectoryRoleAction");
   });
 });
