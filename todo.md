@@ -1525,3 +1525,13 @@
 - [x] Validate focused tests, full Vitest suite: 55 files, 187 passed, 2 skipped, TypeScript, and production build
 - [ ] Save a checkpoint for the event authorization fix
 - [ ] Authenticated event-post smoke test with a real uploaded cover remains pending
+
+# Permanent Venue Deletion Root Fix — 2026-08-23
+- [x] Trace the venue deletion UI handler, service method, RPC, triggers, and foreign-key dependencies
+- [x] Inspect the live venue dependency graph and identify the exact deletion failure shown after confirmation
+- [x] Add a forward-only RPC fix that preserves authoritative ownership and handles dependent bookings/events safely
+- [x] Apply and verify the deletion fix in live Supabase
+- [x] Add regression coverage for venue deletion and dependency-safe behavior
+- [x] Validate focused tests, full Vitest suite: 55 files, 188 passed, 2 skipped, TypeScript, and production build
+- [ ] Save a checkpoint for the venue deletion fix
+- [ ] Authenticated deletion smoke test with a real owned venue remains pending

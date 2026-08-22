@@ -8,6 +8,7 @@ const services = fs.readFileSync(path.join(root, "src/services/user.js"), "utf8"
 const workflow = fs.readFileSync(path.join(root, "supabase/0015_venue_manager_workflow.sql"), "utf8");
 const completion = fs.readFileSync(path.join(root, "supabase/0016_venue_manager_completion.sql"), "utf8");
 const mediaTriggerFix = fs.readFileSync(path.join(root, "supabase/0074_fix_shared_media_trigger_avatar_regression.sql"), "utf8");
+const permanentDeleteFix = fs.readFileSync(path.join(root, "supabase/0076_permanent_venue_delete_preserve_history.sql"), "utf8");
 const paymentApi = fs.readFileSync(path.join(root, "api/paystack/venue-initialize.js"), "utf8");
 const webhook = fs.readFileSync(path.join(root, "api/paystack/webhook.js"), "utf8");
 const directive = fs.readFileSync(path.join(root, "VENUE_MANAGER_DIRECTIVE.md"), "utf8");
@@ -45,6 +46,16 @@ describe("Venue Manager directive acceptance", () => {
     expect(mediaTriggerFix).toContain("v_row jsonb := to_jsonb(new);");
     expect(mediaTriggerFix).not.toMatch(/\bnew\.(avatar_url|image_url|image_urls)\b/i);
     expect(mediaTriggerFix).toContain("before insert or update of image_urls on public.venues");
+  });
+
+  it("permanently deletes venues without destroying booking history", () => {
+    has(services, "deleteOwnedVenue");
+    has(permanentDeleteFix, "alter column venue_id drop not null");
+    has(permanentDeleteFix, "on delete set null");
+    has(permanentDeleteFix, "history_preserved");
+    has(permanentDeleteFix, "detached_booking_count");
+    expect(permanentDeleteFix).not.toContain("Venue cannot be permanently deleted while booking records exist");
+    has(ui, "Delete");
   });
 
   it("supports server-authoritative availability management", () => {
@@ -133,6 +144,7 @@ describe("Venue Manager directive acceptance", () => {
     expect(fs.existsSync(path.join(root, "supabase/0015_venue_manager_workflow.sql"))).toBe(true);
     expect(fs.existsSync(path.join(root, "supabase/0016_venue_manager_completion.sql"))).toBe(true);
     expect(fs.existsSync(path.join(root, "supabase/0074_fix_shared_media_trigger_avatar_regression.sql"))).toBe(true);
+    expect(fs.existsSync(path.join(root, "supabase/0076_permanent_venue_delete_preserve_history.sql"))).toBe(true);
     expect(fs.existsSync(path.join(root, "VENUE_MANAGER_DIRECTIVE.md"))).toBe(true);
     expect(directive.length).toBeGreaterThan(200);
   });
