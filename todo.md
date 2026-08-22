@@ -1189,14 +1189,14 @@
 
 # Super Admin Manual Role Assignment and Dashboard Access — 2026-08-22
 
-- [ ] Expose assign-role controls directly in the live Super Admin Users directory
-- [ ] Show each user’s complete active and non-active role set in the directory
-- [ ] Verify manual assignment bypasses questionnaire, review, and payment for every role
-- [ ] Ensure manual assignment immediately activates the role and links the required profile/workspace record
-- [ ] Refresh the assigned user’s capability projection without re-authentication
-- [ ] Expose the corresponding role dashboard and navigation immediately after assignment
-- [ ] Preserve multi-role assignment, removal, suspension, restoration, verification, and audit history
-- [ ] Add regression coverage for directory actions and immediate workspace access
+- [x] Expose assign-role controls directly in the live Super Admin Users directory
+- [x] Show each user’s complete active and non-active role set in the directory
+- [x] Verify manual assignment bypasses questionnaire, review, and payment for every role
+- [x] Ensure manual assignment immediately activates the role and links the required profile/workspace record
+- [x] Refresh the assigned user’s capability projection without re-authentication
+- [x] Expose the corresponding role dashboard and navigation immediately after assignment
+- [x] Preserve multi-role assignment, removal, suspension, restoration, verification, and audit history
+- [x] Add regression coverage for directory actions and immediate workspace access
 - [ ] Deploy and verify the live Users directory behavior
 
 
@@ -1211,4 +1211,13 @@
 - [x] Added regression assertions for the visible Users directory controls
 - [x] Passed 50 Vitest files / 168 tests, TypeScript, and production build
 - [ ] Deploy and verify the live mobile screenshot shows Manage roles and assigned dashboards
+
+
+# Manual Role Assignment RPC Schema Repair — 2026-08-22
+
+- [ ] Inspect the live role-assignment table and RPC return-record fields
+- [ ] Fix the `v_existing.id` field mismatch in the authoritative Super Admin mutation
+- [ ] Preserve unrestricted manual assignment, multi-role support, bypass, profile linking, and audit logging
+- [ ] Add regression coverage for existing-assignment and new-assignment paths
+- [ ] Validate a live manual role assignment and deploy the fix
 
