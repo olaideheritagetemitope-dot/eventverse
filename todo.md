@@ -1221,3 +1221,24 @@
 - [ ] Add regression coverage for existing-assignment and new-assignment paths
 - [ ] Validate a live manual role assignment and deploy the fix
 
+
+# Manual Role Assignment RPC Schema Repair — Completion — 2026-08-22
+
+- [x] Confirmed public.user_roles uses composite primary key (user_id, role_id) and has no standalone id
+- [x] Replaced all invalid record-id access with composite-key-safe existence, update, and delete logic
+- [x] Applied live migration 0063 successfully
+- [x] Preserved unrestricted manual assignment, multi-role support, onboarding/payment bypass, profile linking, and audit history
+- [x] Added regression coverage for new and existing assignment paths
+- [x] Passed 51 Vitest files / 170 tests, TypeScript, and production build
+- [x] Pushed commit 8542890 to GitHub
+- [ ] Execute a live authenticated assignment from the deployed UI
+
+
+# Manual Role Assignment Profile Fallback Schema Repair — 2026-08-22
+
+- [ ] Inspect user_profiles columns and authoritative auth-user fallback fields
+- [ ] Remove the invalid user_profiles.email reference from Artist and Venue Manager provisioning
+- [ ] Apply the corrected Super Admin RPC to live Supabase
+- [ ] Validate manual assignment for Artist, Organizer, and Venue Manager
+- [ ] Deploy and checkpoint the repair
+
