@@ -22,6 +22,27 @@ async function supabaseRpc(name, args, authorization) {
   return payload;
 }
 
+async function updatePayment(paymentId, patch) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/payments?id=eq.${encodeURIComponent(paymentId)}`, {
+    method: "PATCH",
+    headers: {
+      apikey: SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "return=minimal",
+    },
+    body: JSON.stringify({ ...patch, updated_at: new Date().toISOString() }),
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload?.message || payload?.hint || "Unable to persist payment checkout");
+  }
+}
+
+function getAuthorizationUrl(payment) {
+  return payment?.authorization_url || payment?.authorizationUrl || payment?.checkout_url || payment?.checkoutUrl || null;
+}
+
 async function paystackInitialize({ email, amount, reference, callbackUrl }) {
   const response = await fetch("https://api.paystack.co/transaction/initialize", {
     method: "POST",
@@ -65,7 +86,23 @@ export default async function handler(req, res) {
       authorization,
     );
 
-    const reference = `ATZ-${payment.payment_id}`;
+    const persistedAuthorizationUrl = getAuthorizationUrl(payment);
+    if (persistedAuthorizationUrl && payment?.access_code) {
+      return json(res, 200, {
+        paymentId: payment.payment_id,
+        orderId: payment.order_id,
+        reference: payment.provider_reference || null,
+        authorizationUrl: persistedAuthorizationUrl,
+        authorization_url: persistedAuthorizationUrl,
+        accessCode: payment.access_code,
+        access_code: payment.access_code,
+        amount: payment.amount,
+        currency: payment.currency,
+        replayed: true,
+      });
+    }
+
+    const reference = payment.provider_reference || `ATZ-${payment.payment_id}`;
     const paystack = await paystackInitialize({
       email,
       amount: payment.amount,
@@ -79,15 +116,23 @@ export default async function handler(req, res) {
       { p_payment_id: payment.payment_id, p_provider_reference: paystack.reference },
       serviceAuthorization,
     );
+    await updatePayment(payment.payment_id, {
+      provider_reference: paystack.reference,
+      checkout_url: paystack.authorization_url || null,
+      access_code: paystack.access_code || null,
+    });
 
     return json(res, 200, {
       paymentId: payment.payment_id,
       orderId: payment.order_id,
       reference: paystack.reference,
-      authorizationUrl: paystack.authorization_url,
-      accessCode: paystack.access_code,
+      authorizationUrl: paystack.authorization_url || null,
+      authorization_url: paystack.authorization_url || null,
+      accessCode: paystack.access_code || null,
+      access_code: paystack.access_code || null,
       amount: payment.amount,
       currency: payment.currency,
+      replayed: Boolean(payment.replayed),
     });
   } catch (error) {
     console.error("Paystack initialization error", error);

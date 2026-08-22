@@ -2,7 +2,7 @@ import { supabase } from "../lib/supabase";
 
 const MEDIA_BUCKET = "atizzy-media";
 const MEDIA_LIMIT_BYTES = 50 * 1024 * 1024;
-const MEDIA_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "audio/mpeg", "audio/mp4", "audio/wav", "audio/ogg", "audio/x-m4a"]);
+const MEDIA_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "audio/mpeg", "audio/mp4", "audio/wav", "audio/ogg", "audio/x-m4a", "video/mp4", "video/webm"]);
 const safeFileName = (name = "upload") => name.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "upload";
 const isManagedMediaUrl = (value) => !value || (typeof value === "string" && value.includes(`/storage/v1/object/public/${MEDIA_BUCKET}/`));
 const managedMediaUrl = (value, label = "image") => {
@@ -220,6 +220,64 @@ export async function loadArtistWorkspace(userId) {
   const firstError = [songsResult, eventLinksResult, bookingsResult].find((result) => result.error)?.error;
   if (firstError) throw firstError;
   return { artist, songs: songsResult.data || [], events: (eventLinksResult.data || []).map((row) => row.events).filter(Boolean), bookings: bookingsResult.data || [] };
+}
+
+export async function loadArtistCreatorContent(artistId, userId) {
+  if (!artistId || !userId) throw new Error("Artist profile access is required.");
+  const { data: owner, error: ownerError } = await supabase.from("artists").select("id").eq("id", artistId).eq("user_id", userId).maybeSingle();
+  if (ownerError) throw ownerError;
+  if (!owner) throw new Error("Artist profile access denied.");
+  const [albumsResult, videosResult] = await Promise.all([
+    supabase.from("albums").select("id,artist_id,title,description,cover_url,status,release_date,created_at,updated_at").eq("artist_id", artistId).order("created_at", { ascending: false }),
+    supabase.from("music_videos").select("id,artist_id,title,description,thumbnail_url,video_url,status,published_at,created_at,updated_at").eq("artist_id", artistId).order("created_at", { ascending: false }),
+  ]);
+  const firstError = [albumsResult, videosResult].find((result) => result.error)?.error;
+  if (firstError) throw firstError;
+  return { albums: albumsResult.data || [], musicVideos: videosResult.data || [] };
+}
+
+export async function createArtistAlbum(artistId, userId, input) {
+  if (!artistId || !userId) throw new Error("Artist profile access is required.");
+  if (!input?.title?.trim()) throw new Error("Album title is required.");
+  const { data, error } = await supabase.from("albums").insert({ artist_id: artistId, title: input.title.trim(), description: input.description?.trim() || null, cover_url: managedMediaUrl(input.cover_url, "album cover"), release_date: input.release_date || null, status: "DRAFT" }).select("id,artist_id,title,description,cover_url,status,release_date,created_at,updated_at").single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateArtistAlbum(albumId, artistId, input) {
+  if (!albumId || !artistId) throw new Error("Album access is required.");
+  if (!input?.title?.trim()) throw new Error("Album title is required.");
+  const { data, error } = await supabase.from("albums").update({ title: input.title.trim(), description: input.description?.trim() || null, cover_url: managedMediaUrl(input.cover_url, "album cover"), release_date: input.release_date || null, updated_at: new Date().toISOString() }).eq("id", albumId).eq("artist_id", artistId).select("id,artist_id,title,description,cover_url,status,release_date,created_at,updated_at").single();
+  if (error) throw error;
+  return data;
+}
+
+export async function setArtistAlbumStatus(albumId, status) {
+  const { data, error } = await supabase.rpc("set_artist_album_status", { p_album_id: albumId, p_status: status });
+  if (error) throw error;
+  return data;
+}
+
+export async function createArtistMusicVideo(artistId, userId, input) {
+  if (!artistId || !userId) throw new Error("Artist profile access is required.");
+  if (!input?.title?.trim()) throw new Error("Music video title is required.");
+  const { data, error } = await supabase.from("music_videos").insert({ artist_id: artistId, title: input.title.trim(), description: input.description?.trim() || null, thumbnail_url: managedMediaUrl(input.thumbnail_url, "music video thumbnail"), video_url: managedMediaUrl(input.video_url, "music video"), status: "DRAFT" }).select("id,artist_id,title,description,thumbnail_url,video_url,status,published_at,created_at,updated_at").single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateArtistMusicVideo(videoId, artistId, input) {
+  if (!videoId || !artistId) throw new Error("Music video access is required.");
+  if (!input?.title?.trim()) throw new Error("Music video title is required.");
+  const { data, error } = await supabase.from("music_videos").update({ title: input.title.trim(), description: input.description?.trim() || null, thumbnail_url: managedMediaUrl(input.thumbnail_url, "music video thumbnail"), video_url: managedMediaUrl(input.video_url, "music video"), updated_at: new Date().toISOString() }).eq("id", videoId).eq("artist_id", artistId).select("id,artist_id,title,description,thumbnail_url,video_url,status,published_at,created_at,updated_at").single();
+  if (error) throw error;
+  return data;
+}
+
+export async function setArtistMusicVideoStatus(videoId, status) {
+  const { data, error } = await supabase.rpc("set_artist_music_video_status", { p_video_id: videoId, p_status: status });
+  if (error) throw error;
+  return data;
 }
 
 export async function updateArtistProfile(artistId, userId, updates) {
@@ -764,6 +822,13 @@ export async function loadOnboardingConfig(roleCode = null) {
   const { data, error } = await supabase.rpc("get_onboarding_config", { p_role_code: roleCode });
   if (error) throw error;
   return data || [];
+}
+
+export async function loadPublicRoleOnboardingConfig(roleCode) {
+  if (!roleCode) throw new Error("A role is required.");
+  const { data, error } = await supabase.rpc("get_role_onboarding_public_config", { p_role_code: roleCode });
+  if (error) throw error;
+  return data || { role_code: roleCode, fee: null, questions: [] };
 }
 
 export async function saveOnboardingQuestion(question = {}) {

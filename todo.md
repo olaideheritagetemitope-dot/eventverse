@@ -985,5 +985,37 @@
 - [x] Implement attached directive: safely add the author foreign key, audit relational queries, complete comment workflows, verify RLS, and validate live deployment
 - [x] Implement attached media directive: audit Storage, policies, canonical references, upload/render pipeline, role workflows, mock media paths, responsive rendering, and production verification
 - [x] Implement attached venue-payment directive: trace all writes, preserve unique booking payment invariant, add atomic idempotent initialization/retries/webhooks, and validate the full lifecycle
-- [ ] Fix venue payment error: Paystack authorization URL is missing from the initialization response and validate new/reused checkout paths
-- [ ] Diagnose persistent live Paystack authorization failure at the deployed API, provider payload, or persisted checkout layer
+- [x] Fix venue payment error: Paystack authorization URL is missing from the initialization response and validate new/reused checkout paths
+- [x] Diagnose persistent live Paystack authorization failure at the deployed API, provider payload, or persisted checkout layer
+
+## Attached end-to-end onboarding, creator, media, and ticket-payment directive
+- [x] Expose Artist, Event Organizer, and Venue Manager onboarding to ordinary users
+- [x] Ensure role selection opens a configurable questionnaire before showing any verification fee
+- [x] Ensure configured fee payment creates a verification application and does not auto-activate roles
+- [x] Complete role application state machine, duplicate protection, review queue, and approval-based activation
+- [x] Complete Artist workspace modules for profile, songs, albums, music videos, artwork, releases, analytics, engagement, and settings
+- [x] Connect artist CRUD, publishing, media, and profile actions to live Supabase workflows
+- [x] Unify file picker, preview, Storage upload, database media reference, URL resolution, RLS, and rendering for all content types
+- [x] Audit and validate event, artist, music, album, music-video, venue, organizer, and user media paths without mock data
+- [x] Preserve existing Atizzy cards, boards, navigation, responsive layout, and empty/loading states
+- [x] Complete organizer event creation with live image persistence and rendering across all event surfaces
+- [x] Trace and repair ticket purchase from order creation through Paystack, webhook/verification, paid order, ticket issuance, QR, history, wallet, notifications, and accounting
+- [x] Enforce idempotent ticket payment initialization and duplicate-payment protection
+- [x] Validate all focused tests, live Supabase checks, production build, and deployed behavior
+
+## Profile role-workspace visibility regression
+- [ ] Add a visible Become an Event Organizer entry to the Profile role-onboarding menu
+- [ ] Make the Artist Dashboard visibly reachable from Profile and role workspace navigation
+- [ ] Preserve existing Atizzy mobile menu design and connect dashboard actions to live Supabase data
+- [ ] Validate Organizer onboarding and Artist dashboard routes on mobile and desktop
+
+## Completed Profile role-workspace visibility repair
+- [x] Add visible Become an Event Organizer entry for normal users
+- [x] Add Event Organizer Workspace entry for active organizers and elevated roles
+- [x] Add direct Artist Dashboard entry for active artist roles
+- [x] Preserve existing Atizzy Profile rows, borders, typography, mobile layout, and bottom navigation
+- [x] Add regression coverage for Organizer and Artist workspace visibility
+- [x] Validate 46 Vitest files, 156 passing tests, 3 skipped tests, and production build
+
+- [ ] Deeply diagnose why Become an Event Organizer is absent in the rendered Profile UI, including role-state guards, screen routing, and deployment/source parity
+- [ ] Fix the Organizer button visibility and verify it appears for normal users in the live mobile layout
