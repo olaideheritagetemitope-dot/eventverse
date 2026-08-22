@@ -1581,30 +1581,8 @@ function RoleResourceScreen({ nav, account, title, description, rows, emptyLabel
 
 /* ============================== ARTIST ONBOARDING ============================== */
 function ArtistOnboarding({ nav, account, mode = "REGISTRATION" }) {
-  const [state, setState] = useState({ fees: [], registration: null, verification: null, artist: null });
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
-  const feeKey = mode === "REGISTRATION" ? "artist_registration_fee" : "artist_verification_fee";
-  const fee = state.fees.find((item) => item.key === feeKey);
-  const record = mode === "REGISTRATION" ? state.registration : state.verification;
-  useEffect(() => { let mounted = true; loadArtistOnboarding(account?.user?.id).then((value) => { if (mounted) setState(value); }).catch((error) => { if (mounted) setMessage(error.message || "Unable to load artist onboarding."); }).finally(() => mounted && setLoading(false)); return () => { mounted = false; }; }, [account?.user?.id]);
-  const startPayment = async () => {
-    setBusy(true); setMessage("");
-    try {
-      const session = (await supabase.auth.getSession()).data.session;
-      if (!session?.access_token) throw new Error("Please sign in again before starting payment.");
-      const idempotencyKey = `atizzy-${mode.toLowerCase()}-${account.user.id}-${Date.now()}`;
-      const response = await fetch("/api/paystack/artist-initialize", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ transactionType: mode, email: account.user.email, idempotencyKey, callbackUrl: `${window.location.origin}/?artist-payment=callback` }) });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.error || "Unable to initialize payment.");
-      nav.push("artistProcessing", { transactionId: payload.transactionId, transactionType: mode, authorizationUrl: payload.authorizationUrl });
-      window.location.assign(payload.authorizationUrl);
-    } catch (error) { setMessage(error.message || "Unable to start payment."); } finally { setBusy(false); }
-  };
-  const active = ["PENDING_PAYMENT", "ACTIVATING"].includes(record?.status);
-  const complete = mode === "REGISTRATION" ? record?.status === "ACTIVE" : record?.status === "VERIFIED";
-  return <Phone><TopBack title={mode === "REGISTRATION" ? "Become an Artist" : "Verify Artist"} onBack={nav.pop} /><div className="flex-1 overflow-y-auto px-5 pt-2 pb-8"><p className="text-[12px] uppercase tracking-[0.16em]" style={{ color: C.gold }}>{mode === "REGISTRATION" ? "Artist registration" : "Artist verification"}</p><h1 className="ev-display text-[27px] mt-1" style={{ color: C.ivory }}>{mode === "REGISTRATION" ? "Build your artist presence" : "Earn your verified badge"}</h1><p className="text-[13px] leading-6 mt-3" style={{ color: C.muted }}>{mode === "REGISTRATION" ? "Create your artist profile and unlock the artist workspace, music tools, bookings, and event participation." : "Verification is a separate server-confirmed status. Registration alone does not grant the golden badge."}</p>{loading ? <p className="py-8 text-center text-[13px]" style={{ color: C.muted }}>Loading current fee and application status...</p> : <><div className="rounded-2xl p-4 mt-5" style={{ background: C.card, border: `1px solid ${C.line}` }}><div className="flex items-start justify-between gap-4"><div><p className="text-[12px]" style={{ color: C.muted }}>Current fee</p><p className="text-[25px] font-semibold mt-1" style={{ color: C.goldSoft }}>{money(fee?.amount)}</p><p className="text-[11px] mt-1" style={{ color: C.muted }}>{fee?.currency || "NGN"} · captured from live platform settings</p></div><ShieldCheck size={22} color={C.gold} /></div></div><div className="rounded-2xl p-4 mt-3" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[13px] font-semibold" style={{ color: C.ivory }}>Server-authoritative status</p><p className="text-[12px] mt-2" style={{ color: C.muted }}>{complete ? (mode === "REGISTRATION" ? "Your artist role is active. Open the workspace to continue." : "Your artist profile is verified and the golden badge is active.") : active ? "Payment was started. Atizzy will activate this status only after verified Paystack confirmation." : record?.status === "FAILED" ? "The previous payment failed. You can retry without trusting a browser redirect." : "No successful transaction has activated this status yet."}</p></div>{message && <AuthMessage error={message} />}{complete ? <div className="mt-5"><div className="flex items-center justify-center gap-2 mb-3 text-[12px] font-semibold" style={{ color: C.gold }}><ShieldCheck size={15} color={C.gold} fill={C.gold} /> {mode === "REGISTRATION" ? "Artist role active" : "Golden verification active"}</div><GoldButton onClick={() => nav.push("artistWorkspace")}>Open Artist Workspace</GoldButton></div> : active ? <div className="mt-5"><GhostButton onClick={() => nav.push("artistProcessing", { transactionId: record.transaction_id, transactionType: mode })}>Check payment status</GhostButton></div> : <div className="mt-5"><GoldButton onClick={startPayment} disabled={busy || !fee}>{busy ? "Starting secure payment..." : `Pay ${money(fee?.amount)} and continue`}</GoldButton></div>}</>}</div></Phone>;
+  if (mode === "VERIFICATION") return <RoleOnboarding nav={nav} account={account} roleCode="ARTIST" title="Artist verification" eyebrow="Artist verification" heading="Complete your verification" description="Your verification application uses the same live Super Admin review and payment controls." workspaceRoute="artistWorkspace" />;
+  return <RoleOnboarding nav={nav} account={account} roleCode="ARTIST" title="Become an Artist" eyebrow="Artist registration" heading="Build your artist presence" description="Complete the live Artist questionnaire before any configured verification fee can be shown." workspaceRoute="artistWorkspace" />;
 }
 
 function ArtistPaymentProcessing({ nav, data }) {

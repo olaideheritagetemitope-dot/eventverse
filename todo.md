@@ -1046,15 +1046,23 @@
 
 ## Strict role-onboarding architecture repair — 2026-08-22
 
-- [ ] Audit Artist, Organizer, and Venue Manager onboarding from role selection through workspace access
-- [ ] Identify and remove duplicate fee/configuration sources; retain one live authoritative config per role
-- [ ] Ensure active Super Admin questionnaires load from Supabase and required answers persist with applications
-- [ ] Enforce PENDING_REVIEW before any verification fee/payment is exposed
-- [ ] Implement review decisions: APPROVE, REJECT, and REQUEST_CHANGES with answer inspection
-- [ ] Gate payment on approval and activate roles only after verified payment
-- [ ] Create or link role profiles and project approved profiles into live directories/workspaces
-- [ ] Complete Super Admin user/role management, suspension, verification, multi-role assignment, and audit history
-- [ ] Add Organizer onboarding through the shared configurable architecture
-- [ ] Remove mock Artist records and project approved Artist profiles from live Supabase
-- [ ] Add end-to-end regression tests for authorization, RLS, payments, activation, directories, and workspaces
+- [x] Audit Artist, Organizer, and Venue Manager onboarding from role selection through workspace access
+- [x] Identify and remove duplicate fee/configuration sources; retain one live authoritative config per role
+- [x] Ensure active Super Admin questionnaires load from Supabase and required answers persist with applications
+- [x] Enforce PENDING_REVIEW before any verification fee/payment is exposed
+- [x] Implement review decisions: APPROVE, REJECT, and REQUEST_CHANGES with answer inspection
+- [x] Gate payment on approval and activate roles only after verified payment
+- [x] Create or link role profiles and project approved profiles into live directories/workspaces
+- [x] Complete Super Admin user/role management, suspension, verification, multi-role assignment, and audit history
+- [x] Add Organizer onboarding through the shared configurable architecture
+- [x] Remove mock Artist records and project approved Artist profiles from live Supabase
+- [x] Add end-to-end regression tests for authorization, RLS, payments, activation, directories, and workspaces
 - [ ] Run real-user lifecycle validation, full tests, production build, deployment, and live parity verification
+
+## Questionnaire-before-fee regression — 2026-08-22
+
+- [ ] Reproduce the Artist fee-first render shown in the production screenshot
+- [ ] Trace onboarding questionnaire/config/application state initialization for all three roles
+- [ ] Fix route and shared component gating so no fee/payment is rendered before questionnaire completion and PENDING_REVIEW/approval
+- [ ] Add regression coverage proving questionnaire fields render before fee/payment for Artist, Organizer, and Venue Manager
+- [ ] Validate and redeploy the corrected onboarding screen, then verify production parity

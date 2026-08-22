@@ -24,6 +24,9 @@ describe("Unified role onboarding flow", () => {
     expect(registry).toContain('item.status === "PENDING_REVIEW"');
     expect(registry).toContain('onReview?.(item.id, "REQUEST_CHANGES"');
     expect(registry).toContain("Submitted answers");
+    expect(ui).toContain('function ArtistOnboarding({ nav, account, mode = "REGISTRATION" })');
+    expect(ui).toContain('return <RoleOnboarding nav={nav} account={account} roleCode="ARTIST" title="Become an Artist"');
+    expect(ui).not.toContain('Pay ₦5,000 and continue');
   });
 
   it("uses one role fee policy source for all supported roles", () => {
