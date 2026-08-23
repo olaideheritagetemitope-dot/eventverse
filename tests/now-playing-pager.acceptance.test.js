@@ -49,7 +49,7 @@ describe("swipeable Now Playing experience", () => {
 
   it("renders live data and friendly states without invented media", () => {
     expect(app).toContain('const lyrics = song?.lyricsText;');
-    expect(app).toContain('const videoUrl = song?.musicVideoUrl;');
+    expect(app).toContain('const directVideoUrl = song?.videoUrl || song?.musicVideoUrl || song?.video_url || null;');
     expect(app).toContain("Lyrics aren&apos;t available for this song yet.");
     expect(app).toContain("No music video available yet.");
     expect(app).toContain('onError={() => { setLoading(false); setFailed(true); }}');

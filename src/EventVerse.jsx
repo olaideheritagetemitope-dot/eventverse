@@ -6,7 +6,7 @@ import {
   Ticket, User, LogOut, X, QrCode, Shuffle, Repeat, ListMusic, ChevronDown, MoreVertical,
 } from "lucide-react";
 import { supabase } from "./lib/supabase";
-import { loadCatalog, loadArtistDetail, loadEventDetail, loadVenueDetail, searchCatalog, formatFollowers, toEvent, toSong, loadMusicVideoForSong } from "./services/catalog";
+import { loadCatalog, loadArtistDetail, loadEventDetail, loadVenueDetail, searchCatalog, formatFollowers, toEvent, toSong, loadMusicVideoForSong, loadRelatedStandaloneMusicVideo } from "./services/catalog";
 import CheckInScreen from "./components/CheckInScreen";
 import { loadCurrentUser, loadFavoriteState, toggleEventFavorite, toggleArtistFollow, toggleMusicFavorite, toggleMusicVideoFavorite, loadMusicFavorites, recordPlay, loadPlaylists, createPlaylist, submitBooking, loadRoleDashboard, loadArtistWorkspace, loadArtistCreatorContent, createArtistSong, setArtistSongStatus, archiveArtistSong, deleteArtistSong, createArtistAlbum, updateArtistAlbum, setArtistAlbumStatus, createArtistMusicVideo, updateArtistMusicVideo, setArtistMusicVideoStatus, updateArtistProfile, updateArtistSong, artistUpdateBookingStatus, issueTicketQrToken, updateProfile, loadArtistOnboarding, initializeArtistFeePayment, loadArtistFeeTransaction, loadArtistAdminOverview, updateArtistFee, loadOrganizerApplication, applyAsOrganizer, loadOrganizerEvents, createOrganizerEvent, updateOrganizerEvent, addOrganizerTicketType, discoverPrivateTicket, linkOrganizerArtist, publishOrganizerEvent, cancelOrganizerEvent, loadOrganizerEventDashboard, loadVenueManagerWorkspace, applyAsVenueManager, createOwnedVenue, updateOwnedVenue, archiveOwnedVenue, deleteOwnedVenue, requestVenueBooking, respondVenueBooking, setVenueAvailability, initializeVenueBookingPayment, loadAvailableVenues, searchOrganizerArtists, searchEventStaffUsers, assignEventStaff, loadEventStaffForOrganizer, updateEventStaffShift, revokeEventStaffAssignment, loadEventStaffWorkspace, respondEventStaffAssignment, acknowledgeEventStaffTask, loadSuperAdminAnalytics, loadAdminDashboardSnapshot, adminListUsers, adminListUsersPage, adminSuspendUser, adminReviewEvent, loadAdminPaymentSupport, loadAdminAuditLogs, loadUserExperienceSnapshot, loadUserCollections, recordUserSearch, clearUserSearchHistory, updateUserPreferences, markUserNotificationRead, markAllUserNotificationsRead, createSupportRequest, uploadMediaFile, loadMyPosts, createPost, updatePost, setPostStatus, deletePost, removeMediaAsset, loadPolicySettings, updatePolicySetting, loadRoleCapabilityMatrix, loadAdminPermissionGrants, setAdminPermission, loadRoleGovernanceSnapshot, loadOnboardingConfig, loadPublicRoleOnboardingConfig, saveOnboardingQuestion, submitRoleApplication, loadRoleApplication, initializeRoleApplicationPayment, reviewRoleApplication, creditWalletForCancelledOrder, loadPublicContentAnalytics, createContentComment, setContentRating, setContentLike, setRoleFeePolicy, setPlatformFeePolicy, adminSetEventStatus, loadGovernanceEvents, loadContentEngagement, superAdminSetRole, superAdminSetRolePermission, loadRoleAssignmentHistory, loadPremiumSnapshot, loadPremiumAttendeeSnapshot, loadPremiumEventDiscovery, initializePremiumPayment, cancelPremiumSubscription, setPremiumPlan, updateOrganizerTicketReleasePolicy } from "./services/user";
 import QRCode from "qrcode";
@@ -2187,22 +2187,31 @@ function LyricsPage({ song, player }) {
 }
 
 function MusicVideoPage({ song, player }) {
+  const directVideoUrl = song?.videoUrl || song?.musicVideoUrl || song?.video_url || null;
+  const directThumbnailUrl = song?.thumbnailUrl || song?.thumbnail_url || song?.coverUrl || song?.cover_url || null;
   const [video, setVideo] = useState(null);
-  const [loading, setLoading] = useState(Boolean(song?.musicVideoUrl));
+  const [loading, setLoading] = useState(Boolean(directVideoUrl));
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     let active = true;
-    setVideo(song?.musicVideoUrl ? { videoUrl: song.musicVideoUrl, thumbnailUrl: song.coverUrl, title: song.title, artist: song.artist } : null);
-    setLoading(Boolean(song?.musicVideoUrl));
+    setVideo(directVideoUrl ? { videoUrl: directVideoUrl, thumbnailUrl: directThumbnailUrl, title: song.title, artist: song.artist } : null);
+    setLoading(Boolean(directVideoUrl));
     setFailed(false);
-    if (!song?.id || song?.musicVideoUrl) return () => { active = false; };
-    loadMusicVideoForSong(song.id).then((result) => {
-      if (!active) return;
-      setVideo(result);
-      setLoading(Boolean(result?.videoUrl));
-    }).catch(() => { if (active) { setVideo(null); setLoading(false); setFailed(true); } });
+    if (!song?.id) return () => { active = false; };
+    const loadVideo = async () => {
+      try {
+        const linked = directVideoUrl ? null : await loadMusicVideoForSong(song.id);
+        const related = linked || (directVideoUrl ? null : await loadRelatedStandaloneMusicVideo(song));
+        if (!active) return;
+        setVideo(directVideoUrl ? { videoUrl: directVideoUrl, thumbnailUrl: directThumbnailUrl, title: song.title, artist: song.artist } : related);
+        setLoading(Boolean(directVideoUrl || related?.videoUrl));
+      } catch {
+        if (active) { setVideo(null); setLoading(false); setFailed(true); }
+      }
+    };
+    loadVideo();
     return () => { active = false; };
-  }, [song?.id, song?.musicVideoUrl, song?.coverUrl, song?.title, song?.artist]);
+  }, [song?.id, song?.artistId, song?.musicVideoUrl, song?.music_video_url, song?.videoUrl, song?.video_url, song?.coverUrl, song?.cover_url, song?.thumbnailUrl, song?.thumbnail_url, song?.title, song?.artist]);
   const videoUrl = video?.videoUrl || video?.musicVideoUrl || null;
   return (
     <div className="h-full min-w-0 w-1/3 flex-shrink-0 flex flex-col px-6 pt-2 pb-7">
@@ -2214,11 +2223,11 @@ function MusicVideoPage({ song, player }) {
           <div className="w-full aspect-video rounded-2xl flex flex-col items-center justify-center text-center px-8" style={{ background: `${C.card}cc`, border: `1px solid ${C.line}` }}>
             <div className="text-4xl mb-4">▣</div>
             <p className="text-[15px] font-medium" style={{ color: C.ivory }}>No music video available yet.</p>
-            <p className="text-[12px] mt-2 leading-5" style={{ color: C.muted }}>We&apos;ll let you know when one is available.</p>
+            <p className="text-[12px] mt-2 leading-5" style={{ color: C.muted }}>{failed ? "This video could not be loaded from the live media service." : "We&apos;ll let you know when one is available."}</p>
           </div>
         ) : (
           <div className="relative w-full aspect-video rounded-2xl overflow-hidden" style={{ background: C.card }}>
-            <video src={videoUrl} controls playsInline preload="metadata" muted className="w-full h-full object-contain" onLoadStart={() => setLoading(true)} onLoadedData={() => setLoading(false)} onCanPlay={() => setLoading(false)} onError={() => { setLoading(false); setFailed(true); }} aria-label={`${song.title} music video`} />
+            <video src={videoUrl} controls playsInline preload="metadata" muted className="w-full h-full object-contain" onLoadStart={() => setLoading(true)} onLoadedData={() => setLoading(false)} onCanPlay={() => setLoading(false)} onError={() => { setLoading(false); setFailed(true); }} aria-label={`${video?.title || song.title} music video`} />
             {loading && <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ background: `${C.card}dd`, color: C.muted }}>Loading music video…</div>}
           </div>
         )}
@@ -2277,7 +2286,7 @@ function FullPlayer({ nav, player, account }) {
   };
   if (!song) return <Phone><div className="flex-1 flex items-center justify-center px-6 text-center" style={{ color: C.muted }}>Choose a song from the live music library to start playback.</div></Phone>;
   // Standalone videos must never enter the audio player: legacy/persisted route payloads may still open them here.
-  if ((song.videoUrl || song.musicVideoUrl) && !song.audioUrl) return <MusicVideoDetail nav={nav} video={song} player={player} account={account} />;
+  if ((song.videoUrl || song.musicVideoUrl || song.video_url) && !(song.audioUrl || song.audio_url)) return <MusicVideoDetail nav={nav} video={{ ...song, videoUrl: song.videoUrl || song.musicVideoUrl || song.video_url, thumbnailUrl: song.thumbnailUrl || song.thumbnail_url || song.coverUrl || song.cover_url }} player={player} account={account} />;
   return (
     <Phone>
       <div className="flex-1 flex flex-col px-6" style={{ background: `linear-gradient(180deg, ${C.green}, ${C.bg} 60%)` }} onPointerDown={handleSwipeStart} onPointerUp={handleSwipeEnd} onPointerCancel={() => { swipeStart.current = null; }}>

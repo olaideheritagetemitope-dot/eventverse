@@ -20,9 +20,17 @@ describe("music video visibility contract", () => {
     expect(catalog).toContain('.eq("song_id", songId).eq("status", "PUBLISHED")');
     expect(catalog).toContain('.not("video_url", "is", null)');
     expect(app).toContain("loadMusicVideoForSong(song.id)");
-    expect(app).toContain("setVideo(result)");
+    expect(app).toContain("setVideo(directVideoUrl ? { videoUrl: directVideoUrl, thumbnailUrl: directThumbnailUrl, title: song.title, artist: song.artist } : related)");
     expect(app).toContain("const videoUrl = video?.videoUrl || video?.musicVideoUrl || null");
-    expect(app).toContain("if ((song.videoUrl || song.musicVideoUrl) && !song.audioUrl) return <MusicVideoDetail");
+    expect(app).toContain("if ((song.videoUrl || song.musicVideoUrl || song.video_url) && !(song.audioUrl || song.audio_url)) return <MusicVideoDetail");
+  });
+
+  it("normalizes raw Supabase video fields before the audio-player guard", () => {
+    expect(app).toContain("song?.video_url");
+    expect(app).toContain("song?.thumbnail_url");
+    expect(app).toContain("(song.videoUrl || song.musicVideoUrl || song.video_url)");
+    expect(app).toContain("!(song.audioUrl || song.audio_url)");
+    expect(app).toContain("videoUrl: song.videoUrl || song.musicVideoUrl || song.video_url");
   });
 
   it("renders live videos on Music and Artist Profile surfaces", () => {
