@@ -5,6 +5,7 @@ import path from "node:path";
 const root = path.resolve(process.cwd());
 const appSource = fs.readFileSync(path.join(root, "src/EventVerse.jsx"), "utf8");
 const initializeRoute = fs.readFileSync(path.join(root, "api/paystack/initialize.js"), "utf8");
+const verifyRoute = fs.readFileSync(path.join(root, "api/paystack/verify.js"), "utf8");
 
 describe("Paystack checkout latency contract", () => {
   it("uses the authenticated session email without a redundant getUser round trip", () => {
@@ -24,6 +25,17 @@ describe("Paystack checkout latency contract", () => {
     expect(initializeRoute).toContain("SUPABASE_SERVICE_ROLE_KEY");
     expect(initializeRoute).toContain("apiKey = SUPABASE_PUBLISHABLE_KEY");
     expect(initializeRoute).toContain("process.env.SUPABASE_SERVICE_ROLE_KEY,\n    );");
+  });
+
+  it("verifies the browser-return transaction before invoking exactly-once issuance", () => {
+    expect(verifyRoute).toContain('"/auth/v1/user"');
+    expect(verifyRoute).toContain("https://api.paystack.co/transaction/verify/");
+    expect(verifyRoute).toContain('"/rest/v1/rpc/verify_payment_and_issue_tickets"');
+    expect(verifyRoute).toContain("Payment does not belong to the authenticated user");
+    expect(verifyRoute).toContain("p_payment_id: payment.id");
+    expect(verifyRoute).toContain("SUPABASE_SERVICE_ROLE_KEY");
+    expect(appSource).toContain('fetch("/api/paystack/verify"');
+    expect(appSource).toContain("callbackReference = url.searchParams.get(\"reference\") || url.searchParams.get(\"trxref\")");
   });
 
   it("keeps the provider-reference guard private and service-role executable", () => {

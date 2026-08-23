@@ -1576,3 +1576,14 @@
 - [x] Run focused tests, full Vitest suite: 55 files, 191 passed, 2 skipped, TypeScript, and production build
 - [ ] Save a checkpoint for the payment repair
 - [ ] Authenticated Paystack payment smoke test remains pending
+
+# Paid Ticket Credit and Issuance Root Fix — 2026-08-23
+- [x] Trace Paystack verification/webhook, payment status, order finalization, ticket issuance, and ownership queries
+- [x] Identify the missing transition: browser return waited for webhook polling and never invoked the authoritative verification/issuance RPC
+- [x] Repair the authoritative finalization path so verified payments issue tickets exactly once
+- [x] Ensure tickets appear in the authenticated account, history, QR view, and notifications after issuance
+- [x] Preserve idempotent retries and prevent duplicate ticket issuance
+- [x] Add regression coverage for verified payment to ticket issuance and account visibility
+- [x] Run focused tests, full Vitest suite: 55 files, 192 passed, 2 skipped, TypeScript, and production build
+- [ ] Save a checkpoint for the paid-ticket credit repair
+- [ ] Authenticated Paystack payment verification with a real paid order remains pending

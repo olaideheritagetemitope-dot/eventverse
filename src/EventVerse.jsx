@@ -1233,7 +1233,7 @@ function Processing({ nav, data }) {
       if (paymentError) { setError(paymentError.message); return; }
       if (payment) setStatus(payment.status);
       if (payment?.status === "VERIFIED_SUCCESS") {
-        const { data: ticket } = await supabase.from("tickets").select("id,order_id,ticket_type_id,status,checked_in_at,created_at,ticket_types(name,events(id,title,city,starts_at,cover_url,venues(name)))").eq("order_id", payment.order_id).maybeSingle();
+        const { data: ticket } = await supabase.from("tickets").select("id,order_id,ticket_type_id,status,checked_in_at,created_at,ticket_types(name,events(id,title,city,starts_at,cover_url,venues(name)))").eq("order_id", payment.order_id).order("created_at", { ascending: true }).maybeSingle();
         if (mounted) nav.replace("success", { ...data, payment, order: { id: payment.order_id, total: payment.amount }, ticket });
         return;
       }
@@ -1241,9 +1241,28 @@ function Processing({ nav, data }) {
       attempts += 1;
       if (attempts < 30) setTimeout(poll, 2000);
     };
-    poll();
+    const verifyReturnedPayment = async () => {
+      const paymentId = data?.payment?.payment_id;
+      const reference = data?.payment?.providerReference || data?.payment?.reference || data?.payment?.transactionReference;
+      try {
+        const session = (await supabase.auth.getSession()).data.session;
+        if (paymentId && reference && session?.access_token) {
+          const response = await fetch("/api/paystack/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+            body: JSON.stringify({ paymentId, reference }),
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok && mounted) setError(payload.error || "Payment verification is still pending.");
+        }
+      } catch (verificationError) {
+        if (mounted) setError(verificationError.message || "Payment verification is still pending.");
+      }
+      if (mounted) await poll();
+    };
+    void verifyReturnedPayment();
     return () => { mounted = false; };
-  }, [data?.payment?.payment_id]);
+  }, [data?.payment?.payment_id, data?.payment?.providerReference, data?.payment?.reference]);
   const terminal = ["FAILED", "EXPIRED", "REFUNDED"].includes(status);
   return <Phone><div className="flex-1 flex flex-col items-center justify-center px-8"><div className="w-24 h-24 rounded-full flex items-center justify-center mb-8" style={{ background: terminal ? `${C.red}33` : `${C.gold}22`, border: `1px solid ${terminal ? C.red : C.gold}66` }}><Loader2 size={38} color={terminal ? C.red : C.gold} className={terminal ? "" : "animate-spin"} /></div><p className="text-[16px] font-semibold mb-2" style={{ color: C.ivory }}>{terminal ? `Payment ${status.toLowerCase()}` : "Waiting for payment verification"}</p><p className="text-[13px] text-center" style={{ color: C.muted }}>{error || (terminal ? "No ticket was issued for this payment attempt." : "Atizzy will issue tickets only after the provider or webhook confirms payment.")}</p>{terminal && <button onClick={nav.pop} className="mt-6 text-[13px] font-semibold" style={{ color: C.goldSoft }}>Return to payment</button>}</div></Phone>;
 }
@@ -2274,7 +2293,9 @@ export default function EventVerseApp() {
         const sharedEventId = url.pathname.match(/^\/events\/([^/]+)/)?.[1] ? decodeURIComponent(url.pathname.match(/^\/events\/([^/]+)/)[1]) : null;
         const paymentCallback = url.searchParams.get("payment") === "callback";
         const artistPaymentCallback = url.searchParams.get("artist-payment") === "callback";
-        const pendingPayment = paymentCallback ? JSON.parse(window.localStorage.getItem("atizzy:pending-payment") || "null") : null;
+        const callbackReference = url.searchParams.get("reference") || url.searchParams.get("trxref");
+        const storedPendingPayment = paymentCallback ? JSON.parse(window.localStorage.getItem("atizzy:pending-payment") || "null") : null;
+        const pendingPayment = storedPendingPayment ? { ...storedPendingPayment, payment: { ...storedPendingPayment.payment, providerReference: callbackReference || storedPendingPayment.payment?.providerReference, reference: callbackReference || storedPendingPayment.payment?.reference } } : null;
         const pendingArtistPayment = artistPaymentCallback ? JSON.parse(window.localStorage.getItem("atizzy:pending-artist-payment") || "null") : null;
         if (paymentCallback || artistPaymentCallback) {
           url.searchParams.delete("payment");
