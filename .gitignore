@@ -6,3 +6,17 @@ dist
 !.env.example
 .DS_Store
 .mcp/
+
+# Local forensic evidence and connector payloads (not release source)
+/audit-*.txt
+/audit-*.md
+/audit-*.json
+/*-input.json
+/forensic-*.txt
+/forensic-*.md
+/premium-*.txt
+/premium-*.md
+/premium-*.json
+/live-security-*.md
+/atizzy-read-only-forensic-audit-final.md
+/scripts/repair_premium_helper_newlines.py
