@@ -2008,3 +2008,36 @@ The remaining unchecked items require the owner's authenticated production sessi
 - [x] Run full tests, type-check, production build, and deployment visibility validation
   
   
+
+
+# Live Payment Provider Verification Audit — 2026-08-23
+
+- [x] Trace premium, ticket, role-verification, wallet, and other payment initiation paths
+- [x] Trace provider callbacks/webhooks, server verification, retries, and grant/credit transitions
+- [x] Inspect live Supabase payment functions, constraints, RLS/grants, and Paystack configuration
+- [x] Ensure every payment grant requires authoritative provider-confirmed success
+- [x] Ensure failed, abandoned, pending, or unverified payments never grant value
+- [x] Preserve idempotency for retries and prevent duplicate grants across all payment domains
+- [x] Add regression coverage for provider success/failure/pending and callback replay states
+- [x] Run full tests, type-check, production build, and deployment/payment smoke validation
+
+
+
+# Published Song Artist Status Regression — 2026-08-23
+
+- [x] Trace published song, artist profile, approval, and verification status fields across Supabase and services
+- [x] Identify why a published song still renders the Artist Pending badge
+- [x] Fix the authoritative normalization or UI status condition without changing the existing design
+- [x] Add regression coverage for approved/published and genuinely pending artist states
+- [x] Validate song detail, Home, Music, Artist Profile, and artist workspace surfaces
+- [x] Run full tests, type-check, production build, and checkpoint the fix
+
+
+# Confirmed Home/Music Artist Identity Regression — 2026-08-23
+
+- [x] Reproduce the screenshot state against the exact Home/Music discovery payload
+- [x] Trace artist identity for recently played songs, popular songs, and music videos
+- [x] Fix missing artist joins or hydration at the authoritative discovery/service path
+- [x] Preserve the existing Artist pending fallback only for genuinely missing identities
+- [x] Add regression coverage for all affected card collections
+- [x] Run full tests, type-check, production build, and checkpoint the fix

@@ -42,6 +42,18 @@ export function firstNonEmpty(...arrays) {
   return arrays.find((value) => Array.isArray(value) && value.length > 0) || [];
 }
 
+function mergeDiscoveryRows(primaryRows, fallbackRows) {
+  const merged = new Map();
+  for (const row of [...asArray(fallbackRows), ...asArray(primaryRows)]) {
+    if (!row?.id) continue;
+    const current = merged.get(row.id);
+    const currentArtist = current?.artist || current?.artist_name || current?.artists?.name;
+    const nextArtist = row.artist || row.artist_name || row.artists?.name;
+    if (!current || (!currentArtist && nextArtist)) merged.set(row.id, row);
+  }
+  return [...merged.values()];
+}
+
 const normalizeEvents = (rows) => asArray(rows).map((row, index) => {
   // Base-catalog rows are already normalized; raw RPC rows are SQL-shaped.
   return typeof row?.date === "string" && Object.prototype.hasOwnProperty.call(row, "img")
@@ -57,11 +69,7 @@ const normalizeArtists = (rows) => asArray(rows).map((row) => {
   return alreadyNormalized ? row : toArtist(row);
 });
 
-const normalizeSongs = (rows) => asArray(rows).map((row) => (
-  typeof row?.duration === "string" || Object.prototype.hasOwnProperty.call(row, "audioUrl")
-    ? row
-    : toSong(row)
-));
+const normalizeSongs = (rows) => asArray(rows).map((row) => toSong(row));
 
 const normalizeMusicVideos = (rows) => asArray(rows).map((row) => toMusicVideo(row));
 
@@ -121,10 +129,20 @@ export async function loadDiscoverySnapshot({ latitude = null, longitude = null,
   const catalogueResult = settledRpcResult("cold-start catalogue", results[1]);
   const rankedData = rankedResult.data || {};
   const catalogueData = catalogueResult.data || {};
-  return normalizeDiscoverySnapshot({
+  const mergedDiscovery = {
     ...emptySnapshot,
     ...rankedData,
     ...catalogueData,
+    popularSongs: mergeDiscoveryRows(rankedData.popularSongs, catalogueData.popularSongs),
+    latestSongs: mergeDiscoveryRows(rankedData.latestSongs, catalogueData.latestSongs),
+    allSongs: mergeDiscoveryRows(rankedData.allSongs, catalogueData.allSongs),
+    recentlyPlayed: mergeDiscoveryRows(rankedData.recentlyPlayed, catalogueData.recentlyPlayed),
+    personalMostPlayed: mergeDiscoveryRows(rankedData.personalMostPlayed, catalogueData.personalMostPlayed),
+    platformMostPlayed: mergeDiscoveryRows(rankedData.platformMostPlayed, catalogueData.platformMostPlayed),
+    mostLikedSongs: mergeDiscoveryRows(rankedData.mostLikedSongs, catalogueData.mostLikedSongs),
+    mostWatchedMusicVideos: mergeDiscoveryRows(rankedData.mostWatchedMusicVideos, catalogueData.mostWatchedMusicVideos),
+    latestMusicVideos: mergeDiscoveryRows(rankedData.latestMusicVideos, catalogueData.latestMusicVideos),
+    allMusicVideos: mergeDiscoveryRows(rankedData.allMusicVideos, catalogueData.allMusicVideos),
     generatedAt: catalogueData.generatedAt || rankedData.generatedAt || null,
     discoveryStatus: {
       ranked: rankedResult.error ? "error" : "success",
@@ -134,7 +152,8 @@ export async function loadDiscoverySnapshot({ latitude = null, longitude = null,
       ranked: rankedResult.error || null,
       catalogue: catalogueResult.error || null,
     },
-  });
+  };
+  return normalizeDiscoverySnapshot(mergedDiscovery);
 }
 
 export async function loadDiscoveryCatalogue({ limit = 24, offset = 0 } = {}) {

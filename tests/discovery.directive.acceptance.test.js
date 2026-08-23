@@ -22,6 +22,23 @@ describe("Atizzy canonical discovery directive contracts", () => {
     expect(snapshot).not.toHaveProperty("mock");
   });
 
+  it("rehydrates artist identity on partially-normalized song rows", async () => {
+    rpc
+      .mockResolvedValueOnce({ data: { popularSongs: [{ id: "song-live", title: "Badmangangsta", artist: "Asake", duration: "3:00", audioUrl: "https://cdn.example/audio.mp3" }] }, error: null })
+      .mockResolvedValueOnce({ data: { latestSongs: [] }, error: null });
+    const snapshot = await loadDiscoverySnapshot();
+    expect(snapshot.popularSongs[0]).toEqual(expect.objectContaining({ id: "song-live", artist: "Asake", title: "Badmangangsta" }));
+  });
+
+  it("prefers artist-enriched ranked rows when cold-start returns the same ids without identity", async () => {
+    rpc
+      .mockResolvedValueOnce({ data: { popularSongs: [{ id: "song-live", title: "Badmangangsta", artist: "Asake" }], mostWatchedMusicVideos: [{ id: "video-live", title: "Never have I", artist: "Asake" }] }, error: null })
+      .mockResolvedValueOnce({ data: { popularSongs: [{ id: "song-live", title: "Badmangangsta", artist_id: "artist-1" }], mostWatchedMusicVideos: [{ id: "video-live", title: "Never have I", artist_id: "artist-1" }] }, error: null });
+    const snapshot = await loadDiscoverySnapshot();
+    expect(snapshot.popularSongs[0]).toEqual(expect.objectContaining({ id: "song-live", artist: "Asake" }));
+    expect(snapshot.mostWatchedMusicVideos[0]).toEqual(expect.objectContaining({ id: "video-live", artist: "Asake" }));
+  });
+
   it("keeps ranked data when the cold-start catalogue RPC fails", async () => {
     rpc
       .mockResolvedValueOnce({ data: { popularSongs: [{ id: "song-ranked" }], events: [{ id: "event-ranked" }] }, error: null })
