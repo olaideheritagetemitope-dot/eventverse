@@ -33,6 +33,15 @@ describe("music video visibility contract", () => {
     expect(app).toContain("videoUrl: song.videoUrl || song.musicVideoUrl || song.video_url");
   });
 
+  it("refreshes the dedicated detail route from the authoritative live video row", () => {
+    expect(catalog).toContain("export async function loadMusicVideoDetail(videoId)");
+    expect(catalog).toContain('.eq("id", videoId).eq("status", "PUBLISHED")');
+    expect(app).toContain("loadMusicVideoDetail(video.id)");
+    expect(app).toContain("const initialVideo = video ? toMusicVideo(video) : null");
+    expect(app).toContain("currentVideo.videoUrl || currentVideo.musicVideoUrl || currentVideo.video_url");
+    expect(app).toContain("currentVideo.thumbnailUrl || currentVideo.thumbnail_url");
+  });
+
   it("renders live videos on Music and Artist Profile surfaces", () => {
     expect(app).toContain('Section title="Music Videos" nav={nav}');
     expect(app).toContain('["Popular", "Songs", "Albums", "Music Videos", "Events", "About"]');

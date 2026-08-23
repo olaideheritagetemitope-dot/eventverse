@@ -144,9 +144,18 @@ export const toMusicVideo = (video) => ({
   publishedAt: video.published_at || null,
 });
 
+const MUSIC_VIDEO_DETAIL_SELECT = "id,artist_id,song_id,title,description,thumbnail_url,video_url,status,published_at,created_at,artists(id,name),songs(id,title,duration_seconds,audio_url,cover_url,lyrics_text,artists(id,name))";
+
+export async function loadMusicVideoDetail(videoId) {
+  if (!videoId) return null;
+  const { data, error } = await supabase.from("music_videos").select(MUSIC_VIDEO_DETAIL_SELECT).eq("id", videoId).eq("status", "PUBLISHED").not("video_url", "is", null).maybeSingle();
+  if (error) throw error;
+  return data ? toMusicVideo(data) : null;
+}
+
 export async function loadMusicVideoForSong(songId) {
   if (!songId) return null;
-  const { data, error } = await supabase.from("music_videos").select("id,artist_id,song_id,title,description,thumbnail_url,video_url,status,published_at,created_at,artists(id,name),songs(id,title,duration_seconds,audio_url,cover_url,lyrics_text,artists(id,name))").eq("song_id", songId).eq("status", "PUBLISHED").not("video_url", "is", null).order("published_at", { ascending: false }).limit(1).maybeSingle();
+  const { data, error } = await supabase.from("music_videos").select(MUSIC_VIDEO_DETAIL_SELECT).eq("song_id", songId).eq("status", "PUBLISHED").not("video_url", "is", null).order("published_at", { ascending: false }).limit(1).maybeSingle();
   if (error) throw error;
   return data ? toMusicVideo(data) : null;
 }
