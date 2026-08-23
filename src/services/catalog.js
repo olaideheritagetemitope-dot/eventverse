@@ -144,6 +144,13 @@ export const toMusicVideo = (video) => ({
   publishedAt: video.published_at || null,
 });
 
+export async function loadMusicVideoForSong(songId) {
+  if (!songId) return null;
+  const { data, error } = await supabase.from("music_videos").select("id,artist_id,song_id,title,description,thumbnail_url,video_url,status,published_at,created_at,artists(id,name),songs(id,title,duration_seconds,audio_url,cover_url,lyrics_text,artists(id,name))").eq("song_id", songId).eq("status", "PUBLISHED").not("video_url", "is", null).order("published_at", { ascending: false }).limit(1).maybeSingle();
+  if (error) throw error;
+  return data ? toMusicVideo(data) : null;
+}
+
 export const toSong = (song) => ({
   ...song,
   id: song.id,

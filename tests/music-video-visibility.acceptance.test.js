@@ -15,6 +15,16 @@ describe("music video visibility contract", () => {
     expect(catalog).toContain('allMusicVideos: filterLiveCatalogRows("musicVideos", results.musicVideos.data).map(toMusicVideo)');
   });
 
+  it("resolves a canonical published linked video when a Song has no legacy video URL", () => {
+    expect(catalog).toContain("export async function loadMusicVideoForSong(songId)");
+    expect(catalog).toContain('.eq("song_id", songId).eq("status", "PUBLISHED")');
+    expect(catalog).toContain('.not("video_url", "is", null)');
+    expect(app).toContain("loadMusicVideoForSong(song.id)");
+    expect(app).toContain("setVideo(result)");
+    expect(app).toContain("const videoUrl = video?.videoUrl || video?.musicVideoUrl || null");
+    expect(app).toContain("if ((song.videoUrl || song.musicVideoUrl) && !song.audioUrl) return <MusicVideoDetail");
+  });
+
   it("renders live videos on Music and Artist Profile surfaces", () => {
     expect(app).toContain('Section title="Music Videos" nav={nav}');
     expect(app).toContain('["Popular", "Songs", "Albums", "Music Videos", "Events", "About"]');

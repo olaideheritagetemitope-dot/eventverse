@@ -1825,3 +1825,11 @@
 - [x] Ensure the creator dashboard supports independent Song/Audio, Lyrics, and Music Video uploads with optional linking.
 - [x] Add regression coverage for audio-only, lyrics-linked, video-linked, fully linked, and standalone-video combinations.
 - [x] Validate build, type-check, lint, and relevant tests; actual deployed playback with the uploaded standalone video remains a user-session/device gate.
+
+# Music Video Frontend Rendering Regression — 2026-08-23
+
+- [x] Trace why the live “Never have I” Music Video route renders the empty state despite an existing record.
+- [x] Trace why the dedicated video/player surface receives no playable media and displays 0:00 duration.
+- [x] Fix the first broken live-data, normalization, route-payload, or managed-media URL boundary without synthetic fallback data.
+- [x] Add regression coverage for detail rendering, thumbnail/video URL resolution, and actual duration/player initialization.
+- [ ] Validate the fix in production and on the authenticated device flow.
