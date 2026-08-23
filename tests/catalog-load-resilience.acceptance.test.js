@@ -24,6 +24,7 @@ describe("Home base catalog root-cause regression", () => {
     expect(source).toContain("const settled = await Promise.allSettled(entries.map(([, loader]) => loader()));");
     expect(source).toContain("const resultByName = Object.fromEntries(entries.map(([name], index) => {");
     expect(source).toContain("searchErrors: Object.fromEntries");
-    expect(source).toContain("artists: (await hydrateArtistAvatars(filterLiveCatalogRows(\"artists\", resultByName.artists.data))).map(toArtist)");
+    expect(source).toContain("const mergedArtists = [...directArtists, ...profileArtists]");
+    expect(source).toContain("artists: (await hydrateArtistAvatars(filterLiveCatalogRows(\"artists\", mergedArtists))).map(toArtist)");
   });
 });

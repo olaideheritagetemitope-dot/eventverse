@@ -1,0 +1,1 @@
+{"project_id":"blalvoelllndmbppbkcy","query":"select id, user_id, name, verified, image_url, background_url from public.artists where name ilike '%Asa%' or name is not null limit 50"}

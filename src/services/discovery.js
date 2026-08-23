@@ -49,11 +49,13 @@ const normalizeEvents = (rows) => asArray(rows).map((row, index) => {
     : toEvent(row, index);
 });
 
-const normalizeArtists = (rows) => asArray(rows).map((row) => (
-  typeof row?.avatarUrl === "string" || Object.prototype.hasOwnProperty.call(row, "img")
-    ? row
-    : toArtist(row)
-));
+const normalizeArtists = (rows) => asArray(rows).map((row) => {
+  const alreadyNormalized = typeof row?.name === "string" && (
+    Object.prototype.hasOwnProperty.call(row, "img") ||
+    Object.prototype.hasOwnProperty.call(row, "avatarUrl")
+  );
+  return alreadyNormalized ? row : toArtist(row);
+});
 
 const normalizeSongs = (rows) => asArray(rows).map((row) => (
   typeof row?.duration === "string" || Object.prototype.hasOwnProperty.call(row, "audioUrl")

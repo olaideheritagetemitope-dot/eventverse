@@ -6,9 +6,10 @@ const shell = fs.readFileSync(path.resolve(process.cwd(), "src/EventVerse.jsx"),
 const catalog = fs.readFileSync(path.resolve(process.cwd(), "src/services/catalog.js"), "utf8");
 
 describe("Deep regression contract coverage", () => {
-  it("keeps the artist directory and search approved-only and live", () => {
+  it("keeps the artist directory live and searchable without requiring verification", () => {
     expect(catalog).toContain('artists: () => supabase.from("artists")');
-    expect(catalog).toContain('.eq("verified", true)');
+    expect(catalog).not.toContain('artists: () => supabase.from("artists").select("id,user_id,name,bio,verified,follower_count,image_url,background_url").eq("verified", true)');
+    expect(catalog).toContain('["artistProfiles", () => supabase.from("user_profiles").select("id,full_name,avatar_url").ilike("full_name", pattern).limit(20)]');
     expect(catalog).toContain('.or(`name.ilike.${pattern},bio.ilike.${pattern}`)');
     expect(shell).toContain('const show = (section) => tab === "All" || tab === section;');
     expect(shell).toContain('query && show("Artists")');

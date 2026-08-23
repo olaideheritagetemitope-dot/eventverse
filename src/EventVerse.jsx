@@ -855,7 +855,7 @@ function AttendeeHome({ nav, player, catalog, account, loading, error, catalogNo
         <div className="mb-4">
           <div className="flex items-center justify-between px-5 mb-3">
             <span className="text-[14px] font-semibold" style={{ color: C.ivory }}>Popular Artists</span>
-            <button type="button" onClick={() => nav.push("explore")} className="text-[12px]" style={{ color: C.gold }}>See all</button>
+            <button type="button" onClick={() => nav.push("artistDirectory")} className="text-[12px]" style={{ color: C.gold }}>See all</button>
           </div>
           <div className="flex gap-4 px-5 overflow-x-auto no-scrollbar">
             {artists.map((a) => (
@@ -891,6 +891,7 @@ function AttendeeHome({ nav, player, catalog, account, loading, error, catalogNo
 /* ============================== EXPLORE ============================== */
 function Explore({ nav, player, catalog, catalogNotice, premium }) {
   const [cat, setCat] = useState("All");
+  const artists = catalog?.artists || [];
   const [filteredEvents, setFilteredEvents] = useState(null);
   const rankedEvents = catalog?.events || [];
   const latestEvents = catalog?.latestEvents || [];
@@ -929,6 +930,16 @@ function Explore({ nav, player, catalog, catalogNotice, premium }) {
             {nearbyEvents.map((ev) => <EventCard key={ev.id} ev={ev} onClick={() => nav.push("eventDetail", ev)} />)}
             {!nearbyEvents.length && [0, 1, 2].map((slot) => <EmptyEventCard key={`nearby-empty-${slot}`} />)}
         </Section>
+        <Section title="Popular Artists" nav={nav}>
+          {artists.slice(0, 12).map((artist) => (
+            <button type="button" key={artist.id} onClick={() => nav.push("artist", artist)} className="flex-shrink-0 w-24 text-left">
+              <div className="w-20 h-20 rounded-full" style={imageStyle(artist.img, C.card)} />
+              <p className="text-[12px] font-semibold mt-2 truncate" style={{ color: C.ivory }}>{artist.name || "Artist pending"}</p>
+              <p className="text-[10px] truncate" style={{ color: C.muted }}>{artist.followers || "0"} Followers</p>
+            </button>
+          ))}
+          {!artists.length && [0, 1, 2].map((slot) => <EmptyArtistCard key={`explore-artist-empty-${slot}`} />)}
+        </Section>
         <Section title="Popular Venues" nav={nav} last>
           {venues.slice(0, 6).map((venue) => (
             <button type="button" key={venue.id} onClick={() => nav.push("venueDetail", venue)} className="flex-shrink-0 w-44 rounded-2xl overflow-hidden text-left" style={{ background: C.card }}>
@@ -949,7 +960,7 @@ function Explore({ nav, player, catalog, catalogNotice, premium }) {
 }
 
 function Section({ title, children, last, nav }) {
-  const destination = title.includes("Artist") ? "explore" : title.includes("Venue") ? "search" : title.includes("Music") || title.includes("Played") ? "music" : "explore";
+  const destination = title.includes("Artist") ? "artistDirectory" : title.includes("Venue") ? "search" : title.includes("Music") || title.includes("Played") ? "music" : "explore";
   const openAll = () => { if (destination === "music") nav?.tab("music"); else nav?.push(destination); };
   return (
     <div className={last ? "mb-4" : "mb-6"}>
@@ -963,6 +974,23 @@ function Section({ title, children, last, nav }) {
 }
 
 /* ============================== SEARCH ============================== */
+function ArtistDirectory({ nav, player, catalog }) {
+  const artists = firstNonEmpty(catalog?.artists, catalog?.popularArtists, catalog?.latestArtists, catalog?.allArtists);
+  return <Phone>
+    <div className="flex items-center justify-between px-5 pt-1 pb-4">
+      <button type="button" onClick={() => nav.back()} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: C.card }} aria-label="Go back"><ChevronLeft size={18} color={C.ivory} /></button>
+      <h1 className="text-[18px] font-semibold" style={{ color: C.ivory }}>Artists</h1>
+      <div className="w-9 h-9" />
+    </div>
+    <div className="flex-1 overflow-y-auto px-5 pb-4">
+      <p className="text-[12px] mb-4" style={{ color: C.muted }}>Discover artists with live profiles on Atizzy.</p>
+      {artists.length ? <div className="grid grid-cols-2 gap-3">{artists.map((artist) => <button key={artist.id} type="button" onClick={() => nav.push("artist", artist)} className="rounded-2xl p-3 text-left" style={{ background: C.card, border: `1px solid ${C.line}` }}><div className="w-full aspect-square rounded-xl mb-3" style={imageStyle(artist.img || artist.avatarUrl, C.card2)} /><p className="text-[13px] font-semibold truncate" style={{ color: C.ivory }}>{artist.name || "Artist pending"}</p><p className="text-[11px] mt-1 truncate" style={{ color: C.muted }}>{artist.followers || "Followers unavailable"}</p></button>)}</div> : <div className="rounded-2xl p-5 text-center" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[14px] font-semibold" style={{ color: C.ivory }}>No artists yet</p><p className="text-[12px] mt-2" style={{ color: C.muted }}>Published artist profiles will appear here.</p></div>}
+    </div>
+    <MiniPlayer song={player.song} playing={player.playing} onToggle={player.toggle} onPrevious={player.previous} onNext={player.next} onOpen={() => nav.push("musicPlayer")} />
+    <BottomNav current="explore" go={nav.tab} />
+  </Phone>;
+}
+
 function SearchScreen({ nav, catalog, account }) {
   const [tab, setTab] = useState("All");
   const [query, setQuery] = useState("");
@@ -2589,11 +2617,11 @@ export default function EventVerseApp() {
           ...liveCatalog,
           discovery,
           events: firstNonEmpty(discovery.events, discovery.latestEvents, discovery.allEvents, liveCatalog.events),
-          artists: firstNonEmpty(discovery.popularArtists, discovery.latestArtists, discovery.allArtists, liveCatalog.artists),
+          artists: firstNonEmpty(liveCatalog.artists, discovery.popularArtists, discovery.latestArtists, discovery.allArtists),
           songs: firstNonEmpty(discovery.popularSongs, discovery.latestSongs, discovery.allSongs, liveCatalog.songs),
           venues: firstNonEmpty(discovery.popularVenues, discovery.newVenues, discovery.allVenues, liveCatalog.venues),
           upcomingEvents: firstNonEmpty(discovery.upcomingEvents, discovery.latestEvents, discovery.allEvents, liveCatalog.upcomingEvents),
-          popularArtists: firstNonEmpty(discovery.popularArtists, liveCatalog.popularArtists),
+          popularArtists: firstNonEmpty(liveCatalog.popularArtists, liveCatalog.artists, discovery.popularArtists),
           trendingEvents: firstNonEmpty(discovery.trendingEvents, discovery.events, liveCatalog.trendingEvents),
           nearbyEvents: firstNonEmpty(discovery.nearbyEvents, discovery.upcomingEvents, liveCatalog.nearbyEvents),
           popularVenues: firstNonEmpty(discovery.popularVenues, discovery.newVenues, liveCatalog.popularVenues),
@@ -2609,8 +2637,8 @@ export default function EventVerseApp() {
           publicPlaylists: firstNonEmpty(discovery.publicPlaylists, discovery.latestPublicPlaylists, liveCatalog.publicPlaylists),
           latestSongs: firstNonEmpty(discovery.latestSongs, discovery.allSongs, liveCatalog.latestSongs, liveCatalog.songs),
           allSongs: firstNonEmpty(discovery.allSongs, discovery.latestSongs, liveCatalog.allSongs, liveCatalog.songs),
-          latestArtists: firstNonEmpty(discovery.latestArtists, discovery.allArtists, liveCatalog.latestArtists, liveCatalog.artists),
-          allArtists: firstNonEmpty(discovery.allArtists, discovery.latestArtists, liveCatalog.allArtists, liveCatalog.artists),
+          latestArtists: firstNonEmpty(liveCatalog.latestArtists, liveCatalog.artists, discovery.latestArtists, discovery.allArtists),
+          allArtists: firstNonEmpty(liveCatalog.allArtists, liveCatalog.artists, discovery.allArtists, discovery.latestArtists),
           latestAlbums: firstNonEmpty(discovery.latestAlbums, discovery.allAlbums, liveCatalog.latestAlbums, liveCatalog.popularAlbums),
           allAlbums: firstNonEmpty(discovery.allAlbums, discovery.latestAlbums, liveCatalog.allAlbums, liveCatalog.popularAlbums),
           newVenues: firstNonEmpty(discovery.newVenues, discovery.allVenues, liveCatalog.newVenues, liveCatalog.venues),
@@ -2741,6 +2769,7 @@ export default function EventVerseApp() {
     verify: <Verify nav={nav} data={current.data} />,
     home: <AttendeeHome nav={nav} player={player} catalog={catalog} account={account} loading={catalogLoading} error={catalogError} catalogNotice={catalogNotice} premium={premium} locationState={locationState} onRetryLocation={() => setLocationRetryToken((value) => value + 1)} />,
     explore: <Explore nav={nav} player={player} catalog={catalog} catalogNotice={catalogNotice} premium={premium} />,
+    artistDirectory: <ArtistDirectory nav={nav} player={player} catalog={catalog} />,
         search: <SearchScreen nav={nav} catalog={catalog} account={account} />,
     eventDetail: <EventDetail nav={nav} data={current.data} account={account} />,
     venueDetail: <VenueDetail nav={nav} data={current.data} />,

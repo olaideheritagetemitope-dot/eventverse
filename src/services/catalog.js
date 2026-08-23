@@ -99,7 +99,7 @@ export const toEvent = (event, index = 0) => {
   };
 };
 
-const artistAvatarSource = (artist) => artist?.image_url || artist?.avatar_url || artist?.avatarUrl || artist?.profile_image_url || null;
+const artistAvatarSource = (artist) => artist?.image_url || artist?.avatar_url || artist?.avatarUrl || artist?.profile_image_url || artist?.profile_avatar_url || null;
 const artistBackgroundSource = (artist) => artist?.background_url || artist?.background_image_url || artist?.cover_url || artist?.coverUrl || null;
 
 export const toArtist = (artist) => {
@@ -108,8 +108,8 @@ export const toArtist = (artist) => {
   return {
     ...artist,
     id: artist.id,
-    name: artist.name,
-    followers: formatFollowers(artist.follower_count),
+    name: artist.name || artist.artist_name || artist.display_name || artist.full_name || "Artist pending",
+    followers: formatFollowers(artist.follower_count ?? artist.followers_count),
     verified: Boolean(artist.verified),
     avatarUrl,
     backgroundUrl,
@@ -122,12 +122,16 @@ async function hydrateArtistAvatars(rows) {
   const artists = Array.isArray(rows) ? rows : [];
   const missingIds = artists.map((artist) => artist?.user_id).filter(Boolean);
   if (!missingIds.length) return artists;
-  const { data: profiles } = await supabase.from("user_profiles").select("id,avatar_url").in("id", missingIds);
-  const avatarByUserId = new Map((profiles || []).map((profile) => [profile.id, mediaUrl(profile.avatar_url)]));
-  return artists.map((artist) => ({
-    ...artist,
-    image_url: mediaUrl(artist.image_url) || avatarByUserId.get(artist.user_id) || null,
-  }));
+  const { data: profiles } = await supabase.from("user_profiles").select("id,avatar_url,full_name").in("id", missingIds);
+  const profileByUserId = new Map((profiles || []).map((profile) => [profile.id, profile]));
+  return artists.map((artist) => {
+    const profile = profileByUserId.get(artist.user_id);
+    return {
+      ...artist,
+      name: artist.name || profile?.full_name || "Artist pending",
+      image_url: mediaUrl(artist.image_url) || mediaUrl(profile?.avatar_url) || null,
+    };
+  });
 }
 
 export async function loadArtistDetail(artistId) {
@@ -242,7 +246,7 @@ export const toSong = (song) => ({
 
 const baseCatalogQueries = {
   events: () => supabase.from("events").select("id,organizer_id,venue_id,title,description,event_type,city,starts_at,ends_at,cover_url,status,rating,review_count,venues(id,name,city,address,capacity),ticket_types(id,price)").in("status", ["PUBLISHED", "SOLD_OUT", "LIVE", "COMPLETED"]).order("starts_at"),
-  artists: () => supabase.from("artists").select("id,user_id,name,bio,verified,follower_count,image_url,background_url").eq("verified", true).order("follower_count", { ascending: false }),
+  artists: () => supabase.from("artists").select("id,user_id,name,bio,verified,follower_count,image_url,background_url").order("follower_count", { ascending: false }),
   songs: () => supabase.from("songs").select("id,artist_id,title,duration_seconds,audio_url,cover_url,play_count,status,published_at,artists(id,name,image_url)").eq("status", "PUBLISHED").not("audio_url", "is", null).order("play_count", { ascending: false }),
   musicVideos: () => supabase.from("music_videos").select("id,artist_id,song_id,title,description,thumbnail_url,video_url,status,published_at,created_at,artists(id,name),songs(id,title,duration_seconds,audio_url,cover_url,lyrics_text,artists(id,name))").eq("status", "PUBLISHED").not("video_url", "is", null).order("published_at", { ascending: false }),
   categories: () => supabase.from("categories").select("id,name,slug").order("name"),
@@ -282,7 +286,8 @@ export async function searchCatalog(query) {
   const pattern = `%${term}%`;
   const entries = [
     ["events", () => supabase.from("events").select("id,organizer_id,venue_id,title,description,event_type,city,starts_at,ends_at,cover_url,status,rating,review_count,venues(id,name,city,address,capacity),ticket_types(id,price)").in("status", ["PUBLISHED", "SOLD_OUT", "LIVE", "COMPLETED"]).or(`title.ilike.${pattern},description.ilike.${pattern},city.ilike.${pattern}`).order("starts_at").limit(20)],
-    ["artists", () => supabase.from("artists").select("id,user_id,name,bio,verified,follower_count,image_url,background_url").eq("verified", true).or(`name.ilike.${pattern},bio.ilike.${pattern}`).order("follower_count", { ascending: false }).limit(20)],
+    ["artists", () => supabase.from("artists").select("id,user_id,name,bio,verified,follower_count,image_url,background_url").or(`name.ilike.${pattern},bio.ilike.${pattern}`).order("follower_count", { ascending: false }).limit(20)],
+    ["artistProfiles", () => supabase.from("user_profiles").select("id,full_name,avatar_url").ilike("full_name", pattern).limit(20)],
     ["songs", () => supabase.from("songs").select("id,artist_id,title,duration_seconds,audio_url,cover_url,play_count,status,published_at,artists(id,name,image_url)").eq("status", "PUBLISHED").not("audio_url", "is", null).ilike("title", pattern).order("play_count", { ascending: false }).limit(20)],
     ["venues", () => supabase.from("venues").select("id,name,city,address,capacity,status,image_urls").eq("status", "ACTIVE").or(`name.ilike.${pattern},city.ilike.${pattern},address.ilike.${pattern}`).order("name").limit(20)],
   ];
@@ -292,12 +297,21 @@ export async function searchCatalog(query) {
     if (result.status === "rejected") return [name, { data: [], error: result.reason }];
     return [name, { data: result.value?.error ? [] : (result.value?.data || []), error: result.value?.error || null }];
   }));
+  const profileMatches = resultByName.artistProfiles.data || [];
+  const directArtists = resultByName.artists.data || [];
+  let profileArtists = [];
+  if (profileMatches.length) {
+    const userIds = profileMatches.map((profile) => profile.id).filter(Boolean);
+    const { data: linkedArtists, error: linkedArtistError } = await supabase.from("artists").select("id,user_id,name,bio,verified,follower_count,image_url,background_url").in("user_id", userIds);
+    if (!linkedArtistError) profileArtists = linkedArtists || [];
+  }
+  const mergedArtists = [...directArtists, ...profileArtists].filter((artist, index, rows) => artist?.id && rows.findIndex((item) => item.id === artist.id) === index);
   return {
     events: filterLiveCatalogRows("events", resultByName.events.data).map(toEvent),
-    artists: (await hydrateArtistAvatars(filterLiveCatalogRows("artists", resultByName.artists.data))).map(toArtist),
+    artists: (await hydrateArtistAvatars(filterLiveCatalogRows("artists", mergedArtists))).map(toArtist),
     songs: filterLiveCatalogRows("songs", resultByName.songs.data).map(toSong),
     venues: filterLiveCatalogRows("venues", resultByName.venues.data).map((venue) => ({ ...venue, imageUrl: firstVenueImage(venue) })),
-    searchErrors: Object.fromEntries(Object.entries(resultByName).filter(([, result]) => result.error).map(([name, result]) => [name, result.error])),
+    searchErrors: Object.fromEntries(Object.entries(resultByName).filter(([name, result]) => !["artistProfiles"].includes(name) && result.error).map(([name, result]) => [name, result.error])),
   };
 }
 

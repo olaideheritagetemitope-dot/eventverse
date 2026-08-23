@@ -1878,10 +1878,21 @@
 
 # Release, Artist Image, and Search Regression Audit — 2026-08-23
 
-- [ ] Prove the repository, branch, deployment, and served frontend bundle the user is actually opening
-- [ ] Trace artist card tap and direct artist URL from production entrypoint through route state and profile rendering
-- [ ] Trace artist image database fields, media URL resolution, storage access, and image component rendering
-- [ ] Trace search input, debounce/state updates, query functions, Supabase filters, normalization, and result rendering for artists, songs, events, venues, and other searchable entities
-- [ ] Repair the first authoritative release, query, route, media, or rendering boundary causing the reported failures
-- [ ] Add regression coverage for production-visible artist navigation, artist images, and cross-entity search
-- [ ] Verify the deployed frontend behavior and document remaining authenticated/device-only gates
+- [x] Prove the repository, branch, deployment, and served frontend bundle the user is actually opening
+- [x] Trace artist card tap and direct artist URL from production entrypoint through route state and profile rendering
+- [x] Trace artist image database fields, media URL resolution, storage access, and image component rendering
+- [x] Trace search input, debounce/state updates, query functions, Supabase filters, normalization, and result rendering for artists, songs, events, venues, and other searchable entities
+- [x] Repair the first authoritative release, query, route, media, or rendering boundary causing the reported failures
+- [x] Add regression coverage for production-visible artist navigation, artist images, and cross-entity search
+- [ ] Verify the deployed frontend behavior with an authenticated user session and document remaining device-only gates
+
+# Screenshot-Confirmed Artist and Search Regression — 2026-08-23
+
+- [ ] Reproduce the screenshot state against the exact production alias and served bundle
+- [ ] Trace the artist-list route and card tap into the profile renderer, including direct URL restoration
+- [ ] Trace why live artist names/images normalize to “Artist pending” and placeholder avatars
+- [ ] Trace why the search query “Asa” and other entity searches return no live results
+- [ ] Verify the relevant Supabase rows, RLS visibility, joins, and query signatures against production
+- [ ] Repair the first authoritative backend/client/route/rendering break without mock data or UI redesign
+- [ ] Add regression coverage for artist list/profile routing, image hydration, and cross-entity search
+- [ ] Verify the deployed authenticated flow and document remaining device-only validation gates
