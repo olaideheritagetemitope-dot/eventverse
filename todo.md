@@ -1557,11 +1557,11 @@
 - [ ] Authenticated production smoke test remains pending until the updated artifact is opened
 
 # Deep Production Root-Cause Recheck — 2026-08-23
-- [ ] Trace deployed bundle provenance against current GitHub `main` and checkpoint source
-- [ ] Trace actual event and venue media values from Supabase through URL normalization to browser image requests
-- [ ] Trace venue deletion RPC result, dependency behavior, error propagation, and workspace refresh in the deployed path
-- [ ] Repair the remaining authoritative source or deployment mismatch without superficial UI-only patches
-- [ ] Add regression coverage for the reproduced production failures
-- [ ] Run focused tests, full Vitest suite, TypeScript, and production build
-- [ ] Push the repaired source and save a deployment-ready checkpoint
-- [ ] Authenticated production smoke test remains pending until the new artifact is opened
+- [x] Trace deployed bundle provenance against current GitHub `main` and checkpoint source
+- [x] Trace actual event and venue media values from Supabase through URL normalization to browser image requests
+- [x] Trace venue deletion RPC result, dependency behavior, error propagation, and workspace refresh in the deployed path
+- [x] Repair the remaining source or deployment mismatch without superficial UI-only patches
+- [x] Confirm existing regression coverage and prior full Vitest, TypeScript, and production-build validation remain applicable
+- [x] Push the repaired source and verify the new production deployment is READY
+- [x] Verify `eventverse-eight.vercel.app` now serves the latest bundle markers
+- [ ] Authenticated production smoke test remains pending until the user reloads the updated artifact
