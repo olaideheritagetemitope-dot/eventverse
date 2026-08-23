@@ -20,3 +20,7 @@ dist
 /live-security-*.md
 /atizzy-read-only-forensic-audit-final.md
 /scripts/repair_premium_helper_newlines.py
+/apply-*.json
+/inspect-*.json
+/verify-*.json
+/audit-*.sql
