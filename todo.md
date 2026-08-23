@@ -151,6 +151,16 @@
 - [x] Supply Paystack credentials and implement provider redirect/webhook verification
 - [x] Issue tickets only after verified payment and implement secure QR check-in
 
+# Deletion Regression Investigation — 2026-08-23
+
+- [x] Trace artist-owned music/content deletion entry points and backend RPC/table operations
+- [x] Trace Super Admin deletion/moderation operations and authorization paths
+- [x] Trace venue deletion operations, booking-history constraints, triggers, and media cleanup
+- [x] Reproduce the exact deletion failure and identify the first broken invariant
+- [x] Implement root fixes without weakening ownership, audit, or Super Admin authority
+- [x] Add regression tests for artist, Super Admin, and venue deletion plus UI refresh
+- [ ] Run full validation and verify the deployed production path
+
 # ChatGPT Directive Expansion — 2026-08-19
 
 - [x] Inventory the complete supplied directive and map every requirement to current files and database contracts

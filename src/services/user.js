@@ -320,17 +320,32 @@ export async function archiveArtistSong(songId) {
   return Array.isArray(data) ? data[0] : data;
 }
 
+async function cleanupDeletedMedia(paths) {
+  const safePaths = Array.isArray(paths) ? paths.filter((path) => typeof path === "string" && path.trim()) : [];
+  if (!safePaths.length) return { removed: [], failed: [] };
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData.session?.access_token;
+  if (!token) return { removed: [], failed: safePaths.map((path) => ({ path, reason: "Authentication required for cleanup" })) };
+  try {
+    const response = await fetch("/api/media/cleanup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ paths: safePaths }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    return { removed: payload.removed || [], failed: payload.failed || safePaths.map((path) => ({ path, reason: payload.error || "Cleanup unavailable" })) };
+  } catch (cleanupError) {
+    return { removed: [], failed: safePaths.map((path) => ({ path, reason: cleanupError.message || "Cleanup unavailable" })) };
+  }
+}
+
 export async function deleteArtistSong(songId) {
   if (!songId) throw new Error("Song access is required.");
   const { data, error } = await supabase.rpc("delete_artist_song", { p_song_id: songId });
   if (error) throw error;
   const result = Array.isArray(data) ? data[0] : data;
-  const paths = Array.isArray(result?.media_paths) ? result.media_paths.filter(Boolean) : [];
-  if (paths.length) {
-    const { error: storageError } = await supabase.storage.from(MEDIA_BUCKET).remove(paths);
-    if (storageError) throw storageError;
-  }
-  return result;
+  const cleanup = await cleanupDeletedMedia(result?.media_paths);
+  return { ...(result || {}), cleanup };
 }
 
 export async function updateArtistSong(songId, artistId, updates) {
@@ -592,12 +607,8 @@ export async function deleteOwnedVenue(venueId) {
   const { data, error } = await supabase.rpc("delete_owned_venue", { p_venue_id: venueId });
   if (error) throw error;
   const result = Array.isArray(data) ? data[0] : data;
-  const paths = Array.isArray(result?.media_paths) ? result.media_paths.filter(Boolean) : [];
-  if (paths.length) {
-    const { error: storageError } = await supabase.storage.from(MEDIA_BUCKET).remove(paths);
-    if (storageError) throw storageError;
-  }
-  return result;
+  const cleanup = await cleanupDeletedMedia(result?.media_paths);
+  return { ...(result || {}), cleanup };
 }
 
 export async function updateOwnedVenue(venueId, payload) {
