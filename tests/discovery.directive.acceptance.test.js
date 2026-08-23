@@ -15,10 +15,10 @@ describe("Atizzy canonical discovery directive contracts", () => {
     const snapshot = await loadDiscoverySnapshot({ latitude: 6.52, longitude: 3.37, radiusKm: 25 });
     expect(rpc).toHaveBeenCalledWith("get_discovery_snapshot", { p_latitude: 6.52, p_longitude: 3.37, p_radius_km: 25 });
     expect(rpc).toHaveBeenCalledWith("get_cold_start_discovery_catalogue", { p_limit: 24, p_offset: 0 });
-    expect(snapshot.popularSongs).toEqual([{ id: "song-1" }]);
+    expect(snapshot.popularSongs[0]).toEqual(expect.objectContaining({ id: "song-1", duration: "0:00", audioUrl: null }));
     expect(snapshot.nearbyEvents).toEqual([]);
-    expect(snapshot.latestSongs).toEqual([{ id: "song-new" }]);
-    expect(snapshot.latestEvents).toEqual([{ id: "event-new" }]);
+    expect(snapshot.latestSongs[0]).toEqual(expect.objectContaining({ id: "song-new", duration: "0:00", audioUrl: null }));
+    expect(snapshot.latestEvents[0]).toEqual(expect.objectContaining({ id: "event-new", date: "Date pending", venue: "Venue pending", img: null }));
     expect(snapshot).not.toHaveProperty("mock");
   });
 
@@ -27,8 +27,8 @@ describe("Atizzy canonical discovery directive contracts", () => {
       .mockResolvedValueOnce({ data: { popularSongs: [{ id: "song-ranked" }], events: [{ id: "event-ranked" }] }, error: null })
       .mockResolvedValueOnce({ data: null, error: { message: "cold-start unavailable" } });
     const snapshot = await loadDiscoverySnapshot();
-    expect(snapshot.popularSongs).toEqual([{ id: "song-ranked" }]);
-    expect(snapshot.events).toEqual([{ id: "event-ranked" }]);
+    expect(snapshot.popularSongs[0]).toEqual(expect.objectContaining({ id: "song-ranked", duration: "0:00" }));
+    expect(snapshot.events[0]).toEqual(expect.objectContaining({ id: "event-ranked", date: "Date pending", venue: "Venue pending", img: null }));
     expect(snapshot.discoveryStatus).toEqual({ ranked: "success", catalogue: "error" });
   });
 
@@ -37,8 +37,8 @@ describe("Atizzy canonical discovery directive contracts", () => {
       .mockResolvedValueOnce({ data: null, error: { message: "ranked unavailable" } })
       .mockResolvedValueOnce({ data: { latestSongs: [{ id: "song-new" }], latestEvents: [{ id: "event-new" }] }, error: null });
     const snapshot = await loadDiscoverySnapshot();
-    expect(snapshot.latestSongs).toEqual([{ id: "song-new" }]);
-    expect(snapshot.latestEvents).toEqual([{ id: "event-new" }]);
+    expect(snapshot.latestSongs[0]).toEqual(expect.objectContaining({ id: "song-new", duration: "0:00" }));
+    expect(snapshot.latestEvents[0]).toEqual(expect.objectContaining({ id: "event-new", date: "Date pending", venue: "Venue pending", img: null }));
     expect(snapshot.discoveryStatus).toEqual({ ranked: "error", catalogue: "success" });
   });
 
@@ -64,8 +64,20 @@ describe("Atizzy canonical discovery directive contracts", () => {
     rpc.mockResolvedValueOnce({ data: { latestSongs: [{ id: "song-new" }], allSongs: [{ id: "song-new" }], newVenues: [{ id: "venue-new" }] }, error: null });
     const catalogue = await (await import("../src/services/discovery")).loadDiscoveryCatalogue({ limit: 12, offset: 24 });
     expect(rpc).toHaveBeenCalledWith("get_cold_start_discovery_catalogue", { p_limit: 12, p_offset: 24 });
-    expect(catalogue.latestSongs).toEqual([{ id: "song-new" }]);
+    expect(catalogue.latestSongs[0]).toEqual(expect.objectContaining({ id: "song-new", duration: "0:00" }));
     expect(catalogue.newVenues).toEqual([{ id: "venue-new" }]);
+  });
+
+  it("normalizes raw discovery events so EventCard date rendering cannot throw", async () => {
+    rpc
+      .mockResolvedValueOnce({ data: { events: [{ id: "event-raw", title: "Live event", starts_at: "2026-08-24T20:00:00Z", city: "Lagos", cover_url: null }] }, error: null })
+      .mockResolvedValueOnce({ data: { latestEvents: [] }, error: null });
+    const snapshot = await loadDiscoverySnapshot();
+    const event = snapshot.events[0];
+    expect(event.date).toMatch(/2026|Aug|24|Date pending/);
+    expect(event.venue).toBe("Lagos");
+    expect(event.img).toBeNull();
+    expect(() => event.date.split(" ")).not.toThrow();
   });
 
   it("records qualified events through the single canonical RPC contract", async () => {

@@ -1,5 +1,7 @@
 import { supabase } from "../lib/supabase";
 
+import { toEvent, toArtist, toSong } from "./catalog";
+
 const emptySnapshot = Object.freeze({
   events: [],
   upcomingEvents: [],
@@ -40,6 +42,50 @@ export function firstNonEmpty(...arrays) {
   return arrays.find((value) => Array.isArray(value) && value.length > 0) || [];
 }
 
+const normalizeEvents = (rows) => asArray(rows).map((row, index) => {
+  // Base-catalog rows are already normalized; raw RPC rows are SQL-shaped.
+  return typeof row?.date === "string" && Object.prototype.hasOwnProperty.call(row, "img")
+    ? row
+    : toEvent(row, index);
+});
+
+const normalizeArtists = (rows) => asArray(rows).map((row) => (
+  typeof row?.avatarUrl === "string" || Object.prototype.hasOwnProperty.call(row, "img")
+    ? row
+    : toArtist(row)
+));
+
+const normalizeSongs = (rows) => asArray(rows).map((row) => (
+  typeof row?.duration === "string" || Object.prototype.hasOwnProperty.call(row, "audioUrl")
+    ? row
+    : toSong(row)
+));
+
+export function normalizeDiscoverySnapshot(snapshot) {
+  const value = snapshot && typeof snapshot === "object" ? snapshot : {};
+  return {
+    ...emptySnapshot,
+    ...value,
+    events: normalizeEvents(value.events),
+    upcomingEvents: normalizeEvents(value.upcomingEvents),
+    trendingEvents: normalizeEvents(value.trendingEvents),
+    nearbyEvents: normalizeEvents(value.nearbyEvents),
+    latestEvents: normalizeEvents(value.latestEvents),
+    allEvents: normalizeEvents(value.allEvents),
+    popularArtists: normalizeArtists(value.popularArtists),
+    latestArtists: normalizeArtists(value.latestArtists),
+    allArtists: normalizeArtists(value.allArtists),
+    mostLikedArtists: normalizeArtists(value.mostLikedArtists),
+    popularSongs: normalizeSongs(value.popularSongs),
+    latestSongs: normalizeSongs(value.latestSongs),
+    allSongs: normalizeSongs(value.allSongs),
+    mostLikedSongs: normalizeSongs(value.mostLikedSongs),
+    recentlyPlayed: normalizeSongs(value.recentlyPlayed),
+    personalMostPlayed: normalizeSongs(value.personalMostPlayed),
+    platformMostPlayed: normalizeSongs(value.platformMostPlayed),
+  };
+}
+
 function settledRpcResult(label, result) {
   if (result.status === "fulfilled") {
     if (result.value?.error) {
@@ -68,7 +114,7 @@ export async function loadDiscoverySnapshot({ latitude = null, longitude = null,
   const catalogueResult = settledRpcResult("cold-start catalogue", results[1]);
   const rankedData = rankedResult.data || {};
   const catalogueData = catalogueResult.data || {};
-  return {
+  return normalizeDiscoverySnapshot({
     ...emptySnapshot,
     ...rankedData,
     ...catalogueData,
@@ -81,13 +127,13 @@ export async function loadDiscoverySnapshot({ latitude = null, longitude = null,
       ranked: rankedResult.error || null,
       catalogue: catalogueResult.error || null,
     },
-  };
+  });
 }
 
 export async function loadDiscoveryCatalogue({ limit = 24, offset = 0 } = {}) {
   const { data, error } = await supabase.rpc("get_cold_start_discovery_catalogue", { p_limit: limit, p_offset: offset });
   if (error) throw error;
-  return { ...emptySnapshot, ...(data || {}), generatedAt: data?.generatedAt || null };
+  return normalizeDiscoverySnapshot({ ...emptySnapshot, ...(data || {}), generatedAt: data?.generatedAt || null });
 }
 
 export async function recordDiscoveryEvent({ eventType, entityType, entityId, sessionId = null, idempotencyKey = null, durationSeconds = 0, completed = false, metadata = {} }) {

@@ -1663,11 +1663,21 @@
 - [ ] Save a final checkpoint for the Home resilience fix
 
 # Home Blank-Screen Root-Cause Investigation — 2026-08-23
-- [ ] Freeze further fallback patches until the regression cause is proven
-- [ ] Reconstruct the exact last-known-good to failing deployment diff and deployed bundle changes
-- [ ] Trace runtime RPC responses, errors, normalization, merge, loading, and Home render gates end-to-end
-- [ ] Reproduce the production failure with live response shapes and captured browser/runtime evidence
-- [ ] Identify the first broken invariant and document the proven root cause
-- [ ] Apply one root-cause fix only after reproduction
-- [ ] Add regression coverage for the exact reproduced failure
-- [ ] Run full validation, deploy, and save a final checkpoint
+- [x] Freeze further fallback patches until the regression cause is proven
+- [x] Reconstruct the exact last-known-good to failing deployment diff and deployed bundle changes
+- [x] Trace runtime RPC responses, errors, normalization, merge, loading, and Home render gates end-to-end
+- [x] Reproduce the production failure with live response shapes and captured browser/runtime evidence
+- [x] Identify the first broken invariant and document the proven root cause
+- [x] Apply one root-cause fix only after reproduction
+- [x] Add regression coverage for the exact reproduced failure
+- [x] Run full validation and deploy
+- [ ] Save the final root-cause checkpoint
+
+# Current Home Failure Screen-Recording Investigation — 2026-08-23
+- [ ] Inspect and document the exact visible failure sequence from Screen_Recording_20260823_070338.mp4
+- [ ] Reproduce the same failure against the currently deployed build
+- [ ] Trace the current live runtime beyond the previous catalog-settlement fix
+- [ ] Identify the first current broken invariant with captured evidence
+- [ ] Apply one evidence-backed root fix and no speculative fallback patch
+- [ ] Add a regression test matching the recording
+- [ ] Validate production behavior, deploy, and save a final checkpoint
