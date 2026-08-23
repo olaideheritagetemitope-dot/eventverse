@@ -26,6 +26,23 @@ import AdvancedGovernancePanels from "./components/AdvancedGovernancePanels";
 ============================================================================ */
 const C = ATIZZY_TOKENS;
 
+function requestBrowserLocation() {
+  if (typeof navigator === "undefined" || !navigator.geolocation) {
+    return Promise.resolve({ latitude: null, longitude: null, status: "unavailable" });
+  }
+  return new Promise((resolve) => {
+    try {
+      navigator.geolocation.getCurrentPosition(
+        (position) => resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude, status: "granted" }),
+        (positionError) => resolve({ latitude: null, longitude: null, status: positionError?.code === 1 ? "denied" : positionError?.code === 3 ? "timeout" : "unavailable" }),
+        { enableHighAccuracy: false, maximumAge: 300000, timeout: 8000 },
+      );
+    } catch {
+      resolve({ latitude: null, longitude: null, status: "unavailable" });
+    }
+  });
+}
+
 async function ensureUserProfile(user) {
   if (!user?.id) return;
   const fullName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split("@")[0] || null;
@@ -775,7 +792,7 @@ function PremiumDiscoveryFilters({ premium, categories, onResults }) {
 }
 
 /* ============================== HOME ============================== */
-function AttendeeHome({ nav, player, catalog, account, loading, error, catalogNotice, premium, locationState = "unavailable" }) {
+function AttendeeHome({ nav, player, catalog, account, loading, error, catalogNotice, premium, locationState = "unavailable", onRetryLocation }) {
   const [cat, setCat] = useState("All");
   const events = firstNonEmpty(catalog?.events, catalog?.latestEvents, catalog?.allEvents);
   const artists = firstNonEmpty(catalog?.popularArtists, catalog?.latestArtists, catalog?.allArtists);
@@ -793,7 +810,7 @@ function AttendeeHome({ nav, player, catalog, account, loading, error, catalogNo
         <div className="text-center">
           <p className="text-[13.5px] font-semibold" style={{ color: C.ivory }}>{greeting}, {displayName} 👋</p>
           <p className="text-[11px] flex items-center justify-center gap-1" style={{ color: C.muted }}><MapPin size={10} />{liveLocation}</p>
-          {locationState !== "granted" && <p className="text-[10px] mt-0.5" style={{ color: C.goldSoft }}>{locationState === "denied" ? "Location off · Nearby events use general discovery" : locationState === "timeout" ? "Location timed out · Nearby events use general discovery" : "Nearby events use general discovery"}</p>}
+          {locationState !== "granted" && <div className="flex items-center justify-center gap-2 mt-0.5"><p className="text-[10px]" style={{ color: C.goldSoft }}>{locationState === "denied" ? "Location off · Nearby events use general discovery" : locationState === "timeout" ? "Location timed out · Nearby events use general discovery" : "Nearby events use general discovery"}</p>{onRetryLocation && <button type="button" onClick={onRetryLocation} className="text-[10px] underline" style={{ color: C.gold }}>Retry</button>}</div>}
         </div>
         <button type="button" onClick={() => nav.push("notifications")} aria-label="Open notifications" className="w-9 h-9 rounded-full flex items-center justify-center relative" style={{ background: C.card }}>
           <Bell size={16} color={C.ivory} />
@@ -2472,6 +2489,8 @@ export default function EventVerseApp() {
   const [catalogError, setCatalogError] = useState("");
   const [catalogNotice, setCatalogNotice] = useState("");
   const [locationState, setLocationState] = useState("unavailable");
+  const locationRef = useRef({ latitude: null, longitude: null });
+  const [locationRetryToken, setLocationRetryToken] = useState(0);
   const [account, setAccount] = useState({ user: null, profile: null, roles: [] });
   const [premium, setPremium] = useState({ hasPremium: false, features: {}, followRadar: [], planner: [], musicStats: { totalPlays: 0, totalSeconds: 0, uniqueSongs: 0, likedSongs: 0, topSongs: [] } });
   const [premiumLoading, setPremiumLoading] = useState(false);
@@ -2516,22 +2535,26 @@ export default function EventVerseApp() {
     let mounted = true;
     const load = async () => {
       setCatalogLoading(true);
+      setCatalogError("");
       try {
-        const liveCatalog = await loadCatalog();
-        let location = { latitude: null, longitude: null };
-        if (typeof navigator !== "undefined" && navigator.geolocation) {
-          location = await new Promise((resolve) => {
-            navigator.geolocation.getCurrentPosition(
-              (position) => resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude, status: "granted" }),
-              (positionError) => resolve({ latitude: null, longitude: null, status: positionError?.code === 1 ? "denied" : positionError?.code === 3 ? "timeout" : "unavailable" }),
-              { enableHighAccuracy: false, maximumAge: 300000, timeout: 5000 },
-            );
-          });
-        }
-        if (mounted) setLocationState(location.status || "unavailable");
-        let discovery = null;
+        const [catalogResult, locationResult] = await Promise.allSettled([loadCatalog(), requestBrowserLocation()]);
+      const liveCatalog = catalogResult.status === "fulfilled" ? catalogResult.value : normalizeCatalog(EMPTY_CATALOG);
+      const requestedLocation = locationResult.status === "fulfilled" ? locationResult.value : { latitude: null, longitude: null, status: "unavailable" };
+      const hasFreshCoordinates = requestedLocation.status === "granted" && Number.isFinite(requestedLocation.latitude) && Number.isFinite(requestedLocation.longitude);
+      if (hasFreshCoordinates) locationRef.current = { latitude: requestedLocation.latitude, longitude: requestedLocation.longitude };
+      const effectiveLocation = {
+        latitude: hasFreshCoordinates ? requestedLocation.latitude : locationRef.current.latitude,
+        longitude: hasFreshCoordinates ? requestedLocation.longitude : locationRef.current.longitude,
+        status: requestedLocation.status || "unavailable",
+      };
+      if (mounted) setLocationState(effectiveLocation.status);
+      if (catalogResult.status === "rejected") {
+        console.error("Atizzy live catalog failed", catalogResult.reason);
+        if (mounted) setCatalogError(catalogResult.reason?.message || "Unable to load live catalog.");
+      }
+      let discovery = null;
         try {
-          discovery = await loadDiscoverySnapshot(location);
+          discovery = await loadDiscoverySnapshot(effectiveLocation);
         } catch (discoveryError) {
           console.error("Atizzy live discovery snapshot failed", discoveryError);
           if (mounted) setCatalogError(discoveryError.message || "Unable to load live discovery.");
@@ -2578,7 +2601,7 @@ export default function EventVerseApp() {
           setCatalog(normalizeCatalog(merged));
         }
       } catch (error) {
-        if (mounted) setCatalogError(error.message || "Unable to load live catalog.");
+        if (mounted) setCatalogError((current) => current || error.message || "Unable to load live catalog.");
       } finally {
         if (mounted) setCatalogLoading(false);
       }
@@ -2645,8 +2668,7 @@ export default function EventVerseApp() {
     loadCurrentUser().then((value) => { if (mounted) setAccount(value); }).catch((error) => { if (mounted) setCatalogError(error.message || "Unable to load account."); });
     restore();
     return () => { mounted = false; listener.subscription.unsubscribe(); };
-  }, []);
-
+    }, [locationRetryToken]);
   useEffect(() => {
     const roles = effectiveRoleCodes(account);
     if (!account?.user?.id || !roles.length) { setRoleDashboard({ events: [], bookings: [], venues: [], songs: [], orders: [] }); return; }
@@ -2690,7 +2712,7 @@ export default function EventVerseApp() {
     login: <Login nav={nav} />,
     signup: <Signup nav={nav} />,
     verify: <Verify nav={nav} data={current.data} />,
-    home: <AttendeeHome nav={nav} player={player} catalog={catalog} account={account} loading={catalogLoading} error={catalogError} catalogNotice={catalogNotice} premium={premium} locationState={locationState} />,
+    home: <AttendeeHome nav={nav} player={player} catalog={catalog} account={account} loading={catalogLoading} error={catalogError} catalogNotice={catalogNotice} premium={premium} locationState={locationState} onRetryLocation={() => setLocationRetryToken((value) => value + 1)} />,
     explore: <Explore nav={nav} player={player} catalog={catalog} catalogNotice={catalogNotice} premium={premium} />,
         search: <SearchScreen nav={nav} catalog={catalog} account={account} />,
     eventDetail: <EventDetail nav={nav} data={current.data} account={account} />,

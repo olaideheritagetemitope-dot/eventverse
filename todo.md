@@ -1858,3 +1858,12 @@
 - [x] Diagnose and fix standalone music-video playback stuck at 0:00 on the production detail screen
 - [ ] Verify production video URL delivery, MIME/range behavior, player load events, autoplay policy, and native-device playback (physical-device playback remains pending)
 - [x] Add regression coverage for standalone video media readiness and playback controls
+
+# Location Regression Audit — 2026-08-23
+
+- [ ] Compare the last known-good location implementation with the current blackout-fix implementation
+- [ ] Trace permission, geolocation, coordinates, persistence, discovery, Supabase RPC, nearby events, and UI rendering
+- [ ] Identify the exact regression introduced by the blackout-screen fix
+- [ ] Repair location without synthetic coordinates and preserve no-blank Home behavior
+- [ ] Add regression coverage for granted, denied, unavailable, retry, refresh, and navigation paths
+- [ ] Verify live RPC contracts and production deployment behavior

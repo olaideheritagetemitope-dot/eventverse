@@ -17,8 +17,11 @@ describe("Deep regression contract coverage", () => {
   it("does not let geolocation failure replace the live catalog and exposes its state", () => {
     expect(shell).toContain('const [locationState, setLocationState] = useState("unavailable");');
     expect(shell).toContain('positionError?.code === 1 ? "denied" : positionError?.code === 3 ? "timeout" : "unavailable"');
-    expect(shell).toContain('loadDiscoverySnapshot(location)');
+    expect(shell).toContain('loadDiscoverySnapshot(effectiveLocation)');
+    expect(shell).toContain('const locationRef = useRef({ latitude: null, longitude: null });');
+    expect(shell).toContain('Promise.allSettled([loadCatalog(), requestBrowserLocation()])');
     expect(shell).toContain('locationState={locationState}');
+    expect(shell).toContain('onRetryLocation');
     expect(shell).toContain("Nearby events use general discovery");
   });
 

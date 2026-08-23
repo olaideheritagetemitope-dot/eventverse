@@ -20,9 +20,10 @@ describe("linked frontend architecture restoration directive", () => {
 
   it("uses live catalog services and explicit state boundaries instead of prototype catalog records", () => {
     expect(app).toContain('import { loadCatalog');
-    expect(app).toContain("const liveCatalog = await loadCatalog();");
+    expect(app).toContain("loadCatalog()");
     expect(app).toContain("normalizeCatalog(merged)");
-    expect(app).toContain("loadDiscoverySnapshot(location)");
+    expect(app).toContain("loadDiscoverySnapshot(effectiveLocation)");
+    expect(app).toContain("Promise.allSettled([loadCatalog(), requestBrowserLocation()])");
     expect(app).toContain("resourceState({ loading, error, data: events })");
     expect(catalog).toContain('supabase.from("events")');
     expect(catalog).toContain('supabase.from("artists")');
