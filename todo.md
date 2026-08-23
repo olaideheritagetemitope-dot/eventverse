@@ -1852,3 +1852,9 @@
 - [ ] Trace route mounting, component selection, and live media data flow for the claimed changes.
 - [x] Repair the first release, runtime, route, or cache disconnection preventing changes from appearing.
 - [x] Validate the served frontend and add regression coverage for the visibility boundary.
+
+# Standalone Video Playback Regression — 2026-08-23
+
+- [x] Diagnose and fix standalone music-video playback stuck at 0:00 on the production detail screen
+- [ ] Verify production video URL delivery, MIME/range behavior, player load events, autoplay policy, and native-device playback (physical-device playback remains pending)
+- [x] Add regression coverage for standalone video media readiness and playback controls

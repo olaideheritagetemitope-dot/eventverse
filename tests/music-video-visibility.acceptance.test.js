@@ -38,8 +38,12 @@ describe("music video visibility contract", () => {
     expect(catalog).toContain('.eq("id", videoId).eq("status", "PUBLISHED")');
     expect(app).toContain("loadMusicVideoDetail(video.id)");
     expect(app).toContain("const initialVideo = video ? toMusicVideo(video) : null");
-    expect(app).toContain("currentVideo.videoUrl || currentVideo.musicVideoUrl || currentVideo.video_url");
-    expect(app).toContain("currentVideo.thumbnailUrl || currentVideo.thumbnail_url");
+    expect(app).toContain("currentVideo?.videoUrl || currentVideo?.musicVideoUrl || currentVideo?.video_url");
+    expect(app).toContain("currentVideo?.thumbnailUrl || currentVideo?.thumbnail_url");
+    expect(app).toContain("key={videoUrl}");
+    expect(app).toContain("ref={videoRef}");
+    expect(app).toContain("element.load()");
+    expect(app).toContain("onError={() => setVideoError(");
   });
 
   it("renders live videos on Music and Artist Profile surfaces", () => {

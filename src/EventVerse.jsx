@@ -2390,6 +2390,8 @@ function MusicVideoDetail({ nav, video, player, account }) {
   const [resolvedVideo, setResolvedVideo] = useState(initialVideo);
   const [liked, setLiked] = useState(Boolean(initialVideo?.liked));
   const [message, setMessage] = useState("");
+  const [videoError, setVideoError] = useState("");
+  const videoRef = useRef(null);
   useEffect(() => {
     let active = true;
     setResolvedVideo(initialVideo);
@@ -2398,10 +2400,18 @@ function MusicVideoDetail({ nav, video, player, account }) {
   }, [video?.id]);
   const currentVideo = resolvedVideo || initialVideo;
   const linkedSong = currentVideo?.linkedSong || null;
+  const videoUrl = currentVideo?.videoUrl || currentVideo?.musicVideoUrl || currentVideo?.video_url || "";
+  const thumbnailUrl = currentVideo?.thumbnailUrl || currentVideo?.thumbnail_url || currentVideo?.coverUrl || currentVideo?.cover_url || undefined;
   useEffect(() => {
     if (!account?.user?.id || !currentVideo?.id) return;
     loadFavoriteState(account.user.id, null, null, null, currentVideo.id).then((state) => setLiked(Boolean(state.musicVideoFavorite))).catch(() => {});
   }, [account?.user?.id, currentVideo?.id]);
+  useEffect(() => {
+    setVideoError("");
+    const element = videoRef.current;
+    if (!element || !videoUrl) return;
+    element.load();
+  }, [videoUrl]);
   const toggleLike = async () => {
     if (!account?.user?.id) return nav.push("login");
     const next = !liked;
@@ -2410,9 +2420,7 @@ function MusicVideoDetail({ nav, video, player, account }) {
     catch (error) { setLiked(!next); setMessage(error.message || "Unable to update video favorite."); }
   };
   if (!currentVideo) return <Phone><div className="flex-1 flex items-center justify-center px-6 text-center" style={{ color: C.muted }}>Music video details are unavailable.</div></Phone>;
-  const videoUrl = currentVideo.videoUrl || currentVideo.musicVideoUrl || currentVideo.video_url || "";
-  const thumbnailUrl = currentVideo.thumbnailUrl || currentVideo.thumbnail_url || currentVideo.coverUrl || currentVideo.cover_url || undefined;
-  return <Phone><TopBack title="Music Video" onBack={nav.pop} right={<button type="button" onClick={toggleLike} aria-label={liked ? "Unlike music video" : "Like music video"}><Heart size={18} color={liked ? C.gold : C.ivory} fill={liked ? C.gold : "none"} /></button>} /><div className="flex-1 overflow-y-auto px-5 pb-6"><div className="relative aspect-video rounded-3xl mb-5 overflow-hidden" style={{ background: C.card }}>{videoUrl ? <video src={videoUrl} poster={thumbnailUrl} controls playsInline preload="metadata" className="w-full h-full object-contain" aria-label={`${currentVideo.title || "Music video"} video`} /> : <p className="h-full flex items-center justify-center text-[12px]" style={{ color: C.muted }}>Video unavailable.</p>}</div><p className="text-[11px] uppercase tracking-[0.18em]" style={{ color: C.gold }}>Music Video</p><h1 className="ev-display text-2xl mt-1" style={{ color: C.ivory }}>{currentVideo.title || "Untitled music video"}</h1><p className="text-[13px] mt-1" style={{ color: C.goldSoft }}>{currentVideo.artist || "Artist pending"}</p>{message && <p className="text-[11px] mt-2" role="status" style={{ color: C.red }}>{message}</p>}{currentVideo.description && <p className="text-[12px] mt-4 leading-5" style={{ color: C.muted }}>{currentVideo.description}</p>}{linkedSong ? <div className="rounded-2xl p-4 mt-5" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[11px] uppercase tracking-[0.14em]" style={{ color: C.gold }}>Linked song</p><p className="text-[14px] font-semibold mt-1" style={{ color: C.ivory }}>{linkedSong.title}</p><p className="text-[11px] mt-1" style={{ color: C.muted }}>Lyrics and audio remain available from the linked Song record.</p><GoldButton onClick={() => { player.play(linkedSong); recordPlay(account?.user?.id, linkedSong.id).catch(() => {}); }}><Play size={15} fill="#1A1408" className="inline mr-2" /> Play linked audio</GoldButton></div> : <div className="rounded-2xl p-4 mt-5" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[12px] font-semibold" style={{ color: C.ivory }}>Standalone music video</p><p className="text-[11px] mt-1 leading-5" style={{ color: C.muted }}>This video is published independently and does not require an audio or Song record.</p></div>}</div></Phone>;
+  return <Phone><TopBack title="Music Video" onBack={nav.pop} right={<button type="button" onClick={toggleLike} aria-label={liked ? "Unlike music video" : "Like music video"}><Heart size={18} color={liked ? C.gold : C.ivory} fill={liked ? C.gold : "none"} /></button>} /><div className="flex-1 overflow-y-auto px-5 pb-6"><div className="relative aspect-video rounded-3xl mb-5 overflow-hidden" style={{ background: C.card }}>{videoUrl ? <video key={videoUrl} ref={videoRef} src={videoUrl} poster={thumbnailUrl} controls playsInline preload="metadata" crossOrigin="anonymous" onLoadedMetadata={() => setVideoError("")} onError={() => setVideoError("This video could not be decoded on this device. Please retry or check the media upload.")} className="w-full h-full object-contain" aria-label={`${currentVideo.title || "Music video"} video`} /> : <p className="h-full flex items-center justify-center text-[12px]" style={{ color: C.muted }}>Video unavailable.</p>}</div>{videoError && <p className="mb-4 text-[11px]" role="alert" style={{ color: C.red }}>{videoError}</p>}<p className="text-[11px] uppercase tracking-[0.18em]" style={{ color: C.gold }}>Music Video</p><h1 className="ev-display text-2xl mt-1" style={{ color: C.ivory }}>{currentVideo.title || "Untitled music video"}</h1><p className="text-[13px] mt-1" style={{ color: C.goldSoft }}>{currentVideo.artist || "Artist pending"}</p>{message && <p className="text-[11px] mt-2" role="status" style={{ color: C.red }}>{message}</p>}{currentVideo.description && <p className="text-[12px] mt-4 leading-5" style={{ color: C.muted }}>{currentVideo.description}</p>}{linkedSong ? <div className="rounded-2xl p-4 mt-5" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[11px] uppercase tracking-[0.14em]" style={{ color: C.gold }}>Linked song</p><p className="text-[14px] font-semibold mt-1" style={{ color: C.ivory }}>{linkedSong.title}</p><p className="text-[11px] mt-1" style={{ color: C.muted }}>Lyrics and audio remain available from the linked Song record.</p><GoldButton onClick={() => { player.play(linkedSong); recordPlay(account?.user?.id, linkedSong.id).catch(() => {}); }}><Play size={15} fill="#1A1408" className="inline mr-2" /> Play linked audio</GoldButton></div> : <div className="rounded-2xl p-4 mt-5" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[12px] font-semibold" style={{ color: C.ivory }}>Standalone music video</p><p className="text-[11px] mt-1 leading-5" style={{ color: C.muted }}>This video is published independently and does not require an audio or Song record.</p></div>}</div></Phone>;
 }
 
 function MusicDetail({ nav, data, player, account }) {
