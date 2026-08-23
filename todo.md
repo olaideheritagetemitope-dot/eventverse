@@ -1996,3 +1996,15 @@ The remaining unchecked items require the owner's authenticated production sessi
 - [x] Preserve the existing card layout and play affordance
 - [x] Add regression coverage for Home and Music list cards plus detail parity
 - [x] Run tests, type-check, production build, and deployment visibility validation
+
+
+# Super Admin CMS Visibility Regression — 2026-08-23
+
+- [x] Trace the Super Admin dashboard navigation, CMS routes, permissions, and mounted components
+- [x] Identify why the CMS content-authoring controls are not visible in the admin dashboard
+- [x] Restore the CMS entry point without changing the existing Atizzy design system or removing authority
+- [x] Verify create, edit, draft, publish, unpublish, archive, and user-facing legal-content rendering workflows
+- [x] Add regression coverage for CMS navigation visibility and role authorization
+- [x] Run full tests, type-check, production build, and deployment visibility validation
+  
+  

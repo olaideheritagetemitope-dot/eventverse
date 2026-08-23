@@ -9,7 +9,7 @@ const directive = fs.readFileSync(path.join(root, "docs/attached-super-admin-res
 
 describe("Super Admin dashboard restoration directive", () => {
   it("exposes the required governance modules", () => {
-    for (const label of ["Overview", "All Users", "Artists", "Organizers", "Venue Managers", "Event Staff", "Admins", "Applications", "Verification", "Events", "Tickets", "Payments", "Wallets & Refunds", "Niche Analytics", "Moderation", "Support", "Audit Logs", "Policies & Fees", "System Health"]) {
+    for (const label of ["Overview", "All Users", "Artists", "Organizers", "Venue Managers", "Event Staff", "Admins", "Applications", "Verification", "Events", "Tickets", "Payments", "Wallets & Refunds", "Niche Analytics", "Moderation", "Support", "Audit Logs", "Policies & Fees", "CMS", "System Health"]) {
       expect(registry).toContain(`label: "${label}"`);
     }
   });
@@ -33,5 +33,10 @@ describe("Super Admin dashboard restoration directive", () => {
     expect(eventVerse).toContain("Super Admin Control Center");
     expect(eventVerse).toContain("User directory");
     expect(eventVerse).toContain("Event lifecycle controls");
+    expect(registry).toContain('{ id: "cms", label: "CMS"');
+    expect(registry).toContain('{ id: "adminLegal", label: "Content Management" }');
+    expect(registry).toContain('onOpenCMS?.()');
+    expect(eventVerse).toContain('onOpenCMS={() => nav.push("adminLegal")}');
+    expect(eventVerse).toContain('adminLegal: <AdminLegalCMS');
   });
 });

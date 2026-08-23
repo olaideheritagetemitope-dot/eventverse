@@ -26,6 +26,9 @@ const GROUPS = [
   { id: "communications", label: "Communications", items: [
     { id: "notifications", label: "Notifications" }, { id: "announcements", label: "Announcements" }, { id: "support", label: "Support Requests" }, { id: "notification_settings", label: "Notification Settings" },
   ] },
+  { id: "cms", label: "CMS", items: [
+    { id: "adminLegal", label: "Content Management" }, { id: "legal_versions", label: "Privacy & Terms Versions" },
+  ] },
   { id: "system", label: "System Control", items: [
     { id: "roleCapabilities", label: "Roles & Permissions" }, { id: "admin_authority", label: "Admin Authority" }, { id: "verification_rules", label: "Verification Rules" }, { id: "platform_policies", label: "Platform Policies" }, { id: "feature_controls", label: "Feature Controls" }, { id: "storage_media", label: "Storage & Media" }, { id: "security", label: "Security" }, { id: "audit", label: "Audit Logs" }, { id: "system", label: "System Health" }, { id: "advanced_controls", label: "Advanced Controls" },
   ] },
@@ -37,7 +40,7 @@ const GROUPS = [
 const KNOWN_ROLE_CODES = new Set(["ARTIST", "ORGANIZER", "VENUE_MANAGER", "EVENT_STAFF", "ADMIN", "SUPER_ADMIN", "ATTENDEE"]);
 // Compatibility labels keep the restoration-era module contract discoverable while the visible IA uses purpose-based groups.
 const LEGACY_MODULE_LABELS = [
-  { label: "Overview" }, { label: "All Users" }, { label: "Artists" }, { label: "Organizers" }, { label: "Venue Managers" }, { label: "Event Staff" }, { label: "Admins" }, { label: "Applications" }, { label: "Verification" }, { label: "Events" }, { label: "Tickets" }, { label: "Payments" }, { label: "Wallets & Refunds" }, { label: "Niche Analytics" }, { label: "Moderation" }, { label: "Support" }, { label: "Audit Logs" }, { label: "Policies & Fees" }, { label: "System Health" },
+  { label: "Overview" }, { label: "All Users" }, { label: "Artists" }, { label: "Organizers" }, { label: "Venue Managers" }, { label: "Event Staff" }, { label: "Admins" }, { label: "Applications" }, { label: "Verification" }, { label: "Events" }, { label: "Tickets" }, { label: "Payments" }, { label: "Wallets & Refunds" }, { label: "Niche Analytics" }, { label: "Moderation" }, { label: "Support" }, { label: "Audit Logs" }, { label: "Policies & Fees" }, { label: "CMS" }, { label: "System Health" },
 ];
 const flattenItems = () => GROUPS.flatMap((group) => group.items.map((item) => ({ ...item, groupId: group.id, groupLabel: group.label })));
 const ITEM_INDEX = flattenItems();
@@ -61,7 +64,7 @@ function ActionMenu({ C, actions = [] }) {
   return <div className="relative shrink-0"><button type="button" aria-label="Open actions" onClick={() => setOpen((value) => !value)} className="rounded-lg px-2.5 py-1.5 text-[11px]" style={{ background: C.card2, color: C.goldSoft, border: `1px solid ${C.line}` }}>⋮</button>{open && <div className="absolute right-0 z-20 mt-1 min-w-[150px] rounded-xl p-1" style={{ background: C.card, border: `1px solid ${C.line}`, boxShadow: "0 12px 30px #0008" }}>{actions.map((action) => <button key={action.label} type="button" onClick={() => { setOpen(false); action.onClick?.(); }} className="block w-full text-left rounded-lg px-3 py-2 text-[10px]" style={{ color: action.danger ? C.red : C.ivory }}>{action.label}</button>)}</div>}</div>;
 }
 
-export default function SuperAdminModuleRegistry({ snapshot, events, C, money, onSuspend, onReview, onEventStatus, onOpenModule, onRoleAction, roleHistory = [], directoryTotalCount = 0, directoryOffset = 0, onDirectoryPageChange }) {
+export default function SuperAdminModuleRegistry({ snapshot, events, C, money, onSuspend, onReview, onEventStatus, onOpenModule, onOpenCMS, onRoleAction, roleHistory = [], directoryTotalCount = 0, directoryOffset = 0, onDirectoryPageChange }) {
   const [active, setActive] = useState("overview");
   const [expanded, setExpanded] = useState("overview");
   const [search, setSearch] = useState("");
@@ -101,7 +104,7 @@ export default function SuperAdminModuleRegistry({ snapshot, events, C, money, o
     ];
     return rows.filter((row) => `${row.label} ${row.meta}`.toLowerCase().includes(term)).slice(0, 12);
   }, [applications, events, search, users]);
-  const open = (id) => { setActive(id); const item = ITEM_INDEX.find((entry) => entry.id === id); setExpanded(item?.groupId || "overview"); onOpenModule?.(id); };
+  const open = (id) => { if (id === "adminLegal" || id === "legal_versions") { onOpenCMS?.(); return; } setActive(id); const item = ITEM_INDEX.find((entry) => entry.id === id); setExpanded(item?.groupId || "overview"); onOpenModule?.(id); };
   const title = activeItem?.label || "Overview";
   const renderUserRow = (user) => <div key={user.id || user.user_id} className="flex items-center justify-between gap-3 py-3 border-b" style={{ borderColor: C.line }}><div className="min-w-0"><p className="text-[12px] truncate" style={{ color: C.ivory }}>{user.profile?.full_name || user.full_name || user.email || "Authenticated user"}</p><p className="text-[10px] mt-1" style={{ color: C.muted }}>{displayRoles(user).join(" · ")}</p><p className="text-[10px] mt-1" style={{ color: C.muted }}>{user.created_at ? new Date(user.created_at).toLocaleDateString("en-NG") : "Date pending"}</p></div><ActionMenu C={C} actions={[{ label: "View", onClick: () => onOpenModule?.("userDetail", user) }, { label: "Manage roles", onClick: () => { setRoleTarget(user); setRoleCode("ARTIST"); setRoleAction("ASSIGN"); } }, { label: "Suspend", danger: true, onClick: () => onSuspend?.(user.id || user.user_id, true) }, { label: "Block", danger: true, onClick: () => onSuspend?.(user.id || user.user_id, true) }, { label: "Restore", onClick: () => onSuspend?.(user.id || user.user_id, false) }]} /></div>;
 
