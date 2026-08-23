@@ -1977,3 +1977,22 @@ The remaining unchecked items require the owner's authenticated production sessi
 - [ ] Reconcile any repository/project/deployment mismatch preventing the latest commit from reaching production
 - [ ] Redeploy or correct the production source without changing the existing UI design
 - [ ] Verify the production screen visibly shows direct Post song and document any remaining user-only gate
+
+
+# Music Video Cover Rendering Regression
+
+- [x] Trace the music-video cover reference from Supabase media records/storage through catalog normalization
+- [x] Identify why the Music card renders a blank cover surface despite a live music-video record
+- [x] Fix cover URL hydration and image rendering using authoritative live data only
+- [x] Preserve the existing Music card layout, play affordance, and empty-state behavior
+- [x] Add regression coverage for music-video cover hydration across Music, Home, and detail surfaces
+- [x] Run tests, type-check, and production build; deployment visibility validation remains user-dependent
+
+
+# General Music-Video Cover Regression
+- [x] Compare the detail-page cover payload with Home/Music list-card payloads
+- [x] Identify the list-card image binding or normalization mismatch
+- [x] Make general music-video cards reuse the authoritative cover URL used by detail pages
+- [x] Preserve the existing card layout and play affordance
+- [x] Add regression coverage for Home and Music list cards plus detail parity
+- [x] Run tests, type-check, production build, and deployment visibility validation

@@ -1,6 +1,6 @@
 import { supabase } from "../lib/supabase";
 
-import { toEvent, toArtist, toSong } from "./catalog";
+import { toEvent, toArtist, toSong, toMusicVideo } from "./catalog";
 
 const emptySnapshot = Object.freeze({
   events: [],
@@ -63,6 +63,8 @@ const normalizeSongs = (rows) => asArray(rows).map((row) => (
     : toSong(row)
 ));
 
+const normalizeMusicVideos = (rows) => asArray(rows).map((row) => toMusicVideo(row));
+
 export function normalizeDiscoverySnapshot(snapshot) {
   const value = snapshot && typeof snapshot === "object" ? snapshot : {};
   return {
@@ -85,6 +87,9 @@ export function normalizeDiscoverySnapshot(snapshot) {
     recentlyPlayed: normalizeSongs(value.recentlyPlayed),
     personalMostPlayed: normalizeSongs(value.personalMostPlayed),
     platformMostPlayed: normalizeSongs(value.platformMostPlayed),
+    mostWatchedMusicVideos: normalizeMusicVideos(value.mostWatchedMusicVideos),
+    latestMusicVideos: normalizeMusicVideos(value.latestMusicVideos),
+    allMusicVideos: normalizeMusicVideos(value.allMusicVideos),
   };
 }
 

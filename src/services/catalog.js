@@ -199,7 +199,7 @@ export const toMusicVideo = (video) => ({
   artistId: video.artist_id,
   songId: video.song_id || null,
   linkedSong: video.songs ? toSong(video.songs) : null,
-  artist: video.artists?.name || "Artist pending",
+  artist: video.artists?.name || video.artist || video.artist_name || "Artist pending",
   description: video.description || "",
   videoUrl: mediaUrl(video.video_url || video.videoUrl),
   thumbnailUrl: mediaUrl(video.thumbnail_url || video.thumbnailUrl || video.cover_url),
