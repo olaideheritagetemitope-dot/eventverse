@@ -28,6 +28,15 @@ describe("Super Admin grouped information architecture", () => {
     expect(eventVerse).toContain("adminSetEventStatus");
   });
 
+  it("renders authoritative global metrics instead of page-local totals", () => {
+    for (const token of ["snapshot?.user_counts", "snapshot?.application_counts", "snapshot?.event_lifecycle", "snapshot?.wallet_totals", "userCounts.total", "applicationCounts.pending", "eventLifecycle.past", "walletTotals.balance"]) {
+      expect(registry).toContain(token);
+    }
+    expect(registry).not.toContain('value={users.length}');
+    expect(registry).not.toContain('value={pending.length}');
+    expect(registry).not.toContain('value={events.length}');
+  });
+
   it("documents compatibility preservation and existing route coverage", () => {
     for (const token of ["all current routes", "compatibility route", "server-authoritative", "No counts, users, events, payments, tickets, analytics, or content may be fabricated"]) {
       expect(audit).toContain(token);

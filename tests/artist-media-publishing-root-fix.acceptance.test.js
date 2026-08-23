@@ -22,6 +22,14 @@ describe("Artist media and publishing root fix", () => {
     expect(service).toContain("media_assets");
   });
 
+  it("normalizes legacy media-kind aliases before inserting media_assets", () => {
+    expect(service).toContain("MEDIA_KIND_ALIASES");
+    expect(service).toContain('SONG: "MUSIC_COVER"');
+    expect(service).toContain("const normalizedKind = normalizeMediaKind(mediaKind)");
+    expect(service).toContain("media_kind: normalizedKind");
+    expect(service).toContain("Unsupported media kind");
+  });
+
   it("exposes live Artist song creation and server-authoritative publishing", () => {
     expect(migration).toContain("add column if not exists status");
     expect(migration).toContain("set_artist_song_status");

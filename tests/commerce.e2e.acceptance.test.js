@@ -9,6 +9,8 @@ const venueWorkflow = fs.readFileSync(path.join(root, "supabase/0016_venue_manag
 const webhook = fs.readFileSync(path.join(root, "api/paystack/webhook.js"), "utf8");
 const service = fs.readFileSync(path.join(root, "src/services/user.js"), "utf8");
 const checkInUi = fs.readFileSync(path.join(root, "src/components/CheckInScreen.jsx"), "utf8");
+const userService = fs.readFileSync(path.join(root, "src/services/user.js"), "utf8");
+const engagementPrivacy = fs.readFileSync(path.join(root, "supabase/0094_engagement_privacy_summary.sql"), "utf8");
 
 const has = (source, value) => expect(source).toContain(value);
 
@@ -19,6 +21,21 @@ describe("Atizzy commerce end-to-end acceptance", () => {
     has(coreRpc, "insert into public.tickets");
     has(webhook, "verify_payment_and_issue_tickets");
     has(webhook, "verifySignature");
+  });
+
+  it("uses an aggregate engagement RPC instead of exposing all user likes and ratings", () => {
+    has(engagementPrivacy, "create or replace function public.get_content_engagement_summary");
+    has(engagementPrivacy, "revoke all on function public.get_content_engagement_summary");
+    has(engagementPrivacy, "create policy likes_self_read");
+    has(engagementPrivacy, "create policy ratings_self_read");
+    has(userService, 'supabase.rpc("get_content_engagement_summary"');
+  });
+
+  it("checks failure-state Supabase patches before acknowledging Paystack callbacks", () => {
+    has(webhook, "async function supabasePatch(path, body)");
+    has(webhook, "Supabase update failed");
+    has(webhook, "await supabasePatch(`/rest/v1/role_application_payments");
+    has(webhook, "await supabasePatch(`/rest/v1/venue_booking_payments");
   });
 
   it("supports both scoped QR-token and ticket-id check-in paths", () => {

@@ -3,6 +3,14 @@ import { supabase } from "../lib/supabase";
 const MEDIA_BUCKET = "atizzy-media";
 const MEDIA_LIMIT_BYTES = 50 * 1024 * 1024;
 const MEDIA_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "audio/mpeg", "audio/mp4", "audio/wav", "audio/ogg", "audio/x-m4a", "video/mp4", "video/webm"]);
+const MEDIA_KIND_ALIASES = { SONG: "MUSIC_COVER", MUSIC: "MUSIC_COVER", ALBUM: "ALBUM_COVER", VIDEO: "MUSIC_VIDEO", ARTWORK: "ARTIST_ARTWORK", VENUE: "VENUE_PHOTO", VENUE_IMAGE: "VENUE_PHOTO" };
+const MEDIA_KINDS = new Set(["AVATAR", "ARTIST_AVATAR", "ARTIST_ARTWORK", "EVENT_POSTER", "VENUE_PHOTO", "AUDIO", "MUSIC_COVER", "ALBUM_COVER", "MUSIC_VIDEO_THUMBNAIL", "MUSIC_VIDEO", "POST_IMAGE"]);
+const normalizeMediaKind = (value) => {
+  const kind = String(value || "").trim().toUpperCase();
+  const normalized = MEDIA_KIND_ALIASES[kind] || kind;
+  if (!MEDIA_KINDS.has(normalized)) throw new Error(`Unsupported media kind: ${value || "unknown"}.`);
+  return normalized;
+};
 const safeFileName = (name = "upload") => name.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "upload";
 const isManagedMediaUrl = (value) => !value || (typeof value === "string" && value.includes(`/storage/v1/object/public/${MEDIA_BUCKET}/`));
 const managedMediaUrl = (value, label = "image") => {
@@ -14,13 +22,14 @@ const managedMediaUrl = (value, label = "image") => {
 export async function uploadMediaFile(userId, file, mediaKind, entityType = null, entityId = null) {
   if (!userId) throw new Error("Authentication required");
   if (!file || typeof file !== "object") throw new Error("Choose a file before uploading");
+  const normalizedKind = normalizeMediaKind(mediaKind);
   if (!MEDIA_TYPES.has(file.type)) throw new Error("Unsupported file type. Choose a supported image, audio, or video file.");
   if (file.size > MEDIA_LIMIT_BYTES) throw new Error("File is too large. The maximum upload size is 50 MB.");
-  const path = `${userId}/${mediaKind.toLowerCase()}/${crypto.randomUUID()}-${safeFileName(file.name)}`;
+  const path = `${userId}/${normalizedKind.toLowerCase()}/${crypto.randomUUID()}-${safeFileName(file.name)}`;
   const { error: uploadError } = await supabase.storage.from(MEDIA_BUCKET).upload(path, file, { contentType: file.type, upsert: false, cacheControl: "3600" });
   if (uploadError) throw uploadError;
   const { data: publicData } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(path);
-  const { data: asset, error: assetError } = await supabase.from("media_assets").insert({ owner_id: userId, bucket_id: MEDIA_BUCKET, object_path: path, public_url: publicData.publicUrl, media_kind: mediaKind, mime_type: file.type, byte_size: file.size, entity_type: entityType, entity_id: entityId }).select("*").single();
+  const { data: asset, error: assetError } = await supabase.from("media_assets").insert({ owner_id: userId, bucket_id: MEDIA_BUCKET, object_path: path, public_url: publicData.publicUrl, media_kind: normalizedKind, mime_type: file.type, byte_size: file.size, entity_type: entityType, entity_id: entityId }).select("*").single();
   if (assetError) {
     await supabase.storage.from(MEDIA_BUCKET).remove([path]);
     throw assetError;
@@ -743,6 +752,18 @@ export async function adminListUsers(search = "") {
   if (error) throw error;
   return data || [];
 }
+export async function adminListUsersPage({ search = "", roleCode = null, status = null, limit = 50, offset = 0 } = {}) {
+  const { data, error } = await supabase.rpc("admin_list_users_page", {
+    p_search: search || null,
+    p_role_code: roleCode || null,
+    p_status: status || null,
+    p_limit: limit,
+    p_offset: offset,
+  });
+  if (error) throw error;
+  const rows = Array.isArray(data) ? data : [];
+  return { rows, totalCount: Number(rows[0]?.total_count || 0) };
+}
 export async function adminSuspendUser(userId, suspend, reason = "") {
   const { data, error } = await supabase.rpc("admin_suspend_user", { p_user_id: userId, p_suspend: suspend, p_reason: reason || null });
   if (error) throw error;
@@ -1034,24 +1055,22 @@ export async function loadGovernanceEvents() {
 
 export async function loadContentEngagement(targetType, targetId, userId = null) {
   targetType = normalizeContentTargetType(targetType);
-  if (!targetType || !targetId) return { comments: [], averageRating: 0, ratingCount: 0, likeCount: 0, liked: false };
-  const [{ data: comments, error: commentsError }, { data: ratings, error: ratingsError }, { data: likes, error: likesError }] = await Promise.all([
+  if (!targetType || !targetId) return { comments: [], averageRating: 0, ratingCount: 0, likeCount: 0, liked: false, userRating: 0 };
+  const [{ data: comments, error: commentsError }, { data: summary, error: summaryError }] = await Promise.all([
     supabase.from("content_comments").select("id,body,author_id,created_at,user_profiles(id,full_name,avatar_url)").eq("target_type", targetType).eq("target_id", targetId).eq("status", "VISIBLE").order("created_at", { ascending: false }).limit(50),
-    supabase.from("content_ratings").select("rating,user_id").eq("target_type", targetType).eq("target_id", targetId).limit(1000),
-    supabase.from("content_likes").select("user_id").eq("target_type", targetType).eq("target_id", targetId).limit(1000),
+    supabase.rpc("get_content_engagement_summary", { p_target_type: targetType, p_target_id: targetId }),
   ]);
-  const firstError = [commentsError, ratingsError, likesError].find(Boolean);
+  const firstError = [commentsError, summaryError].find(Boolean);
   if (firstError) throw firstError;
   const commentRows = comments || [];
-  const ratingRows = ratings || [];
-  const likeRows = likes || [];
+  const engagement = summary || {};
   return {
     comments: commentRows.map((comment) => ({ ...comment, user_profiles: comment.user_profiles || null })),
-    averageRating: ratingRows.length ? ratingRows.reduce((sum, row) => sum + Number(row.rating || 0), 0) / ratingRows.length : 0,
-    ratingCount: ratingRows.length,
-    likeCount: likeRows.length,
-    liked: Boolean(userId && likeRows.some((row) => row.user_id === userId)),
-    userRating: userId ? ratingRows.find((row) => row.user_id === userId)?.rating || 0 : 0,
+    averageRating: Number(engagement.averageRating || 0),
+    ratingCount: Number(engagement.ratingCount || 0),
+    likeCount: Number(engagement.likeCount || 0),
+    liked: Boolean(engagement.liked),
+    userRating: Number(engagement.userRating || 0),
   };
 }
 
@@ -1083,6 +1102,117 @@ export async function superAdminSetRolePermission(roleCode, permissionCode, gran
     p_permission_code: permissionCode,
     p_granted: Boolean(granted),
     p_reason: reason || null,
+  });
+  if (error) throw error;
+  return data;
+}
+
+
+export async function loadPremiumSnapshot() {
+  const { data, error } = await supabase.rpc("get_premium_snapshot");
+  if (error) throw error;
+  return data || { plans: [], subscription: null, entitlement: null, hasPremium: false };
+}
+
+export async function loadPremiumAdminPlans() {
+  const { data, error } = await supabase.rpc("get_premium_admin_plans");
+  if (error) throw error;
+  return Array.isArray(data) ? data : [];
+}
+
+export async function loadPremiumAdminMonitoring(limit = 100) {
+  const { data, error } = await supabase.rpc("get_premium_admin_monitoring", { p_limit: Number(limit) || 100 });
+  if (error) throw error;
+  return data || { subscriptions: [], payments: [], generated_at: null };
+}
+
+export async function loadPremiumAttendeeSnapshot() {
+  const { data, error } = await supabase.rpc("get_premium_attendee_snapshot");
+  if (error) throw error;
+  return data || { hasPremium: false, features: {}, followRadar: [], planner: [], musicStats: { totalPlays: 0, totalSeconds: 0, uniqueSongs: 0, likedSongs: 0, topSongs: [] } };
+}
+
+export async function loadPremiumEventDiscovery(filters = {}) {
+  const { data, error } = await supabase.rpc("get_premium_event_discovery", {
+    p_category: filters.category || null,
+    p_min_price: filters.minPrice === "" || filters.minPrice == null ? null : Number(filters.minPrice),
+    p_max_price: filters.maxPrice === "" || filters.maxPrice == null ? null : Number(filters.maxPrice),
+    p_latitude: filters.latitude == null ? null : Number(filters.latitude),
+    p_longitude: filters.longitude == null ? null : Number(filters.longitude),
+    p_radius_km: filters.radiusKm == null ? 25 : Number(filters.radiusKm),
+  });
+  if (error) throw error;
+  return Array.isArray(data) ? data : [];
+}
+
+export async function initializePremiumPayment(planId, idempotencyKey, email, callbackUrl) {
+  if (!planId || !idempotencyKey || !email) throw new Error("Premium payment details are required.");
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) throw new Error("Please sign in again before starting Premium checkout.");
+  const response = await fetch("/api/paystack/premium-initialize", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ planId, idempotencyKey, email, callbackUrl }),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload.error || "Unable to initialize Premium checkout.");
+  return payload;
+}
+
+export async function cancelPremiumSubscription(atPeriodEnd = true) {
+  const { data, error } = await supabase.rpc("cancel_premium_subscription", { p_at_period_end: Boolean(atPeriodEnd) });
+  if (error) throw error;
+  return data;
+}
+
+export async function createPremiumPlan(values = {}) {
+  const { data, error } = await supabase.rpc("create_premium_plan", {
+    p_code: values.code,
+    p_name: values.name,
+    p_description: values.description || null,
+    p_amount: Number(values.amount),
+    p_currency: values.currency || "NGN",
+    p_interval: values.interval || "MONTH",
+    p_interval_count: Number(values.intervalCount || 1),
+    p_features: values.features || {},
+    p_is_active: Boolean(values.isActive),
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function setPremiumPlan(planId, values) {
+  const { data, error } = await supabase.rpc("set_premium_plan", {
+    p_plan_id: planId,
+    p_name: values.name,
+    p_amount: Number(values.amount),
+    p_currency: values.currency,
+    p_interval: values.interval,
+    p_features: values.features || {},
+    p_is_active: Boolean(values.isActive),
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function canAccessTicketType(ticketTypeId) {
+  const { data, error } = await supabase.rpc("can_access_ticket_type", { p_ticket_type_id: ticketTypeId });
+  if (error) throw error;
+  return Boolean(data);
+}
+
+
+export async function updateOrganizerTicketReleasePolicy(ticketTypeId, values = {}) {
+  if (!ticketTypeId) throw new Error("Ticket type is required.");
+  const earlyAccess = values.premium_early_access_starts_at ? new Date(values.premium_early_access_starts_at).toISOString() : null;
+  const publicRelease = values.public_release_at ? new Date(values.public_release_at).toISOString() : null;
+  if (earlyAccess && publicRelease && new Date(earlyAccess) > new Date(publicRelease)) throw new Error("Premium early access cannot start after public release.");
+  const { data, error } = await supabase.rpc("update_ticket_release_policy", {
+    p_ticket_type_id: ticketTypeId,
+    p_premium_early_access_starts_at: earlyAccess,
+    p_public_release_at: publicRelease,
+    p_premium_only: Boolean(values.premium_only),
   });
   if (error) throw error;
   return data;

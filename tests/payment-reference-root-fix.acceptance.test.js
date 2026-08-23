@@ -25,6 +25,20 @@ describe("strict payment transaction-reference root fix", () => {
     expect(migration).toContain("v_ref:=public.mint_payment_transaction_reference");
   });
 
+  it("routes role, Artist, and venue provider attachment through service-role RPCs", () => {
+    const migration = read("supabase/0099_payment_provider_attachment_authority.sql");
+    expect(migration).toContain("attach_role_application_payment_provider");
+    expect(migration).toContain("attach_artist_fee_payment_provider");
+    expect(migration).toContain("attach_venue_booking_payment_provider");
+    expect(migration).toContain("auth.role() <> 'service_role'");
+    expect(read("api/paystack/role-initialize.js")).toContain("/rpc/attach_role_application_payment_provider");
+    expect(read("api/paystack/artist-initialize.js")).toContain("/rpc/attach_artist_fee_payment_provider");
+    expect(read("api/paystack/venue-initialize.js")).toContain("/rpc/attach_venue_booking_payment_provider");
+    expect(read("api/paystack/role-initialize.js")).not.toContain("/rest/v1/role_application_payments?id=eq.");
+    expect(read("api/paystack/artist-initialize.js")).not.toContain("/rest/v1/artist_fee_transactions?id=eq.");
+    expect(read("api/paystack/venue-initialize.js")).not.toContain("/rest/v1/venue_booking_payments?id=eq.");
+  });
+
   it("does not fall back to predictable references in Paystack API handlers", () => {
     const handlers = [
       read("api/paystack/initialize.js"),

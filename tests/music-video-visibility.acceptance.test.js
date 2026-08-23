@@ -8,8 +8,9 @@ describe("music video visibility contract", () => {
   it("loads published music videos in the live base catalog and artist detail", () => {
     expect(catalog).toContain('musicVideos: () => supabase.from("music_videos")');
     expect(catalog).toContain('.eq("status", "PUBLISHED").not("video_url", "is", null)');
-    expect(catalog).toContain("latestMusicVideos: results.musicVideos.data.map(toMusicVideo)");
-    expect(catalog).toContain("musicVideos: (videosResult.data || []).map(toMusicVideo)");
+    expect(catalog).toContain('musicVideos: filterLiveCatalogRows("musicVideos", results.musicVideos.data).map(toMusicVideo)');
+    expect(catalog).toContain('latestMusicVideos: filterLiveCatalogRows("musicVideos", results.musicVideos.data).map(toMusicVideo)');
+    expect(catalog).toContain('allMusicVideos: filterLiveCatalogRows("musicVideos", results.musicVideos.data).map(toMusicVideo)');
   });
 
   it("renders live videos on Music and Artist Profile surfaces", () => {

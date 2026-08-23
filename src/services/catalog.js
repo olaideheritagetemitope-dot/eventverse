@@ -34,6 +34,13 @@ export const SYNTHETIC_CATALOG_IDS = Object.freeze({
     "60000000-0000-0000-0000-000000000004",
     "60000000-0000-0000-0000-000000000005",
   ]),
+  musicVideos: new Set([
+    "70000000-0000-0000-0000-000000000001",
+    "70000000-0000-0000-0000-000000000002",
+    "70000000-0000-0000-0000-000000000003",
+    "70000000-0000-0000-0000-000000000004",
+    "70000000-0000-0000-0000-000000000005",
+  ]),
 });
 
 export const isSyntheticCatalogRecord = (kind, record) => Boolean(record?.id && SYNTHETIC_CATALOG_IDS[kind]?.has(record.id));
@@ -173,9 +180,9 @@ export async function loadCatalog() {
     events: filterLiveCatalogRows("events", results.events.data).map(toEvent),
     artists: filterLiveCatalogRows("artists", results.artists.data).map(toArtist),
     songs: filterLiveCatalogRows("songs", results.songs.data).map(toSong),
-    musicVideos: results.musicVideos.data.map(toMusicVideo),
-    latestMusicVideos: results.musicVideos.data.map(toMusicVideo),
-    allMusicVideos: results.musicVideos.data.map(toMusicVideo),
+    musicVideos: filterLiveCatalogRows("musicVideos", results.musicVideos.data).map(toMusicVideo),
+    latestMusicVideos: filterLiveCatalogRows("musicVideos", results.musicVideos.data).map(toMusicVideo),
+    allMusicVideos: filterLiveCatalogRows("musicVideos", results.musicVideos.data).map(toMusicVideo),
     categories: results.categories.data,
     venues: filterLiveCatalogRows("venues", results.venues.data).map((venue) => ({ ...venue, imageUrl: firstVenueImage(venue) })),
     catalogErrors: Object.fromEntries(Object.entries(results).filter(([, result]) => result.error).map(([name, result]) => [name, result.error])),

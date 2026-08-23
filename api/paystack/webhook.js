@@ -22,54 +22,66 @@ async function supabaseRpc(name, args) {
   return payload;
 }
 
+async function supabasePatch(path, body) {
+  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const response = await fetch(`${SUPABASE_URL}${path}`, {
+    method: "PATCH",
+    headers: {
+      apikey: serviceRole,
+      Authorization: `Bearer ${serviceRole}`,
+      "Content-Type": "application/json",
+      Prefer: "return=minimal",
+    },
+    body: JSON.stringify(body),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload?.message || payload?.hint || "Supabase update failed");
+  return payload;
+}
+
 async function findArtistTransactionByReference(reference) {
   const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/artist_fee_transactions?select=id,amount,status,transaction_type,user_id,artist_id&provider=eq.paystack&provider_reference=eq.${encodeURIComponent(reference)}&limit=1`, { headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}` } });
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/artist_fee_transactions?select=id,amount,status,transaction_type,user_id,artist_id&provider=eq.paystack&or=(provider_reference.eq.${encodeURIComponent(reference)},transaction_reference.eq.${encodeURIComponent(reference)})&limit=1`, { headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}` } });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload?.message || "Unable to find artist transaction");
   return payload?.[0] || null;
 }
 
 async function markArtistFailure(transaction) {
-  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const now = new Date().toISOString();
-  const transactionUrl = `${SUPABASE_URL}/rest/v1/artist_fee_transactions?id=eq.${encodeURIComponent(transaction.id)}`;
-  await fetch(transactionUrl, { method: "PATCH", headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}`, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ status: "FAILED", updated_at: now }) });
+  await supabasePatch(`/rest/v1/artist_fee_transactions?id=eq.${encodeURIComponent(transaction.id)}`, { status: "FAILED", updated_at: now });
   const table = transaction.transaction_type === "REGISTRATION" ? "artist_registrations" : "artist_verifications";
-  const key = transaction.transaction_type === "REGISTRATION" ? "transaction_id" : "transaction_id";
-  await fetch(`${SUPABASE_URL}/rest/v1/${table}?${key}=eq.${encodeURIComponent(transaction.id)}`, { method: "PATCH", headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}`, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ status: "FAILED", failure_reason: "Paystack reported a failed or disputed charge", updated_at: now }) });
+  await supabasePatch(`/rest/v1/${table}?transaction_id=eq.${encodeURIComponent(transaction.id)}`, { status: "FAILED", failure_reason: "Paystack reported a failed or disputed charge", updated_at: now });
 }
 
 async function findRoleApplicationPaymentByReference(reference) {
   const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/role_application_payments?select=id,application_id,amount,status&provider=eq.paystack&provider_reference=eq.${encodeURIComponent(reference)}&limit=1`, { headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}` } });
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/role_application_payments?select=id,application_id,amount,status&provider=eq.paystack&or=(provider_reference.eq.${encodeURIComponent(reference)},transaction_reference.eq.${encodeURIComponent(reference)})&limit=1`, { headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}` } });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload?.message || "Unable to find role application payment");
   return payload?.[0] || null;
 }
 
 async function markRoleApplicationFailure(payment) {
-  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  await fetch(`${SUPABASE_URL}/rest/v1/role_application_payments?id=eq.${encodeURIComponent(payment.id)}&status=neq.VERIFIED_SUCCESS`, { method: "PATCH", headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}`, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ status: "FAILED", updated_at: new Date().toISOString() }) });
+  await supabasePatch(`/rest/v1/role_application_payments?id=eq.${encodeURIComponent(payment.id)}&status=neq.VERIFIED_SUCCESS`, { status: "FAILED", updated_at: new Date().toISOString() });
 }
 
 async function findVenuePaymentByReference(reference) {
   const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/venue_booking_payments?select=id,booking_id,amount,status&provider=eq.paystack&provider_reference=eq.${encodeURIComponent(reference)}&limit=1`, { headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}` } });
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/venue_booking_payments?select=id,booking_id,amount,status&provider=eq.paystack&or=(provider_reference.eq.${encodeURIComponent(reference)},transaction_reference.eq.${encodeURIComponent(reference)})&limit=1`, { headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}` } });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload?.message || "Unable to find venue payment");
   return payload?.[0] || null;
 }
 
 async function markVenueFailure(payment) {
-  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  await fetch(`${SUPABASE_URL}/rest/v1/venue_booking_payments?id=eq.${encodeURIComponent(payment.id)}&status=neq.SUCCESS`, { method: "PATCH", headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}`, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ status: "FAILED", updated_at: new Date().toISOString() }) });
+  await supabasePatch(`/rest/v1/venue_booking_payments?id=eq.${encodeURIComponent(payment.id)}&status=neq.SUCCESS`, { status: "FAILED", updated_at: new Date().toISOString() });
 }
 
 async function findPaymentByReference(reference) {
   const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const response = await fetch(
-    `${SUPABASE_URL}/rest/v1/payments?select=id,amount,order_id,status&provider=eq.paystack&provider_reference=eq.${encodeURIComponent(reference)}&limit=1`,
+    `${SUPABASE_URL}/rest/v1/payments?select=id,amount,order_id,status&provider=eq.paystack&or=(provider_reference.eq.${encodeURIComponent(reference)},transaction_reference.eq.${encodeURIComponent(reference)})&limit=1`,
     {
       headers: {
         apikey: serviceRole,

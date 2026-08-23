@@ -25,13 +25,19 @@ async function paystackInitialize({ email, amount, reference, callbackUrl }) {
   return payload.data;
 }
 
-async function attachProviderReference(transactionId, reference) {
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/artist_fee_transactions?id=eq.${encodeURIComponent(transactionId)}`, {
-    method: "PATCH",
-    headers: { apikey: process.env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`, "Content-Type": "application/json", Prefer: "return=minimal" },
-    body: JSON.stringify({ provider_reference: reference, updated_at: new Date().toISOString() }),
+async function attachProviderCheckout(transactionId, reference, authorizationUrl, accessCode) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/attach_artist_fee_payment_provider`, {
+    method: "POST",
+    headers: { apikey: process.env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      p_transaction_id: transactionId,
+      p_provider_reference: reference,
+      p_authorization_url: authorizationUrl || null,
+      p_access_code: accessCode || null,
+    }),
   });
-  if (!response.ok) throw new Error("Unable to attach payment provider reference");
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload?.message || payload?.hint || "Unable to persist artist payment checkout");
 }
 
 export default async function handler(req, res) {
@@ -43,11 +49,12 @@ export default async function handler(req, res) {
     const { transactionType, email, idempotencyKey, callbackUrl } = req.body || {};
     if (!transactionType || !email || !idempotencyKey || !["REGISTRATION", "VERIFICATION"].includes(transactionType)) return json(res, 400, { error: "transactionType, email, and idempotencyKey are required" });
     const transaction = await supabaseRpc("initialize_artist_fee_payment", { p_transaction_type: transactionType, p_idempotency_key: idempotencyKey }, authorization);
+    if (transaction.authorization_url || transaction.provider_reference) return json(res, 200, { transactionId: transaction.id, reference: transaction.provider_reference || transaction.transaction_reference, transactionReference: transaction.transaction_reference, authorizationUrl: transaction.authorization_url || null, accessCode: transaction.access_code || null, amount: transaction.amount, currency: transaction.currency, transactionType, replayed: true });
     const reference = transaction.transaction_reference;
     if (!reference) throw new Error("Server did not return a transaction reference");
     const paystack = await paystackInitialize({ email, amount: transaction.amount, reference, callbackUrl: callbackUrl || `${req.headers.origin || "https://eventverse-eight.vercel.app"}/?artist-payment=callback` });
-    await attachProviderReference(transaction.id, paystack.reference);
-    return json(res, 200, { transactionId: transaction.id, reference: paystack.reference, transactionReference: transaction.transaction_reference, authorizationUrl: paystack.authorization_url, accessCode: paystack.access_code, amount: transaction.amount, currency: transaction.currency, transactionType });
+    await attachProviderCheckout(transaction.id, paystack.reference, paystack.authorization_url, paystack.access_code);
+    return json(res, 200, { transactionId: transaction.id, reference: paystack.reference, transactionReference: transaction.transaction_reference, authorizationUrl: paystack.authorization_url, accessCode: paystack.access_code, amount: transaction.amount, currency: transaction.currency, transactionType, replayed: false });
   } catch (error) {
     console.error("Artist Paystack initialization error", error);
     return json(res, 400, { error: error instanceof Error ? error.message : "Unable to initialize artist payment" });

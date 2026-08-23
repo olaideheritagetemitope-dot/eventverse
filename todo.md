@@ -1706,4 +1706,112 @@
 - [x] Reproduce the missing-video path and identify the first broken data or visibility invariant
 - [x] Implement the root fix without changing the Atizzy design system or adding mock data
 - [x] Add regression coverage proving a published music video reaches its intended UI surface
-- [ ] Run full validation and verify the deployed production path
+- [x] Run full validation and verify the deployed production path
+
+# Premium Attendee System — Reconciled Directives — 2026-08-23
+
+- [ ] Open and extract the linked source conversation and reconcile it with both attached implementation directives
+- [ ] Audit existing auth, roles, profiles, payments, Paystack, events, tickets, music, discovery, playlists, notifications, admin settings, and audit logs
+- [x] Preserve existing roles exactly; implement Premium only as a subscription and entitlement layer
+- [x] Create or extend one canonical configurable Premium plan and pricing source
+- [x] Create or extend durable subscriptions, immutable payment records, status transitions, expiry, renewal, cancellation, and failed-payment handling
+- [x] Implement secure Paystack initialization, server verification, authentic webhook handling, amount/currency/customer/metadata checks, and collision-safe idempotency
+- [x] Implement atomic subscription activation and one authoritative server-side entitlement mechanism
+- [ ] Implement Premium attendee capabilities: discovery, recommendations, alerts, early access, advanced music/playlists, personal statistics, Follow Radar, location discovery, ticket perks, planner, smart notifications, and badge
+- [ ] Preserve all Free-user capabilities and gracefully downgrade expired/cancelled users without deleting data
+- [x] Implement creator ticket visibility, early-access, public-release, private availability, Premium-only tiers, capacity, and attendee preview controls
+- [x] Enforce ticket visibility and Premium access rules server-side across discovery, event access, and checkout
+- [ ] Add required RLS, indexes, admin configuration, UI states, and route integrations without duplicate systems
+- [ ] Run full regression audit for Free, Premium, Artist, Organizer, Venue Manager, Event Staff, Admin, and Super Admin flows
+- [ ] Run tests, type-check, lint, build, live database/security checks, deploy, checkpoint, and document all results
+
+# Premium Product Integration Hard-Fix Audit — 2026-08-23
+
+- [ ] Audit Premium capability coverage from Supabase functions through services, entitlements, routes, dashboards, and UI
+- [ ] Verify attendee Premium landing, benefits, pricing, status, upgrade, Paystack states, expiry, renewal, cancellation, badge, and upgrade prompts
+- [ ] Verify Super Admin Premium plan creation/editing, price, currency, duration, active state, features, limits, visibility, and payment monitoring UI
+- [ ] Verify Organizer event/ticket controls for public release, Premium early access, availability, Premium-only tiers, visibility, capacity, and attendee preview
+- [ ] Audit Artist and Venue Manager dashboards for Premium-relevant capabilities and missing UI connections
+- [ ] Verify every Premium capability has reachable routing, navigation, loading, empty, error, responsive, and permission-aware states
+- [ ] Trace Admin config → creator config → database → entitlement → discovery → purchase → ticket/access → notifications → expiry/downgrade
+- [ ] Run role regression audit for Free, Premium, Artist, Organizer, Venue Manager, Event Staff, Admin, and Super Admin
+- [ ] Run build, lint, type checks, relevant tests, live database/security checks, and deployment verification
+
+# Premium Integration Follow-up — 2026-08-23
+
+- [x] Make the locked Premium attendee tools empty state open the existing Premium plans tab through a live upgrade action
+- [x] Focused Premium acceptance tests, TypeScript check, and production build pass after the attendee upgrade-path fix
+
+# Deep Regression Forensic Debug — 2026-08-23
+
+- [x] Compare recent commits and deployments with the last known-good Atizzy state for shared discovery changes
+- [x] Trace artist loading from database/RLS/RPC/service/state/route/card and reproduce the failure
+- [x] Trace artist-name search from input/debounce/service/database/filter/results/UI and reproduce exact-name, partial, casing, empty, and mixed-content cases
+- [x] Trace venue deletion from button/confirmation/service/RPC/RLS/dependencies/constraints/refresh and preserve historical records
+- [x] Trace location permission, coordinates, state, discovery RPC, nearby events, and Home fallback behavior without fake coordinates
+- [x] Determine whether the artist, search, venue, location, and Home regressions share one recent contract or state regression
+- [x] Implement root fixes only after the failure layers and introducing change are proven
+- [x] Add regression coverage for artists, artist search, venue deletion, location denial/unavailable states, Home resilience, and all roles
+- [x] Run a second full regression scan, build, lint, type checks, live database contract checks, and deployment verification
+- [x] Produce an exact forensic report covering causes, introducing commit/change, files/functions/RPCs, tests, deficiencies, and deployment status
+
+# Read-Only Exhaustive Bug Audit — 2026-08-23
+
+- [ ] Inventory every frontend route, component, handler, effect, service call, and user action
+- [ ] Audit frontend state, loading, empty, error, retry, navigation, responsive, and accessibility failure paths
+- [ ] Audit every Supabase table, view, RPC, trigger, policy, grant, constraint, index, and migration contract
+- [ ] Audit authentication, role inheritance, permissions, onboarding, and workspace access boundaries
+- [ ] Audit payment, ticket, wallet, Paystack, idempotency, webhook, reconciliation, and notification workflows
+- [ ] Audit media upload, storage, URL resolution, rendering, cleanup, and RLS workflows
+- [ ] Audit discovery, search, location, artist, venue, event, music, playlist, favorites, comments, ratings, and analytics paths
+- [ ] Audit Admin, Super Admin, Organizer, Artist, Venue Manager, Event Staff, Premium, and Free-user workflows
+- [ ] Run read-only static analysis, existing tests, type/build/lint checks, live schema/security metadata checks, and deployment-readiness checks
+- [ ] Produce a prioritized defect inventory with severity, exact location, reproduction path, root-cause evidence, confidence, impact, and fix recommendation
+- [ ] Do not modify source code, migrations, database data, configuration, or deployment state during this audit
+
+# Remediation TODO — 2026-08-23
+
+- [x] Harden SECURITY DEFINER routine authorization and live negative/positive access checks.
+- [x] Narrow unconditional public RLS reads for songs and venues to approved/published visibility.
+- [x] Review and protect user-level likes/ratings exposure according to the intended privacy model.
+- [x] Unify server-generated payment references and idempotency semantics across ticket, role, Premium, and wallet payments.
+- [x] Correct Premium webhook amount verification and check all callback state-update responses.
+- [x] Complete Super Admin onboarding KPI, review, answer inspection, request-changes, and question lifecycle controls.
+- [x] Add paginated/status-aware governance directories and verify immediate role/workspace propagation.
+- [x] Enforce server-authoritative synthetic-content exclusion, including music videos.
+- [x] Surface partial catalog failures without misrepresenting them as empty live data.
+- [x] Harden media-kind, managed URL, storage, database-reference, and rendering contracts for all content types.
+- [x] Harden shared playback error handling, exact progress synchronization, seeking, navigation persistence, and track transitions.
+- [x] Review remaining Coming-soon surfaces; retain them as intentional no-data empty states because they are not production capabilities or synthetic records.
+- [x] Add regression tests for every remediation and run full TypeScript, build, and live-contract validation.
+- [x] Save a checkpoint only after all completed items are marked [x].
+
+# Fresh Forensic Debug Audit — 2026-08-23
+
+- [x] Inventory every frontend route, component, effect, handler, service call, and user action.
+- [x] Audit live-data loading, state propagation, loading/empty/error/retry states, and synthetic-data paths.
+- [x] Audit Supabase tables, views, RPCs, triggers, policies, grants, constraints, indexes, and migration consistency.
+- [x] Audit authentication, OAuth callbacks, RBAC, role inheritance, onboarding, workspace gating, and privilege boundaries.
+- [x] Audit Paystack initialization, idempotency, references, webhooks, reconciliation, tickets, wallets, and notification side effects.
+- [x] Audit media upload, storage, managed URLs, database references, rendering, cleanup, and RLS for every content type.
+- [x] Audit audio/video playback, progress synchronization, navigation persistence, queue transitions, and failure handling.
+- [x] Run read-only static analysis, full tests, TypeScript, build, lint, live metadata/security checks, and deployment-readiness checks.
+- [x] Reproduce and document each confirmed defect with exact location, evidence, impact, severity, confidence, and remediation recommendation.
+- [x] Deliver a fresh prioritized forensic bug inventory without modifying source, database data, configuration, or deployment state.
+
+# Attached Directives Execution — 2026-08-23
+
+- [ ] Extract both attached documents verbatim and preserve their complete directive text.
+- [ ] Convert every attachment directive into a traceable implementation checklist with no omissions.
+- [ ] Map each directive to the existing Atizzy frontend, services, API routes, Supabase contracts, and deployment state.
+- [ ] Implement all applicable backend, security, payment, media, governance, and workflow directives without synthetic production data.
+- [ ] Project every implemented capability into the existing Atizzy UI while preserving cards, navigation, layout, styling, and empty states.
+- [ ] Validate every affected lifecycle with tests, TypeScript, build, live-contract checks, and authenticated smoke tests where available.
+- [ ] Document exact completion status, user-only validation gates, and any blocked directives.
+- [ ] Save a checkpoint after all completed items are marked [x].
+
+# Governance UI Metric Projection — 2026-08-23
+
+- [x] Replace Super Admin overview page-local user, pending-application, event-lifecycle, and wallet totals with server-authoritative governance snapshot aggregates.
+- [x] Add regression coverage preventing regression to page-local metric calculations.
+- [x] Validate the projection with the focused acceptance test, full test suite, TypeScript, production build, and lint.

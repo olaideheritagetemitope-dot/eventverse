@@ -33,9 +33,9 @@ describe("Atizzy watermark and Profile Logout correction", () => {
     expect(app).toContain('<BottomNav current="profile" go={nav.tab} />');
     expect(styles).toContain(".ev-bottom-nav { position: fixed;");
     expect(app).toContain("await supabase.auth.signOut(); nav.reset(\"login\");");
-    expect(app).toContain("function Profile({ nav, player, account, onAccountUpdated })");
+    expect(app).toContain("function Profile({ nav, player, account, premium, onAccountUpdated })");
     expect(app).toContain("const savedProfile = await updateProfile");
     expect(app).toContain("onAccountUpdated?.(savedProfile)");
-    expect(app).toContain("profile: <Profile nav={nav} player={player} account={account} onAccountUpdated=");
+    expect(app).toContain("profile: <Profile nav={nav} player={player} account={account} premium={premium} onAccountUpdated=");
   });
 });

@@ -15,8 +15,18 @@ async function paystackInitialize({ email, amount, reference, callbackUrl }) {
 }
 async function attachProviderCheckout(paymentId, paystack) {
   const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/venue_booking_payments?id=eq.${encodeURIComponent(paymentId)}`, { method: "PATCH", headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}`, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ provider_reference: paystack.reference, authorization_url: paystack.authorization_url, access_code: paystack.access_code, updated_at: new Date().toISOString() }) });
-  if (!response.ok) throw new Error("Unable to attach venue payment provider reference");
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/attach_venue_booking_payment_provider`, {
+    method: "POST",
+    headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      p_payment_id: paymentId,
+      p_provider_reference: paystack.reference,
+      p_authorization_url: paystack.authorization_url || null,
+      p_access_code: paystack.access_code || null,
+    }),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload?.message || payload?.hint || "Unable to attach venue payment provider reference");
 }
 export default async function handler(req, res) {
   if (req.method !== "POST") return json(res, 405, { error: "Method not allowed" });
