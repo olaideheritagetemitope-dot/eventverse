@@ -1963,8 +1963,17 @@ The remaining unchecked items require the owner's authenticated production sessi
 
 # Direct Artist Song Release Clarification
 
-- [ ] Confirm the mounted composer visibly exposes a direct Post song action, not only Save draft
-- [ ] Ensure Post song persists required media and immediately transitions the song to live publication
-- [ ] Ensure the published song appears in the intended live/upcoming music surfaces after refresh
-- [ ] Verify the current production bundle contains the direct-release control and handler
-- [ ] Add or update regression coverage and rerun validation
+- [x] Confirm the mounted composer visibly exposes a direct Post song action, not only Save draft
+- [x] Ensure Post song persists required media and immediately transitions the song to live publication
+- [x] Ensure the published song appears in the intended live/upcoming music surfaces after refresh
+- [x] Verify the current production bundle contains the direct-release control and handler
+- [x] Add or update regression coverage and rerun validation
+
+
+# Production Post Button Visibility Regression
+
+- [ ] Identify which Vercel deployment and bundle the user’s production URL is serving
+- [ ] Confirm the deployed bundle contains the direct Post song control and mounted Artist Workspace route
+- [ ] Reconcile any repository/project/deployment mismatch preventing the latest commit from reaching production
+- [ ] Redeploy or correct the production source without changing the existing UI design
+- [ ] Verify the production screen visibly shows direct Post song and document any remaining user-only gate
