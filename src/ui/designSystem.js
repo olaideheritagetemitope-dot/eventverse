@@ -65,5 +65,18 @@ export function normalizeCatalog(value) {
     mostWatchedMusicVideos: Array.isArray(value?.mostWatchedMusicVideos) ? value.mostWatchedMusicVideos : [],
     privatePlaylists: Array.isArray(value?.privatePlaylists) ? value.privatePlaylists : [],
     publicPlaylists: Array.isArray(value?.publicPlaylists) ? value.publicPlaylists : [],
+    latestSongs: Array.isArray(value?.latestSongs) ? value.latestSongs : [],
+    allSongs: Array.isArray(value?.allSongs) ? value.allSongs : [],
+    latestArtists: Array.isArray(value?.latestArtists) ? value.latestArtists : [],
+    allArtists: Array.isArray(value?.allArtists) ? value.allArtists : [],
+    latestAlbums: Array.isArray(value?.latestAlbums) ? value.latestAlbums : [],
+    allAlbums: Array.isArray(value?.allAlbums) ? value.allAlbums : [],
+    newVenues: Array.isArray(value?.newVenues) ? value.newVenues : [],
+    allVenues: Array.isArray(value?.allVenues) ? value.allVenues : [],
+    latestEvents: Array.isArray(value?.latestEvents) ? value.latestEvents : [],
+    allEvents: Array.isArray(value?.allEvents) ? value.allEvents : [],
+    latestMusicVideos: Array.isArray(value?.latestMusicVideos) ? value.latestMusicVideos : [],
+    allMusicVideos: Array.isArray(value?.allMusicVideos) ? value.allMusicVideos : [],
+    latestPublicPlaylists: Array.isArray(value?.latestPublicPlaylists) ? value.latestPublicPlaylists : [],
   };
 }

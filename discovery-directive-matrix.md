@@ -53,3 +53,9 @@ Before completion, report for every category the exact definition, source tables
 
 ## Execution status note — 2026-08-23
 The local canonical discovery migration, service integration, frontend semantic bindings, and acceptance coverage are implemented and locally validated. Applying and verifying migration `0081_canonical_discovery_analytics.sql` against the live Supabase project is still pending because the Supabase connector reported that its service is under maintenance. This is an explicit release gate; no live completion claim is made until the migration, RLS policies, RPCs, trigger, and production snapshot are verified remotely.
+
+## Cold-start implementation status — 2026-08-23
+
+The cold-start directive is implemented in the repository and live Supabase project. Migration `0081_canonical_discovery_analytics` applied successfully, followed by `0082_cold_start_discovery_catalogues`. The live database exposes `get_discovery_snapshot(numeric,numeric,numeric)` and `get_cold_start_discovery_catalogue(integer,integer)`. The live catalogue response currently contains eligible latest songs, all songs, new venues, and latest events; empty arrays for artists, albums, videos, public playlists, and future events accurately reflect the current dataset rather than fabricated content.
+
+Local verification passed: 56 Vitest files, 198 tests passed, 2 skipped; TypeScript passed; production Vite build passed; and `git diff --check` passed. The remaining release gate is committing/pushing the final source and saving a checkpoint.

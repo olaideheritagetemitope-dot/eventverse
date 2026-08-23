@@ -1626,3 +1626,16 @@
 - [x] Add regression coverage for semantic rankings, privacy boundaries, location filtering, qualified analytics, and no-fake-data behavior
 - [ ] Run database/RLS/frontend/responsive/production verification and literal semantic acceptance tests for every category
 - [ ] Deploy the completed directive implementation, save a final checkpoint, and produce the exact definition/source/calculation/privacy/window report
+
+# Cold-Start Discovery Directive — 2026-08-23
+- [x] Extract the complete attached cold-start discovery directive into an auditable requirements matrix
+- [x] Audit eligible status fields and public-discovery predicates for songs, artists, albums, videos, venues, events, and playlists
+- [x] Add all-content catalogue queries independent of ranking score
+- [x] Add Latest Songs, New Venues, Latest Events, Latest Videos, and equivalent latest/public surfaces
+- [x] Ensure new published songs, venues, events, albums, videos, and public playlists are discoverable with zero engagement
+- [x] Preserve ranked sections while applying truthful minimum-data rules and never using ranking as visibility
+- [x] Ensure search finds eligible zero-engagement content
+- [x] Preserve private playlist and personal history privacy boundaries
+- [x] Wire preserved Atizzy UI sections to latest/catalogue data with truthful loading, empty, and error states
+- [x] Add regression coverage for cold-start visibility, ranking separation, search, pagination, eligibility, and privacy
+- [ ] Apply and verify live Supabase changes, run full validation, deploy, and save a final checkpoint

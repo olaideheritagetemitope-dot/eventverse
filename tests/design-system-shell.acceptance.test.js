@@ -17,7 +17,7 @@ describe("Atizzy permanent design system shell", () => {
 
   it("uses a shared token and backend-resource contract", () => {
     expect(source).toContain("ATIZZY_TOKENS");
-    expect(source).toContain("normalizeCatalog(liveCatalog)");
+    expect(source).toContain("normalizeCatalog(merged)");
     expect(source).toContain("resourceState({ loading, error, data: events })");
     expect(designSystem).toContain("export const ATIZZY_MODULES");
     expect(designSystem).toContain('status: loading ? "loading"');

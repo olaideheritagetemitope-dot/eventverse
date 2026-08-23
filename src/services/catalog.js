@@ -133,10 +133,10 @@ export const toSong = (song) => ({
 export async function loadCatalog() {
   const [eventResult, artistResult, songResult, categoryResult, venueResult] = await Promise.all([
     supabase.from("events").select("id,organizer_id,venue_id,title,description,event_type,city,starts_at,ends_at,cover_url,status,rating,review_count,venues(id,name,city,address,capacity),ticket_types(id,price)").in("status", ["PUBLISHED", "SOLD_OUT", "LIVE", "COMPLETED"]).order("starts_at"),
-    supabase.from("artists").select("id,user_id,name,bio,verified,follower_count,image_url,background_url").order("follower_count", { ascending: false }),
-    supabase.from("songs").select("id,artist_id,title,duration_seconds,audio_url,cover_url,play_count,artists(id,name,image_url)").order("play_count", { ascending: false }),
+    supabase.from("artists").select("id,user_id,name,bio,verified,follower_count,image_url,background_url").eq("verified", true).order("follower_count", { ascending: false }),
+    supabase.from("songs").select("id,artist_id,title,duration_seconds,audio_url,cover_url,play_count,status,published_at,artists(id,name,image_url)").eq("status", "PUBLISHED").not("audio_url", "is", null).order("play_count", { ascending: false }),
     supabase.from("categories").select("id,name,slug").order("name"),
-    supabase.from("venues").select("id,name,city,address,capacity,status,image_urls").neq("status", "ARCHIVED").order("name"),
+    supabase.from("venues").select("id,name,city,address,capacity,status,image_urls").eq("status", "ACTIVE").order("name"),
   ]);
   const firstError = [eventResult, artistResult, songResult, categoryResult, venueResult].find((result) => result.error)?.error;
   if (firstError) throw firstError;
@@ -155,9 +155,9 @@ export async function searchCatalog(query) {
   const pattern = `%${term}%`;
   const [eventResult, artistResult, songResult, venueResult] = await Promise.all([
     supabase.from("events").select("id,organizer_id,venue_id,title,description,event_type,city,starts_at,ends_at,cover_url,status,rating,review_count,venues(id,name,city,address,capacity),ticket_types(id,price)").in("status", ["PUBLISHED", "SOLD_OUT", "LIVE", "COMPLETED"]).or(`title.ilike.${pattern},description.ilike.${pattern},city.ilike.${pattern}`).order("starts_at").limit(20),
-    supabase.from("artists").select("id,user_id,name,bio,verified,follower_count,image_url,background_url").or(`name.ilike.${pattern},bio.ilike.${pattern}`).order("follower_count", { ascending: false }).limit(20),
-    supabase.from("songs").select("id,artist_id,title,duration_seconds,audio_url,cover_url,play_count,artists(id,name,image_url)").ilike("title", pattern).order("play_count", { ascending: false }).limit(20),
-    supabase.from("venues").select("id,name,city,address,capacity,status,image_urls").neq("status", "ARCHIVED").or(`name.ilike.${pattern},city.ilike.${pattern},address.ilike.${pattern}`).order("name").limit(20),
+    supabase.from("artists").select("id,user_id,name,bio,verified,follower_count,image_url,background_url").eq("verified", true).or(`name.ilike.${pattern},bio.ilike.${pattern}`).order("follower_count", { ascending: false }).limit(20),
+    supabase.from("songs").select("id,artist_id,title,duration_seconds,audio_url,cover_url,play_count,status,published_at,artists(id,name,image_url)").eq("status", "PUBLISHED").not("audio_url", "is", null).ilike("title", pattern).order("play_count", { ascending: false }).limit(20),
+    supabase.from("venues").select("id,name,city,address,capacity,status,image_urls").eq("status", "ACTIVE").or(`name.ilike.${pattern},city.ilike.${pattern},address.ilike.${pattern}`).order("name").limit(20),
   ]);
   const firstError = [eventResult, artistResult, songResult, venueResult].find((result) => result.error)?.error;
   if (firstError) throw firstError;

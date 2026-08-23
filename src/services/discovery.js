@@ -17,18 +17,44 @@ const emptySnapshot = Object.freeze({
   mostWatchedMusicVideos: [],
   privatePlaylists: [],
   publicPlaylists: [],
+  latestSongs: [],
+  allSongs: [],
+  latestArtists: [],
+  allArtists: [],
+  latestAlbums: [],
+  allAlbums: [],
+  newVenues: [],
+  allVenues: [],
+  latestEvents: [],
+  allEvents: [],
+  latestMusicVideos: [],
+  allMusicVideos: [],
+  latestPublicPlaylists: [],
 });
 
 function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
-export async function loadDiscoverySnapshot({ latitude = null, longitude = null, radiusKm = 25 } = {}) {
-  const { data, error } = await supabase.rpc("get_discovery_snapshot", {
-    p_latitude: latitude,
-    p_longitude: longitude,
-    p_radius_km: radiusKm,
-  });
+export async function loadDiscoverySnapshot({ latitude = null, longitude = null, radiusKm = 25, limit = 24, offset = 0 } = {}) {
+  const [rankedResult, catalogueResult] = await Promise.all([
+    supabase.rpc("get_discovery_snapshot", {
+      p_latitude: latitude,
+      p_longitude: longitude,
+      p_radius_km: radiusKm,
+    }),
+    supabase.rpc("get_cold_start_discovery_catalogue", {
+      p_limit: limit,
+      p_offset: offset,
+    }),
+  ]);
+  if (rankedResult.error) throw rankedResult.error;
+  if (catalogueResult.error) throw catalogueResult.error;
+  return { ...emptySnapshot, ...(rankedResult.data || {}), ...(catalogueResult.data || {}), generatedAt: catalogueResult.data?.generatedAt || rankedResult.data?.generatedAt || null };
+}
+
+export async function loadDiscoveryCatalogue({ limit = 24, offset = 0 } = {}) {
+  const { data, error } = await supabase.rpc("get_cold_start_discovery_catalogue", { p_limit: limit, p_offset: offset });
   if (error) throw error;
   return { ...emptySnapshot, ...(data || {}), generatedAt: data?.generatedAt || null };
 }
@@ -67,3 +93,16 @@ export const getMostLikedArtists = (snapshot) => asArray(snapshot?.mostLikedArti
 export const getMostWatchedMusicVideos = (snapshot) => asArray(snapshot?.mostWatchedMusicVideos);
 export const getPrivatePlaylists = (snapshot) => asArray(snapshot?.privatePlaylists);
 export const getPublicPlaylists = (snapshot) => asArray(snapshot?.publicPlaylists);
+export const getLatestSongs = (snapshot) => asArray(snapshot?.latestSongs);
+export const getAllSongs = (snapshot) => asArray(snapshot?.allSongs);
+export const getLatestArtists = (snapshot) => asArray(snapshot?.latestArtists);
+export const getAllArtists = (snapshot) => asArray(snapshot?.allArtists);
+export const getLatestAlbums = (snapshot) => asArray(snapshot?.latestAlbums);
+export const getAllAlbums = (snapshot) => asArray(snapshot?.allAlbums);
+export const getNewVenues = (snapshot) => asArray(snapshot?.newVenues);
+export const getAllVenues = (snapshot) => asArray(snapshot?.allVenues);
+export const getLatestEvents = (snapshot) => asArray(snapshot?.latestEvents);
+export const getAllEvents = (snapshot) => asArray(snapshot?.allEvents);
+export const getLatestMusicVideos = (snapshot) => asArray(snapshot?.latestMusicVideos);
+export const getAllMusicVideos = (snapshot) => asArray(snapshot?.allMusicVideos);
+export const getLatestPublicPlaylists = (snapshot) => asArray(snapshot?.latestPublicPlaylists);

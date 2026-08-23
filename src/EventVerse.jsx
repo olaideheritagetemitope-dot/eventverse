@@ -716,9 +716,11 @@ function Verify({ nav, data }) {
 /* ============================== HOME ============================== */
 function AttendeeHome({ nav, player, catalog, account, loading, error }) {
   const [cat, setCat] = useState("All");
-  const events = catalog?.events || [];
-  const artists = catalog?.popularArtists || [];
-  const songs = catalog?.popularSongs || [];
+  const rankedEvents = catalog?.events || [];
+  const latestEvents = catalog?.latestEvents || [];
+  const events = rankedEvents.length ? rankedEvents : (latestEvents.length ? latestEvents : catalog?.allEvents || []);
+  const artists = catalog?.popularArtists?.length ? catalog.popularArtists : (catalog?.latestArtists || catalog?.allArtists || []);
+  const songs = catalog?.popularSongs?.length ? catalog.popularSongs : (catalog?.latestSongs || catalog?.allSongs || []);
   const categories = [{ name: "All" }, ...(catalog?.categories || [])];
   const displayName = account?.profile?.full_name || account?.user?.user_metadata?.full_name || account?.user?.email?.split("@")[0] || "there";
   const hour = new Date().getHours();
@@ -809,11 +811,14 @@ function AttendeeHome({ nav, player, catalog, account, loading, error }) {
 /* ============================== EXPLORE ============================== */
 function Explore({ nav, player, catalog }) {
   const [cat, setCat] = useState("All");
-  const events = catalog?.events || [];
+  const rankedEvents = catalog?.events || [];
+  const latestEvents = catalog?.latestEvents || [];
+  const events = rankedEvents.length ? rankedEvents : (latestEvents.length ? latestEvents : catalog?.allEvents || []);
   const trendingEvents = catalog?.trendingEvents || [];
   const nearbyEvents = catalog?.nearbyEvents || [];
   const categories = [{ name: "All" }, ...(catalog?.categories || [])];
-  const venues = catalog?.popularVenues || [];
+  const rankedVenues = catalog?.popularVenues || [];
+  const venues = rankedVenues.length ? rankedVenues : (catalog?.newVenues || catalog?.allVenues || []);
   return (
     <Phone>
       <div className="px-5 pt-1 pb-3">
@@ -1954,8 +1959,10 @@ function ArtistProfile({ nav, data, account, catalog }) {
 
 /* ============================== MUSIC HOME ============================== */
 function MusicHome({ nav, player, catalog, account }) {
-  const songs = catalog?.popularSongs || [];
-  const artists = catalog?.popularArtists || [];
+  const rankedSongs = catalog?.popularSongs || [];
+  const latestSongs = catalog?.latestSongs || [];
+  const songs = rankedSongs.length ? rankedSongs : (latestSongs.length ? latestSongs : catalog?.allSongs || []);
+  const artists = catalog?.popularArtists?.length ? catalog.popularArtists : (catalog?.latestArtists || catalog?.allArtists || []);
   const recentlyPlayed = catalog?.recentlyPlayed || [];
   const popularAlbums = catalog?.popularAlbums || [];
   const [favorites, setFavorites] = useState([]);
@@ -2338,6 +2345,19 @@ export default function EventVerseApp() {
           mostWatchedMusicVideos: discovery.mostWatchedMusicVideos,
           privatePlaylists: discovery.privatePlaylists,
           publicPlaylists: discovery.publicPlaylists,
+          latestSongs: discovery.latestSongs,
+          allSongs: discovery.allSongs,
+          latestArtists: discovery.latestArtists,
+          allArtists: discovery.allArtists,
+          latestAlbums: discovery.latestAlbums,
+          allAlbums: discovery.allAlbums,
+          newVenues: discovery.newVenues,
+          allVenues: discovery.allVenues,
+          latestEvents: discovery.latestEvents,
+          allEvents: discovery.allEvents,
+          latestMusicVideos: discovery.latestMusicVideos,
+          allMusicVideos: discovery.allMusicVideos,
+          latestPublicPlaylists: discovery.latestPublicPlaylists,
         } : liveCatalog;
         if (mounted) setCatalog(normalizeCatalog(merged));
       } catch (error) {
