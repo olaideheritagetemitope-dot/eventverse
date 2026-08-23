@@ -1587,3 +1587,14 @@
 - [x] Run focused tests, full Vitest suite: 55 files, 192 passed, 2 skipped, TypeScript, and production build
 - [ ] Save a checkpoint for the paid-ticket credit repair
 - [ ] Authenticated Paystack payment verification with a real paid order remains pending
+
+# Paid Payment Missing Ticket Reconciliation — 2026-08-23
+- [ ] Inspect application logs and live payment/order/ticket records for the user’s successful transaction
+- [ ] Reconcile the existing successful payment without charging the user again
+- [ ] Identify the exact issuance failure, including any webhook, RPC, RLS, or account-loader error
+- [ ] Harden the payment finalization path so verified payments issue tickets exactly once
+- [ ] Ensure issued tickets are visible in the buyer account, history, QR view, and notifications
+- [ ] Add regression coverage for successful payment reconciliation and duplicate prevention
+- [ ] Run focused tests, full Vitest suite, TypeScript, and production build
+- [ ] Save a checkpoint for the reconciliation and root fix
+- [ ] Real-account verification remains pending if the transaction cannot be identified safely
