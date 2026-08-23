@@ -120,13 +120,57 @@ export const toArtist = (artist) => {
 
 export async function loadArtistDetail(artistId) {
   if (!artistId) return null;
-  const [{ data, error }, videosResult] = await Promise.all([
-    supabase.from("artists").select("id,user_id,name,bio,verified,follower_count,image_url,background_url,created_at,updated_at").eq("id", artistId).maybeSingle(),
-    supabase.from("music_videos").select("id,artist_id,song_id,title,description,thumbnail_url,video_url,status,published_at,created_at,artists(id,name),songs(id,title,duration_seconds,audio_url,cover_url,lyrics_text,artists(id,name))").eq("artist_id", artistId).eq("status", "PUBLISHED").not("video_url", "is", null).order("published_at", { ascending: false }),
-  ]);
+  // The artist profile is authoritative and must not be rejected because an optional
+  // media relationship, legacy FK, or schema-cache join is unavailable. Load the base
+  // entity first, then settle independent media queries separately.
+  const { data, error } = await supabase
+    .from("artists")
+    .select("id,user_id,name,bio,verified,follower_count,image_url,background_url,created_at,updated_at")
+    .eq("id", artistId)
+    .maybeSingle();
   if (error) throw error;
-  if (videosResult.error) throw videosResult.error;
-  return data ? { ...toArtist(data), musicVideos: (videosResult.data || []).map(toMusicVideo) } : null;
+  if (!data) return null;
+
+  const [videosResult, songsResult, albumsResult, eventsResult] = await Promise.allSettled([
+    supabase
+      .from("music_videos")
+      .select("id,artist_id,song_id,title,description,thumbnail_url,video_url,status,published_at,created_at")
+      .eq("artist_id", artistId)
+      .eq("status", "PUBLISHED")
+      .not("video_url", "is", null)
+      .order("published_at", { ascending: false }),
+    supabase
+      .from("songs")
+      .select("id,artist_id,title,duration_seconds,audio_url,cover_url,lyrics_text,status,published_at,created_at")
+      .eq("artist_id", artistId)
+      .eq("status", "PUBLISHED")
+      .order("published_at", { ascending: false }),
+    supabase
+      .from("albums")
+      .select("id,artist_id,title,description,cover_url,status,release_date,created_at,updated_at")
+      .eq("artist_id", artistId)
+      .eq("status", "PUBLISHED")
+      .order("release_date", { ascending: false }),
+    supabase
+      .from("event_artists")
+      .select("event_id,events(id,title,starts_at,city,status,image_url,cover_url)")
+      .eq("artist_id", artistId),
+  ]);
+
+  const videos = videosResult.status === "fulfilled" && !videosResult.value.error
+    ? (videosResult.value.data || []).map((video) => toMusicVideo({ ...video, artists: { id: data.id, name: data.name } }))
+    : [];
+  const songs = songsResult.status === "fulfilled" && !songsResult.value.error
+    ? (songsResult.value.data || []).map((song) => toSong({ ...song, artists: { id: data.id, name: data.name } }))
+    : [];
+  const albums = albumsResult.status === "fulfilled" && !albumsResult.value.error
+    ? (albumsResult.value.data || []).map((album) => ({ ...album, coverUrl: mediaUrl(album.cover_url), artistId: album.artist_id }))
+    : [];
+  const events = eventsResult.status === "fulfilled" && !eventsResult.value.error
+    ? (eventsResult.value.data || []).map((row) => row.events).filter(Boolean)
+    : [];
+
+  return { ...toArtist(data), songs, musicVideos: videos, albums, events };
 }
 
 export const toMusicVideo = (video) => ({

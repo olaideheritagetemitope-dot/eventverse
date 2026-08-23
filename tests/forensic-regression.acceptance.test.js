@@ -14,6 +14,22 @@ describe("Deep regression contract coverage", () => {
     expect(shell).toContain('query && show("Artists")');
   });
 
+  it("refreshes artist profiles by ID without letting optional media joins blank the profile", () => {
+    expect(catalog).toContain('// The artist profile is authoritative and must not be rejected');
+    expect(catalog).toContain('const [videosResult, songsResult, albumsResult, eventsResult] = await Promise.allSettled([');
+    expect(catalog).toContain('.from("music_videos")');
+    expect(catalog).toContain('thumbnail_url,video_url,status,published_at,created_at');
+    expect(catalog).toContain('.from("songs")');
+    expect(catalog).toContain('duration_seconds,audio_url,cover_url,lyrics_text,status,published_at,created_at');
+    expect(shell).toContain('loadArtistDetail(data.id)');
+    expect(shell).toContain('setResolvedArtist(data || null);');
+    expect(shell).toContain('if (loadingArtist && !a)');
+    expect(shell).toContain('window.location.pathname.match(/^\\/artists?\\/([^/]+)/)?.[1]');
+    expect(shell).toContain('sharedArtistId ? "artist"');
+    expect(shell).toContain('const albums = a.albums || [];');
+    expect(shell).toContain('const events = a.events || [];');
+  });
+
   it("does not let geolocation failure replace the live catalog and exposes its state", () => {
     expect(shell).toContain('const [locationState, setLocationState] = useState("unavailable");');
     expect(shell).toContain('positionError?.code === 1 ? "denied" : positionError?.code === 3 ? "timeout" : "unavailable"');

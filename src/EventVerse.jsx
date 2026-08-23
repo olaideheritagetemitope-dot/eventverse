@@ -2001,29 +2001,37 @@ function Profile({ nav, player, account, premium, onAccountUpdated }) {
 /* ============================== ARTIST PROFILE ============================== */
 function ArtistProfile({ nav, data, account, catalog }) {
   const [resolvedArtist, setResolvedArtist] = useState(data || null);
-  const initialAvatar = data?.avatarUrl || data?.img || data?.image_url || data?.avatar_url || data?.profile_image_url || null;
-  const initialBackground = data?.backgroundUrl || data?.coverUrl || data?.background_url || data?.background_image_url || data?.cover_url || null;
-  const [loadingArtist, setLoadingArtist] = useState(Boolean(data?.id && !initialAvatar && !initialBackground));
+  const [loadingArtist, setLoadingArtist] = useState(Boolean(data?.id));
+  const [artistLoadError, setArtistLoadError] = useState("");
   const a = resolvedArtist;
   const [following, setFollowing] = useState(false);
   useEffect(() => {
     let mounted = true;
-    const knownAvatar = data?.avatarUrl || data?.img || data?.image_url || data?.avatar_url || data?.profile_image_url;
-    const knownBackground = data?.backgroundUrl || data?.coverUrl || data?.background_url || data?.background_image_url || data?.cover_url;
-    if (!data?.id || knownAvatar || knownBackground) { setResolvedArtist(data || null); setLoadingArtist(false); return () => { mounted = false; }; }
+    setResolvedArtist(data || null);
+    setArtistLoadError("");
+    if (!data?.id) { setLoadingArtist(false); return () => { mounted = false; }; }
     setLoadingArtist(true);
-    loadArtistDetail(data.id).then((artist) => { if (mounted && artist) setResolvedArtist(artist); }).catch(() => {}).finally(() => mounted && setLoadingArtist(false));
+    loadArtistDetail(data.id)
+      .then((artist) => {
+        if (!mounted) return;
+        if (artist) setResolvedArtist(artist);
+        else setArtistLoadError("This artist profile is not available in the live directory.");
+      })
+      .catch((loadError) => { if (mounted) setArtistLoadError(loadError.message || "Unable to load this artist profile."); })
+      .finally(() => mounted && setLoadingArtist(false));
     return () => { mounted = false; };
   }, [data?.id]);
   const [error, setError] = useState("");
   const [tab, setTab] = useState("Popular");
   useEffect(() => { if (a?.id && account?.user?.id) loadFavoriteState(account.user.id, null, a.id).then((state) => setFollowing(state.artistFollowing)).catch(() => {}); }, [a?.id, account?.user?.id]);
-  if (loadingArtist) return <Phone><div className="flex-1 flex items-center justify-center px-6 text-center" style={{ color: C.muted }}>Loading artist details...</div></Phone>;
-  if (!a) return <Phone><div className="flex-1 flex items-center justify-center px-6 text-center" style={{ color: C.muted }}>Artist details are unavailable.</div></Phone>;
+  if (loadingArtist && !a) return <Phone><div className="flex-1 flex items-center justify-center px-6 text-center" style={{ color: C.muted }}>Loading artist details...</div></Phone>;
+  if (!a || !a.id || !a.name) return <Phone><div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center" style={{ color: C.muted }}><p>Artist details are unavailable.</p>{artistLoadError && <AuthMessage error={artistLoadError} />}</div></Phone>;
   const avatarSource = a.avatarUrl || a.img || a.image_url || a.avatar_url || a.profile_image_url || null;
   const backgroundSource = a.backgroundUrl || a.coverUrl || a.background_url || a.background_image_url || a.cover_url || null;
   const songs = firstNonEmpty(a.songs, catalog?.allSongs?.filter((song) => song.artistId === a.id || song.artist_id === a.id), catalog?.latestSongs?.filter((song) => song.artistId === a.id || song.artist_id === a.id));
   const musicVideos = firstNonEmpty(a.musicVideos, catalog?.allMusicVideos?.filter((video) => video.artistId === a.id || video.artist_id === a.id), catalog?.latestMusicVideos?.filter((video) => video.artistId === a.id || video.artist_id === a.id));
+  const albums = a.albums || [];
+  const events = a.events || [];
   const toggleFollow = async () => { try { const next = !following; await toggleArtistFollow(account?.user?.id, a.id, next); setFollowing(next); } catch (followError) { setError(followError.message || "Unable to update follow."); } };
   return (
     <Phone>
@@ -2046,6 +2054,7 @@ function ArtistProfile({ nav, data, account, catalog }) {
           <button className="px-5 rounded-2xl" style={{ background: C.card, border: `1px solid ${C.line}`, color: C.ivory }}>Share</button>
         </div>
         {error && <AuthMessage error={error} />}
+        {artistLoadError && <AuthMessage error={artistLoadError} />}
         <div className="flex gap-5 mb-4 overflow-x-auto no-scrollbar">
           {["Popular", "Songs", "Albums", "Music Videos", "Events", "About"].map((t) => (
             <button key={t} onClick={() => setTab(t)} className="text-[13px] pb-2 whitespace-nowrap" style={{ color: tab === t ? C.gold : C.muted, borderBottom: tab === t ? `2px solid ${C.gold}` : "2px solid transparent" }}>{t}</button>
@@ -2060,6 +2069,22 @@ function ArtistProfile({ nav, data, account, catalog }) {
               <div className="flex-1"><p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{video.title}</p><p className="text-[11px]" style={{ color: C.muted }}>{a.name}</p></div><Play size={16} color={C.gold} />
             </button>
           )) : <EmptyResourceCard label="No music videos yet" description="Published music videos from this artist will appear here." />
+        ) : tab === "Albums" ? (
+          albums.length ? albums.map((album) => (
+            <div key={album.id} className="flex items-center gap-3 py-2.5">
+              <div className="w-12 h-12 rounded-lg flex-shrink-0" style={imageStyle(album.coverUrl, `linear-gradient(135deg, ${C.wood}, ${C.green})`)} />
+              <div className="flex-1"><p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{album.title}</p><p className="text-[11px]" style={{ color: C.muted }}>{album.release_date || "Release date pending"}</p></div>
+            </div>
+          )) : <EmptyResourceCard label="No albums yet" description="Published albums from this artist will appear here." />
+        ) : tab === "Events" ? (
+          events.length ? events.map((event) => (
+            <button type="button" key={event.id} onClick={() => nav.push("eventDetail", event)} className="w-full flex items-center gap-3 py-2.5 text-left">
+              <div className="w-14 h-11 rounded-lg flex-shrink-0" style={imageStyle(event.cover_url || event.image_url, `linear-gradient(135deg, ${C.wood}, ${C.green})`)} />
+              <div className="flex-1"><p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{event.title}</p><p className="text-[11px]" style={{ color: C.muted }}>{event.starts_at ? new Date(event.starts_at).toLocaleDateString() : event.city || "Date pending"}</p></div><ChevronRight size={15} color={C.muted} />
+            </button>
+          )) : <EmptyResourceCard label="No events yet" description="Published events linked to this artist will appear here." />
+        ) : tab === "About" ? (
+          <div className="rounded-2xl p-4" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[13px] leading-6" style={{ color: C.muted }}>{a.bio || "This artist has not published a biography yet."}</p></div>
         ) : songs.slice(0, 4).map((s, i) => (
           <div key={s.id} className="flex items-center gap-3 py-2.5">
             <span className="w-4 text-[12px]" style={{ color: C.muted }}>{i + 1}</span>
@@ -2476,7 +2501,8 @@ export default function EventVerseApp() {
   const [stack, setStack] = useState(() => {
     const completed = typeof window !== "undefined" && window.localStorage.getItem("eventverse:onboarding-complete") === "1";
     const sharedEventId = typeof window !== "undefined" ? window.location.pathname.match(/^\/events\/([^/]+)/)?.[1] : null;
-    return [{ screen: sharedEventId ? "eventDetail" : (completed ? "login" : "onboarding"), data: sharedEventId ? { id: decodeURIComponent(sharedEventId) } : null }];
+    const sharedArtistId = typeof window !== "undefined" ? window.location.pathname.match(/^\/artists?\/([^/]+)/)?.[1] : null;
+    return [{ screen: sharedEventId ? "eventDetail" : (sharedArtistId ? "artist" : (completed ? "login" : "onboarding")), data: sharedEventId ? { id: decodeURIComponent(sharedEventId) } : (sharedArtistId ? { id: decodeURIComponent(sharedArtistId) } : null) }];
   });
   const [song, setSong] = useState(null);
   const [playing, setPlaying] = useState(false);
@@ -2621,6 +2647,7 @@ export default function EventVerseApp() {
         if (callbackError) console.error("EventVerse OAuth callback returned an error", callbackError);
         const { data } = await supabase.auth.getSession();
         const sharedEventId = url.pathname.match(/^\/events\/([^/]+)/)?.[1] ? decodeURIComponent(url.pathname.match(/^\/events\/([^/]+)/)[1]) : null;
+        const sharedArtistId = url.pathname.match(/^\/artists?\/([^/]+)/)?.[1] ? decodeURIComponent(url.pathname.match(/^\/artists?\/([^/]+)/)[1]) : null;
         const paymentCallback = url.searchParams.get("payment") === "callback";
         const artistPaymentCallback = url.searchParams.get("artist-payment") === "callback";
         const premiumPaymentCallback = url.searchParams.get("premium-payment") === "callback";
@@ -2637,7 +2664,7 @@ export default function EventVerseApp() {
         }
         if (mounted && data.session) {
           window.localStorage.setItem("eventverse:onboarding-complete", "1");
-          setStack([{ screen: pendingArtistPayment ? "artistProcessing" : (pendingPremiumPayment ? "premiumProcessing" : (pendingPayment ? "processing" : (sharedEventId ? "eventDetail" : "home"))), data: pendingArtistPayment || pendingPremiumPayment || (sharedEventId ? { id: sharedEventId } : null) }]);
+          setStack([{ screen: pendingArtistPayment ? "artistProcessing" : (pendingPremiumPayment ? "premiumProcessing" : (pendingPayment ? "processing" : (sharedEventId ? "eventDetail" : (sharedArtistId ? "artist" : "home")))), data: pendingArtistPayment || pendingPremiumPayment || (sharedEventId ? { id: sharedEventId } : (sharedArtistId ? { id: sharedArtistId } : null)) }]);
           void ensureUserProfile(data.session.user);
         }
       } catch (restoreError) {

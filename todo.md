@@ -1867,3 +1867,11 @@
 - [ ] Repair location without synthetic coordinates and preserve no-blank Home behavior
 - [ ] Add regression coverage for granted, denied, unavailable, retry, refresh, and navigation paths
 - [ ] Verify live RPC contracts and production deployment behavior
+
+# Artist Profile Regression Audit — 2026-08-23
+
+- [ ] Trace artist card/search result identity through navigation, route state, profile query, normalization, and rendered UI
+- [ ] Audit live artists/profile relationships, RPCs, RLS, and direct profile refresh behavior
+- [ ] Fix the authoritative artist profile loading/rendering contract without duplicate routes or synthetic data
+- [ ] Add regression coverage for discovery, exact/partial search, tap-through, direct profile URL, and profile content
+- [ ] Verify the deployed artist profile lifecycle and document remaining user-only gates
