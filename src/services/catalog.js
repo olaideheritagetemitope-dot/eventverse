@@ -130,22 +130,34 @@ export const toSong = (song) => ({
   coverUrl: song.cover_url || null,
 });
 
+const baseCatalogQueries = {
+  events: () => supabase.from("events").select("id,organizer_id,venue_id,title,description,event_type,city,starts_at,ends_at,cover_url,status,rating,review_count,venues(id,name,city,address,capacity),ticket_types(id,price)").in("status", ["PUBLISHED", "SOLD_OUT", "LIVE", "COMPLETED"]).order("starts_at"),
+  artists: () => supabase.from("artists").select("id,user_id,name,bio,verified,follower_count,image_url,background_url").eq("verified", true).order("follower_count", { ascending: false }),
+  songs: () => supabase.from("songs").select("id,artist_id,title,duration_seconds,audio_url,cover_url,play_count,status,published_at,artists(id,name,image_url)").eq("status", "PUBLISHED").not("audio_url", "is", null).order("play_count", { ascending: false }),
+  categories: () => supabase.from("categories").select("id,name,slug").order("name"),
+  venues: () => supabase.from("venues").select("id,name,city,address,capacity,status,image_urls").eq("status", "ACTIVE").order("name"),
+};
+
+async function settleCatalogQueries() {
+  const entries = Object.entries(baseCatalogQueries);
+  const settled = await Promise.allSettled(entries.map(([, query]) => query()));
+  return Object.fromEntries(entries.map(([name], index) => {
+    const result = settled[index];
+    if (result.status === "rejected") return [name, { data: [], error: result.reason }];
+    if (result.value?.error) return [name, { data: [], error: result.value.error }];
+    return [name, { data: result.value?.data || [], error: null }];
+  }));
+}
+
 export async function loadCatalog() {
-  const [eventResult, artistResult, songResult, categoryResult, venueResult] = await Promise.all([
-    supabase.from("events").select("id,organizer_id,venue_id,title,description,event_type,city,starts_at,ends_at,cover_url,status,rating,review_count,venues(id,name,city,address,capacity),ticket_types(id,price)").in("status", ["PUBLISHED", "SOLD_OUT", "LIVE", "COMPLETED"]).order("starts_at"),
-    supabase.from("artists").select("id,user_id,name,bio,verified,follower_count,image_url,background_url").eq("verified", true).order("follower_count", { ascending: false }),
-    supabase.from("songs").select("id,artist_id,title,duration_seconds,audio_url,cover_url,play_count,status,published_at,artists(id,name,image_url)").eq("status", "PUBLISHED").not("audio_url", "is", null).order("play_count", { ascending: false }),
-    supabase.from("categories").select("id,name,slug").order("name"),
-    supabase.from("venues").select("id,name,city,address,capacity,status,image_urls").eq("status", "ACTIVE").order("name"),
-  ]);
-  const firstError = [eventResult, artistResult, songResult, categoryResult, venueResult].find((result) => result.error)?.error;
-  if (firstError) throw firstError;
+  const results = await settleCatalogQueries();
   return {
-    events: filterLiveCatalogRows("events", eventResult.data).map(toEvent),
-    artists: filterLiveCatalogRows("artists", artistResult.data).map(toArtist),
-    songs: filterLiveCatalogRows("songs", songResult.data).map(toSong),
-    categories: categoryResult.data || [],
-    venues: filterLiveCatalogRows("venues", venueResult.data).map((venue) => ({ ...venue, imageUrl: firstVenueImage(venue) })),
+    events: filterLiveCatalogRows("events", results.events.data).map(toEvent),
+    artists: filterLiveCatalogRows("artists", results.artists.data).map(toArtist),
+    songs: filterLiveCatalogRows("songs", results.songs.data).map(toSong),
+    categories: results.categories.data,
+    venues: filterLiveCatalogRows("venues", results.venues.data).map((venue) => ({ ...venue, imageUrl: firstVenueImage(venue) })),
+    catalogErrors: Object.fromEntries(Object.entries(results).filter(([, result]) => result.error).map(([name, result]) => [name, result.error])),
   };
 }
 
