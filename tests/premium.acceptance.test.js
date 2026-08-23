@@ -90,4 +90,14 @@ describe("Premium attendee system acceptance contract", () => {
     expect(verify).toContain("amount");
     expect(verify).toContain("currency");
   });
+
+  it("uses the canonical UUID-backed reference registry for Premium payments", () => {
+    const rootFix = fs.readFileSync(path.join(root, "supabase/0104_premium_payment_reference_root_fix.sql"), "utf8");
+    expect(rootFix).toContain("payment_transaction_references");
+    expect(rootFix).toContain("mint_payment_transaction_reference('PREMIUM')");
+    expect(rootFix).toContain("gen_random_uuid()");
+    expect(rootFix).not.toContain("gen_random_bytes");
+    expect(rootFix).toContain("payment_domain in ('TICKET','ARTIST','ROLE_APPLICATION','VENUE','PREMIUM')");
+    expect(rootFix).toContain("reused");
+  });
 });

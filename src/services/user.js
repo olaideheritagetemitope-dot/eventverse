@@ -1234,3 +1234,55 @@ export async function updateOrganizerTicketReleasePolicy(ticketTypeId, values = 
   if (error) throw error;
   return data;
 }
+
+
+export async function loadPublishedLegalDocument(documentType) {
+  if (!documentType) throw new Error("Legal document type is required.");
+  const { data, error } = await supabase.rpc("list_published_legal_document", { p_document_type: documentType });
+  if (error) throw error;
+  return data || null;
+}
+
+export async function loadAdminLegalDocuments() {
+  const { data, error } = await supabase.rpc("admin_list_legal_documents");
+  if (error) throw error;
+  return Array.isArray(data) ? data : [];
+}
+
+export async function saveAdminLegalDocument(values = {}) {
+  const { data, error } = await supabase.rpc("admin_save_legal_document", {
+    p_id: values.id || null,
+    p_document_type: values.documentType,
+    p_title: values.title,
+    p_intro: values.intro || "",
+    p_sections: Array.isArray(values.sections) ? values.sections : [],
+    p_version: values.version,
+    p_effective_date: values.effectiveDate || null,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function publishAdminLegalDocument(documentId) {
+  const { data, error } = await supabase.rpc("admin_publish_legal_document", { p_id: documentId });
+  if (error) throw error;
+  return data;
+}
+
+export async function restoreAdminLegalDocument(documentId) {
+  const { data, error } = await supabase.rpc("admin_restore_legal_document", { p_id: documentId });
+  if (error) throw error;
+  return data;
+}
+
+export async function acceptPublishedLegalDocument(documentType) {
+  const { data, error } = await supabase.rpc("accept_published_legal_document", { p_document_type: documentType });
+  if (error) throw error;
+  return data;
+}
+
+export async function unpublishAdminLegalDocument(documentId) {
+  const { data, error } = await supabase.rpc("admin_unpublish_legal_document", { p_id: documentId });
+  if (error) throw error;
+  return data;
+}

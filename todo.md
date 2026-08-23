@@ -1896,3 +1896,75 @@
 - [ ] Repair the first authoritative backend/client/route/rendering break without mock data or UI redesign
 - [ ] Add regression coverage for artist list/profile routing, image hydration, and cross-entity search
 - [ ] Verify the deployed authenticated flow and document remaining device-only validation gates
+
+
+# Final Forensic Validation — 2026-08-23
+
+- [x] Align the forensic acceptance contract with the live `artistProfiles` query structure
+- [x] Run the complete 61-file Vitest suite: 235 passed, 2 skipped
+- [x] Pass TypeScript validation and production Vite build
+- [x] Push commit `897bdf3` to GitHub `main`
+- [x] Confirm Vercel created a READY production deployment from commit `897bdf3`
+- [x] Confirm the newest deployment serves the Atizzy shell and rebuilt frontend bundle
+- [ ] Authenticated production smoke test: search `Asa`, open artist result, verify profile image and profile navigation
+- [ ] Physical-device validation: location permission retry, camera/QR scanning, and native standalone-video playback
+
+The remaining unchecked items require the owner's authenticated production session or a physical device; they are not safely reproducible from the unauthenticated sandbox browser.
+
+
+# Premium Paystack Payment Regression — 2026-08-23
+
+- [x] Trace the premium payment initialization path and identify every call to `gen_random_bytes(integer)`
+- [x] Inspect the live database extensions, functions, migrations, constraints, and transaction-reference generation path
+- [x] Replace the unavailable database function with a supported collision-safe server-side reference mechanism
+- [x] Add regression coverage for premium payment initialization and retry/idempotency behavior
+- [x] Validate payment initialization without charging a real payment method
+- [x] Verify production deployment and document any owner-only payment confirmation gate
+
+
+# Legal Documents CMS — Privacy Policy and Terms & Conditions
+
+- [ ] Audit existing legal pages, static legal text, Settings/About/Legal navigation, authentication consent, schema, routing, and Super Admin surfaces
+- [ ] Define one canonical versioned legal-document model for Privacy Policy and Terms & Conditions
+- [ ] Add server-enforced Super Admin legal-document creation, editing, publishing, archiving, preview, restore, and history workflows
+- [ ] Add published-document reads for normal users with graceful no-publication states
+- [ ] Add version-aware legal consent persistence where existing auth/onboarding consent requires it
+- [ ] Remove or replace all hard-coded legal document content from frontend render paths
+- [ ] Preserve existing Atizzy UI, routes, navigation, responsive structure, and empty/error states
+- [ ] Add regression tests for publishing exclusivity, version history, authorization, dynamic rendering, and direct routes
+- [ ] Run type-check, lint, full tests, production build, and production smoke validation
+
+
+# Supabase Migration Permission Resolution
+
+- [x] Inspect current Supabase connector configuration and migration permissions
+- [x] Enable or restore the required Supabase schema-migration capability if the session exposes it
+- [x] Reapply and verify migration `0106_legal_documents_metadata_and_unpublish.sql`
+- [x] Do not declare the legal CMS publication lifecycle complete until the live database state is verified
+
+
+# Authentication Startup Performance Regression
+
+- [x] Trace Supabase session restoration, OAuth callback handling, profile hydration, role loading, and the auth-ready loading gate
+- [x] Measure or identify the dependency responsible for the long initial auth wait
+- [x] Implement a secure non-blocking auth startup fix without weakening session or role checks
+- [x] Add regression coverage for auth readiness, OAuth routing, and delayed profile/role responses
+- [x] Run type-check, tests, and production build; authenticated production timing validation remains user-dependent
+
+
+# Artist Song Publish Action Regression
+
+- [x] Trace the artist song composer, draft list, publish controls, publish RPC, and live-catalog eligibility gate
+- [x] Identify why the UI exposes only Save draft and no Post/Publish action
+- [x] Restore a role-authorized draft publish workflow using the existing Supabase contract
+- [x] Add regression coverage for draft creation, publish, refresh, and live visibility
+- [x] Run type-check, full tests, and production build; production smoke validation remains user-dependent
+
+
+# Direct Artist Song Release Clarification
+
+- [ ] Confirm the mounted composer visibly exposes a direct Post song action, not only Save draft
+- [ ] Ensure Post song persists required media and immediately transitions the song to live publication
+- [ ] Ensure the published song appears in the intended live/upcoming music surfaces after refresh
+- [ ] Verify the current production bundle contains the direct-release control and handler
+- [ ] Add or update regression coverage and rerun validation
