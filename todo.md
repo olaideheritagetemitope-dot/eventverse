@@ -1833,3 +1833,14 @@
 - [x] Fix the first broken live-data, normalization, route-payload, or managed-media URL boundary without synthetic fallback data.
 - [x] Add regression coverage for detail rendering, thumbnail/video URL resolution, and actual duration/player initialization.
 - [ ] Validate the fix in production and on the authenticated device flow.
+
+# Critical Typed Music Media Regression — 2026-08-23
+
+- [ ] Trace the “Never have I” media identity from UI state through database record, storage URL, and player source.
+- [ ] Audit and repair music favorites so `music_favorites.song_id` is used only for real Song IDs and standalone Music Videos use an entity-correct favorite path.
+- [ ] Introduce or enforce canonical typed media state for Song versus Music Video across Now Playing, queue, history, recommendations, sharing, analytics, and discovery.
+- [ ] Repair audio and video metadata loading, duration, buffering, playback errors, expired/invalid URLs, MIME handling, and progress synchronization.
+- [ ] Preserve Song, Lyrics, linked Music Video, and standalone Music Video behavior without synthetic records or weakened constraints.
+- [ ] Audit songs, music_videos, favorites, RPCs, RLS, storage objects/policies, queries, and frontend types for incompatible assumptions.
+- [ ] Add regression coverage for audio-only, standalone-video, linked Song+Video, lyrics, navigation, refresh, favorite, and playback lifecycles.
+- [ ] Run full validation and verify the actual deployed UI with authenticated production/device media flows.

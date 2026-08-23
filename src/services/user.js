@@ -71,15 +71,19 @@ export async function loadCurrentUser() {
   };
 }
 
-export async function loadFavoriteState(userId, eventId, artistId) {
-  if (!userId) return { eventFavorite: false, artistFollowing: false };
-  const [{ data: eventFavorite, error: eventError }, { data: artistFollowing, error: artistError }] = await Promise.all([
+export async function loadFavoriteState(userId, eventId, artistId, songId = null, musicVideoId = null) {
+  if (!userId) return { eventFavorite: false, artistFollowing: false, musicFavorite: false, musicVideoFavorite: false };
+  const [{ data: eventFavorite, error: eventError }, { data: artistFollowing, error: artistError }, { data: musicFavorite, error: songError }, { data: musicVideoFavorite, error: videoError }] = await Promise.all([
     eventId ? supabase.from("event_favorites").select("event_id").eq("user_id", userId).eq("event_id", eventId).maybeSingle() : Promise.resolve({ data: null, error: null }),
     artistId ? supabase.from("artist_followers").select("artist_id").eq("user_id", userId).eq("artist_id", artistId).maybeSingle() : Promise.resolve({ data: null, error: null }),
+    songId ? supabase.from("music_favorites").select("song_id").eq("user_id", userId).eq("song_id", songId).maybeSingle() : Promise.resolve({ data: null, error: null }),
+    musicVideoId ? supabase.from("music_video_favorites").select("music_video_id").eq("user_id", userId).eq("music_video_id", musicVideoId).maybeSingle() : Promise.resolve({ data: null, error: null }),
   ]);
   if (eventError) throw eventError;
   if (artistError) throw artistError;
-  return { eventFavorite: Boolean(eventFavorite), artistFollowing: Boolean(artistFollowing) };
+  if (songError) throw songError;
+  if (videoError) throw videoError;
+  return { eventFavorite: Boolean(eventFavorite), artistFollowing: Boolean(artistFollowing), musicFavorite: Boolean(musicFavorite), musicVideoFavorite: Boolean(musicVideoFavorite) };
 }
 
 export async function toggleFavorite(table, key, userId, value) {
@@ -106,7 +110,13 @@ export async function toggleArtistFollow(userId, artistId, next) {
 }
 
 export async function toggleMusicFavorite(userId, songId, next) {
+  if (!songId) throw new Error("Song favorite requires a real Song.");
   return toggleFavorite("music_favorites", "song_id", userId, next ? songId : songId);
+}
+
+export async function toggleMusicVideoFavorite(userId, musicVideoId, next) {
+  if (!musicVideoId) throw new Error("Music Video favorite requires a real Music Video.");
+  return toggleFavorite("music_video_favorites", "music_video_id", userId, next ? musicVideoId : musicVideoId);
 }
 
 export async function loadMusicFavorites(userId) {
@@ -114,6 +124,13 @@ export async function loadMusicFavorites(userId) {
   const { data, error } = await supabase.from("music_favorites").select("song_id").eq("user_id", userId);
   if (error) throw error;
   return (data || []).map((row) => row.song_id);
+}
+
+export async function loadMusicVideoFavorites(userId) {
+  if (!userId) return [];
+  const { data, error } = await supabase.from("music_video_favorites").select("music_video_id").eq("user_id", userId);
+  if (error) throw error;
+  return (data || []).map((row) => row.music_video_id);
 }
 
 export async function recordPlay(userId, songId, secondsPlayed = 0) {
