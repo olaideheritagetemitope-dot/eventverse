@@ -6,6 +6,7 @@ const root = path.resolve(process.cwd());
 const services = fs.readFileSync(path.join(root, "src/services/user.js"), "utf8");
 const cleanupApi = fs.readFileSync(path.join(root, "api/media/cleanup.js"), "utf8");
 const venueMigration = fs.readFileSync(path.join(root, "supabase/0076_permanent_venue_delete_preserve_history.sql"), "utf8");
+const deleteRoleFixMigration = fs.readFileSync(path.join(root, "supabase/0083_fix_delete_role_column.sql"), "utf8");
 const postsMigration = fs.readFileSync(path.join(root, "supabase/0029_atizzy_post_delete.sql"), "utf8");
 
 describe("deletion root-fix acceptance", () => {
@@ -23,6 +24,12 @@ describe("deletion root-fix acceptance", () => {
     expect(cleanupApi).toContain('roles.includes("SUPER_ADMIN")');
     expect(cleanupApi).toContain('path.startsWith(`${userId}/`)');
     expect(cleanupApi).toContain("response.status === 404");
+  });
+
+  it("uses the canonical role_id to roles.code relationship for destructive authorization", () => {
+    expect(deleteRoleFixMigration).toContain("join public.roles r on r.id = ur.role_id");
+    expect(deleteRoleFixMigration).toContain("r.code in ('ADMIN','SUPER_ADMIN')");
+    expect(deleteRoleFixMigration).not.toMatch(/ur\\.role\\s+in/);
   });
 
   it("preserves venue booking history while deleting the venue", () => {

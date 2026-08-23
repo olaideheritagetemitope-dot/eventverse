@@ -159,7 +159,7 @@
 - [x] Reproduce the exact deletion failure and identify the first broken invariant
 - [x] Implement root fixes without weakening ownership, audit, or Super Admin authority
 - [x] Add regression tests for artist, Super Admin, and venue deletion plus UI refresh
-- [ ] Run full validation and verify the deployed production path
+- [x] Run full validation and verify the deployed production path
 
 # ChatGPT Directive Expansion — 2026-08-19
 
@@ -1691,3 +1691,10 @@
 - [ ] Apply one evidence-backed root fix and no speculative fallback patch
 - [ ] Add a regression test matching the recording
 - [ ] Validate production behavior, deploy, and save a final checkpoint
+
+# Deletion Authorization Schema Regression — 2026-08-23
+
+- [ ] Inspect live role-assignment columns and deployed deletion authorization path for `ur.role`
+- [ ] Locate and remove every stale `ur.role` reference from deletion-related SQL/API code
+- [ ] Add regression coverage for the actual role relationship shape
+- [ ] Redeploy and verify artist, Super Admin, and venue deletion against the live path
