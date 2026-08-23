@@ -238,7 +238,7 @@ export async function loadArtistCreatorContent(artistId, userId) {
   if (!owner) throw new Error("Artist profile access denied.");
   const [albumsResult, videosResult] = await Promise.all([
     supabase.from("albums").select("id,artist_id,title,description,cover_url,status,release_date,created_at,updated_at").eq("artist_id", artistId).order("created_at", { ascending: false }),
-    supabase.from("music_videos").select("id,artist_id,title,description,thumbnail_url,video_url,status,published_at,created_at,updated_at").eq("artist_id", artistId).order("created_at", { ascending: false }),
+    supabase.from("music_videos").select("id,artist_id,song_id,title,description,thumbnail_url,video_url,status,published_at,created_at,updated_at").eq("artist_id", artistId).order("created_at", { ascending: false }),
   ]);
   const firstError = [albumsResult, videosResult].find((result) => result.error)?.error;
   if (firstError) throw firstError;
@@ -270,7 +270,7 @@ export async function setArtistAlbumStatus(albumId, status) {
 export async function createArtistMusicVideo(artistId, userId, input) {
   if (!artistId || !userId) throw new Error("Artist profile access is required.");
   if (!input?.title?.trim()) throw new Error("Music video title is required.");
-  const { data, error } = await supabase.from("music_videos").insert({ artist_id: artistId, title: input.title.trim(), description: input.description?.trim() || null, thumbnail_url: managedMediaUrl(input.thumbnail_url, "music video thumbnail"), video_url: managedMediaUrl(input.video_url, "music video"), status: "DRAFT" }).select("id,artist_id,title,description,thumbnail_url,video_url,status,published_at,created_at,updated_at").single();
+  const { data, error } = await supabase.from("music_videos").insert({ artist_id: artistId, song_id: input.song_id || null, title: input.title.trim(), description: input.description?.trim() || null, thumbnail_url: managedMediaUrl(input.thumbnail_url, "music video thumbnail"), video_url: managedMediaUrl(input.video_url, "music video"), status: "DRAFT" }).select("id,artist_id,song_id,title,description,thumbnail_url,video_url,status,published_at,created_at,updated_at").single();
   if (error) throw error;
   return data;
 }
@@ -278,7 +278,7 @@ export async function createArtistMusicVideo(artistId, userId, input) {
 export async function updateArtistMusicVideo(videoId, artistId, input) {
   if (!videoId || !artistId) throw new Error("Music video access is required.");
   if (!input?.title?.trim()) throw new Error("Music video title is required.");
-  const { data, error } = await supabase.from("music_videos").update({ title: input.title.trim(), description: input.description?.trim() || null, thumbnail_url: managedMediaUrl(input.thumbnail_url, "music video thumbnail"), video_url: managedMediaUrl(input.video_url, "music video"), updated_at: new Date().toISOString() }).eq("id", videoId).eq("artist_id", artistId).select("id,artist_id,title,description,thumbnail_url,video_url,status,published_at,created_at,updated_at").single();
+  const { data, error } = await supabase.from("music_videos").update({ song_id: input.song_id || null, title: input.title.trim(), description: input.description?.trim() || null, thumbnail_url: managedMediaUrl(input.thumbnail_url, "music video thumbnail"), video_url: managedMediaUrl(input.video_url, "music video"), updated_at: new Date().toISOString() }).eq("id", videoId).eq("artist_id", artistId).select("id,artist_id,song_id,title,description,thumbnail_url,video_url,status,published_at,created_at,updated_at").single();
   if (error) throw error;
   return data;
 }

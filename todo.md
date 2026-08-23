@@ -1815,3 +1815,13 @@
 - [x] Replace Super Admin overview page-local user, pending-application, event-lifecycle, and wallet totals with server-authoritative governance snapshot aggregates.
 - [x] Add regression coverage preventing regression to page-local metric calculations.
 - [x] Validate the projection with the focused acceptance test, full test suite, TypeScript, production build, and lint.
+
+# Standalone Music Video Architecture — 2026-08-23
+
+- [x] Audit upload, storage, media classification, database references, RLS, RPC/API, discovery, catalog, route, and playback paths for standalone Music Videos.
+- [x] Make Music Video song linkage optional and preserve independent video identity, metadata, thumbnail, duration, visibility, upload, and playback state.
+- [x] Expose standalone Music Videos in live discovery/catalog queries without creating synthetic Song records.
+- [x] Add or repair dedicated standalone Music Video playback and preserve linked Song ↔ Lyrics ↔ Music Video behavior.
+- [x] Ensure the creator dashboard supports independent Song/Audio, Lyrics, and Music Video uploads with optional linking.
+- [x] Add regression coverage for audio-only, lyrics-linked, video-linked, fully linked, and standalone-video combinations.
+- [x] Validate build, type-check, lint, and relevant tests; actual deployed playback with the uploaded standalone video remains a user-session/device gate.

@@ -7,6 +7,8 @@ const app = fs.readFileSync(new URL("../src/EventVerse.jsx", import.meta.url), "
 describe("music video visibility contract", () => {
   it("loads published music videos in the live base catalog and artist detail", () => {
     expect(catalog).toContain('musicVideos: () => supabase.from("music_videos")');
+    expect(catalog).toContain("song_id");
+    expect(catalog).toContain("linkedSong: video.songs ? toSong(video.songs) : null");
     expect(catalog).toContain('.eq("status", "PUBLISHED").not("video_url", "is", null)');
     expect(catalog).toContain('musicVideos: filterLiveCatalogRows("musicVideos", results.musicVideos.data).map(toMusicVideo)');
     expect(catalog).toContain('latestMusicVideos: filterLiveCatalogRows("musicVideos", results.musicVideos.data).map(toMusicVideo)');
@@ -18,5 +20,8 @@ describe("music video visibility contract", () => {
     expect(app).toContain('["Popular", "Songs", "Albums", "Music Videos", "Events", "About"]');
     expect(app).toContain('tab === "Music Videos"');
     expect(app).toContain('video.videoUrl || video.musicVideoUrl');
+    expect(app).toContain('Standalone music video');
+    expect(app).toContain('Link to song (optional)');
+    expect(app).toContain('function MusicVideoDetail');
   });
 });
