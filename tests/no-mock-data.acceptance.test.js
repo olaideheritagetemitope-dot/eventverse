@@ -94,7 +94,7 @@ describe("Atizzy live-data frontend contract", () => {
     expect(source).toMatch(/const rankedVenues = catalog\?\.popularVenues \|\| \[\];/);
     expect(source).toContain("venues.slice(0, 6)");
     expect(source).toContain("EmptyVenueCard");
-    expect(source).toContain('filterLiveCatalogRows("venues", venueResult.data)');
+    expect(source).toContain('filterLiveCatalogRows("venues", results.venues.data)');
   });
 
 

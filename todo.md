@@ -1870,8 +1870,18 @@
 
 # Artist Profile Regression Audit — 2026-08-23
 
-- [ ] Trace artist card/search result identity through navigation, route state, profile query, normalization, and rendered UI
-- [ ] Audit live artists/profile relationships, RPCs, RLS, and direct profile refresh behavior
-- [ ] Fix the authoritative artist profile loading/rendering contract without duplicate routes or synthetic data
-- [ ] Add regression coverage for discovery, exact/partial search, tap-through, direct profile URL, and profile content
+- [x] Trace artist card/search result identity through navigation, route state, profile query, normalization, and rendered UI
+- [x] Audit live artists/profile relationships, RPCs, RLS, and direct profile refresh behavior
+- [x] Fix the authoritative artist profile loading/rendering contract without duplicate routes or synthetic data
+- [x] Add regression coverage for discovery, exact/partial search, tap-through, direct profile URL, and profile content
 - [ ] Verify the deployed artist profile lifecycle and document remaining user-only gates
+
+# Release, Artist Image, and Search Regression Audit — 2026-08-23
+
+- [ ] Prove the repository, branch, deployment, and served frontend bundle the user is actually opening
+- [ ] Trace artist card tap and direct artist URL from production entrypoint through route state and profile rendering
+- [ ] Trace artist image database fields, media URL resolution, storage access, and image component rendering
+- [ ] Trace search input, debounce/state updates, query functions, Supabase filters, normalization, and result rendering for artists, songs, events, venues, and other searchable entities
+- [ ] Repair the first authoritative release, query, route, media, or rendering boundary causing the reported failures
+- [ ] Add regression coverage for production-visible artist navigation, artist images, and cross-entity search
+- [ ] Verify the deployed frontend behavior and document remaining authenticated/device-only gates

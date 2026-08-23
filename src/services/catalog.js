@@ -118,6 +118,18 @@ export const toArtist = (artist) => {
   };
 };
 
+async function hydrateArtistAvatars(rows) {
+  const artists = Array.isArray(rows) ? rows : [];
+  const missingIds = artists.map((artist) => artist?.user_id).filter(Boolean);
+  if (!missingIds.length) return artists;
+  const { data: profiles } = await supabase.from("user_profiles").select("id,avatar_url").in("id", missingIds);
+  const avatarByUserId = new Map((profiles || []).map((profile) => [profile.id, mediaUrl(profile.avatar_url)]));
+  return artists.map((artist) => ({
+    ...artist,
+    image_url: mediaUrl(artist.image_url) || avatarByUserId.get(artist.user_id) || null,
+  }));
+}
+
 export async function loadArtistDetail(artistId) {
   if (!artistId) return null;
   // The artist profile is authoritative and must not be rejected because an optional
@@ -131,7 +143,8 @@ export async function loadArtistDetail(artistId) {
   if (error) throw error;
   if (!data) return null;
 
-  const [videosResult, songsResult, albumsResult, eventsResult] = await Promise.allSettled([
+  const [profileResult, videosResult, songsResult, albumsResult, eventsResult] = await Promise.allSettled([
+    data.user_id ? supabase.from("user_profiles").select("id,avatar_url").eq("id", data.user_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
     supabase
       .from("music_videos")
       .select("id,artist_id,song_id,title,description,thumbnail_url,video_url,status,published_at,created_at")
@@ -157,6 +170,8 @@ export async function loadArtistDetail(artistId) {
       .eq("artist_id", artistId),
   ]);
 
+  const profileAvatar = profileResult.status === "fulfilled" && !profileResult.value.error ? mediaUrl(profileResult.value.data?.avatar_url) : null;
+  const artistRecord = { ...data, image_url: mediaUrl(data.image_url) || profileAvatar || null };
   const videos = videosResult.status === "fulfilled" && !videosResult.value.error
     ? (videosResult.value.data || []).map((video) => toMusicVideo({ ...video, artists: { id: data.id, name: data.name } }))
     : [];
@@ -170,7 +185,7 @@ export async function loadArtistDetail(artistId) {
     ? (eventsResult.value.data || []).map((row) => row.events).filter(Boolean)
     : [];
 
-  return { ...toArtist(data), songs, musicVideos: videos, albums, events };
+  return { ...toArtist(artistRecord), songs, musicVideos: videos, albums, events };
 }
 
 export const toMusicVideo = (video) => ({
@@ -247,9 +262,10 @@ async function settleCatalogQueries() {
 
 export async function loadCatalog() {
   const results = await settleCatalogQueries();
+  const artistRows = await hydrateArtistAvatars(filterLiveCatalogRows("artists", results.artists.data));
   return {
     events: filterLiveCatalogRows("events", results.events.data).map(toEvent),
-    artists: filterLiveCatalogRows("artists", results.artists.data).map(toArtist),
+    artists: artistRows.map(toArtist),
     songs: filterLiveCatalogRows("songs", results.songs.data).map(toSong),
     musicVideos: filterLiveCatalogRows("musicVideos", results.musicVideos.data).map(toMusicVideo),
     latestMusicVideos: filterLiveCatalogRows("musicVideos", results.musicVideos.data).map(toMusicVideo),
@@ -264,19 +280,24 @@ export async function searchCatalog(query) {
   const term = query.trim();
   if (!term) return { events: [], artists: [], songs: [], venues: [] };
   const pattern = `%${term}%`;
-  const [eventResult, artistResult, songResult, venueResult] = await Promise.all([
-    supabase.from("events").select("id,organizer_id,venue_id,title,description,event_type,city,starts_at,ends_at,cover_url,status,rating,review_count,venues(id,name,city,address,capacity),ticket_types(id,price)").in("status", ["PUBLISHED", "SOLD_OUT", "LIVE", "COMPLETED"]).or(`title.ilike.${pattern},description.ilike.${pattern},city.ilike.${pattern}`).order("starts_at").limit(20),
-    supabase.from("artists").select("id,user_id,name,bio,verified,follower_count,image_url,background_url").eq("verified", true).or(`name.ilike.${pattern},bio.ilike.${pattern}`).order("follower_count", { ascending: false }).limit(20),
-    supabase.from("songs").select("id,artist_id,title,duration_seconds,audio_url,cover_url,play_count,status,published_at,artists(id,name,image_url)").eq("status", "PUBLISHED").not("audio_url", "is", null).ilike("title", pattern).order("play_count", { ascending: false }).limit(20),
-    supabase.from("venues").select("id,name,city,address,capacity,status,image_urls").eq("status", "ACTIVE").or(`name.ilike.${pattern},city.ilike.${pattern},address.ilike.${pattern}`).order("name").limit(20),
-  ]);
-  const firstError = [eventResult, artistResult, songResult, venueResult].find((result) => result.error)?.error;
-  if (firstError) throw firstError;
+  const entries = [
+    ["events", () => supabase.from("events").select("id,organizer_id,venue_id,title,description,event_type,city,starts_at,ends_at,cover_url,status,rating,review_count,venues(id,name,city,address,capacity),ticket_types(id,price)").in("status", ["PUBLISHED", "SOLD_OUT", "LIVE", "COMPLETED"]).or(`title.ilike.${pattern},description.ilike.${pattern},city.ilike.${pattern}`).order("starts_at").limit(20)],
+    ["artists", () => supabase.from("artists").select("id,user_id,name,bio,verified,follower_count,image_url,background_url").eq("verified", true).or(`name.ilike.${pattern},bio.ilike.${pattern}`).order("follower_count", { ascending: false }).limit(20)],
+    ["songs", () => supabase.from("songs").select("id,artist_id,title,duration_seconds,audio_url,cover_url,play_count,status,published_at,artists(id,name,image_url)").eq("status", "PUBLISHED").not("audio_url", "is", null).ilike("title", pattern).order("play_count", { ascending: false }).limit(20)],
+    ["venues", () => supabase.from("venues").select("id,name,city,address,capacity,status,image_urls").eq("status", "ACTIVE").or(`name.ilike.${pattern},city.ilike.${pattern},address.ilike.${pattern}`).order("name").limit(20)],
+  ];
+  const settled = await Promise.allSettled(entries.map(([, loader]) => loader()));
+  const resultByName = Object.fromEntries(entries.map(([name], index) => {
+    const result = settled[index];
+    if (result.status === "rejected") return [name, { data: [], error: result.reason }];
+    return [name, { data: result.value?.error ? [] : (result.value?.data || []), error: result.value?.error || null }];
+  }));
   return {
-    events: filterLiveCatalogRows("events", eventResult.data).map(toEvent),
-    artists: filterLiveCatalogRows("artists", artistResult.data).map(toArtist),
-    songs: filterLiveCatalogRows("songs", songResult.data).map(toSong),
-    venues: filterLiveCatalogRows("venues", venueResult.data).map((venue) => ({ ...venue, imageUrl: firstVenueImage(venue) })),
+    events: filterLiveCatalogRows("events", resultByName.events.data).map(toEvent),
+    artists: (await hydrateArtistAvatars(filterLiveCatalogRows("artists", resultByName.artists.data))).map(toArtist),
+    songs: filterLiveCatalogRows("songs", resultByName.songs.data).map(toSong),
+    venues: filterLiveCatalogRows("venues", resultByName.venues.data).map((venue) => ({ ...venue, imageUrl: firstVenueImage(venue) })),
+    searchErrors: Object.fromEntries(Object.entries(resultByName).filter(([, result]) => result.error).map(([name, result]) => [name, result.error])),
   };
 }
 

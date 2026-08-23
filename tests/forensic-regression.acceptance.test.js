@@ -16,7 +16,9 @@ describe("Deep regression contract coverage", () => {
 
   it("refreshes artist profiles by ID without letting optional media joins blank the profile", () => {
     expect(catalog).toContain('// The artist profile is authoritative and must not be rejected');
-    expect(catalog).toContain('const [videosResult, songsResult, albumsResult, eventsResult] = await Promise.allSettled([');
+    expect(catalog).toContain('const [profileResult, videosResult, songsResult, albumsResult, eventsResult] = await Promise.allSettled([');
+    expect(catalog).toContain('from("user_profiles").select("id,avatar_url")');
+    expect(catalog).toContain('const artistRecord = { ...data, image_url: mediaUrl(data.image_url) || profileAvatar || null };');
     expect(catalog).toContain('.from("music_videos")');
     expect(catalog).toContain('thumbnail_url,video_url,status,published_at,created_at');
     expect(catalog).toContain('.from("songs")');
