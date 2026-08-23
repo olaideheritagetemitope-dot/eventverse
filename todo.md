@@ -1565,3 +1565,14 @@
 - [x] Push the repaired source and verify the new production deployment is READY
 - [x] Verify `eventverse-eight.vercel.app` now serves the latest bundle markers
 - [ ] Authenticated production smoke test remains pending until the user reloads the updated artifact
+
+# Ticket Payment Provider-Reference Authority Root Fix — 2026-08-23
+- [x] Trace ticket payment initiation, order/payment RPCs, provider-reference ownership, idempotency keys, and callbacks
+- [x] Identify the provider-reference authorization boundary and server call mismatch
+- [x] Repair the authoritative payment boundary so only the payment service attaches provider references
+- [x] Preserve unique server-generated references and safe retries for existing payment attempts
+- [x] Apply and verify live Supabase migration `0077_fix_ticket_provider_reference_authority.sql`; function is postgres-owned `SECURITY DEFINER` with EXECUTE only for `service_role`
+- [x] Add regression coverage for ticket payment initiation and provider-reference rejection
+- [x] Run focused tests, full Vitest suite: 55 files, 191 passed, 2 skipped, TypeScript, and production build
+- [ ] Save a checkpoint for the payment repair
+- [ ] Authenticated Paystack payment smoke test remains pending

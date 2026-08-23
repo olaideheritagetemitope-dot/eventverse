@@ -7,11 +7,11 @@ function json(res, status, body) {
   res.status(status).json(body);
 }
 
-async function supabaseRpc(name, args, authorization) {
+async function supabaseRpc(name, args, authorization, apiKey = SUPABASE_PUBLISHABLE_KEY) {
   const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
     method: "POST",
     headers: {
-      apikey: SUPABASE_PUBLISHABLE_KEY,
+      apikey: apiKey,
       Authorization: authorization,
       "Content-Type": "application/json",
     },
@@ -117,6 +117,7 @@ export default async function handler(req, res) {
       "attach_payment_provider_reference",
       { p_payment_id: payment.payment_id, p_provider_reference: paystack.reference },
       serviceAuthorization,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
     );
     await updatePayment(payment.payment_id, {
       provider_reference: paystack.reference,

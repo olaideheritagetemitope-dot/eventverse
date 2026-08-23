@@ -22,5 +22,16 @@ describe("Paystack checkout latency contract", () => {
     expect(initializeRoute.indexOf("await supabaseRpc(")).toBeLessThan(initializeRoute.indexOf("await paystackInitialize("));
     expect(initializeRoute).toContain('"attach_payment_provider_reference"');
     expect(initializeRoute).toContain("SUPABASE_SERVICE_ROLE_KEY");
+    expect(initializeRoute).toContain("apiKey = SUPABASE_PUBLISHABLE_KEY");
+    expect(initializeRoute).toContain("process.env.SUPABASE_SERVICE_ROLE_KEY,\n    );");
+  });
+
+  it("keeps the provider-reference guard private and service-role executable", () => {
+    const migration = fs.readFileSync(path.join(root, "supabase/0077_fix_ticket_provider_reference_authority.sql"), "utf8");
+    expect(migration).toContain("security definer");
+    expect(migration).toContain("auth.role()");
+    expect(migration).toContain("v_request_role <> 'service_role'");
+    expect(migration).toContain("revoke all on function public.attach_payment_provider_reference(uuid, text) from public, anon, authenticated");
+    expect(migration).toContain("grant execute on function public.attach_payment_provider_reference(uuid, text) to service_role");
   });
 });
