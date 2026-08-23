@@ -11,6 +11,7 @@ import CheckInScreen from "./components/CheckInScreen";
 import { loadCurrentUser, loadFavoriteState, toggleEventFavorite, toggleArtistFollow, toggleMusicFavorite, loadMusicFavorites, recordPlay, loadPlaylists, createPlaylist, submitBooking, loadRoleDashboard, loadArtistWorkspace, loadArtistCreatorContent, createArtistSong, setArtistSongStatus, archiveArtistSong, deleteArtistSong, createArtistAlbum, updateArtistAlbum, setArtistAlbumStatus, createArtistMusicVideo, updateArtistMusicVideo, setArtistMusicVideoStatus, updateArtistProfile, updateArtistSong, artistUpdateBookingStatus, issueTicketQrToken, updateProfile, loadArtistOnboarding, initializeArtistFeePayment, loadArtistFeeTransaction, loadArtistAdminOverview, updateArtistFee, loadOrganizerApplication, applyAsOrganizer, loadOrganizerEvents, createOrganizerEvent, updateOrganizerEvent, addOrganizerTicketType, discoverPrivateTicket, linkOrganizerArtist, publishOrganizerEvent, cancelOrganizerEvent, loadOrganizerEventDashboard, loadVenueManagerWorkspace, applyAsVenueManager, createOwnedVenue, updateOwnedVenue, archiveOwnedVenue, deleteOwnedVenue, requestVenueBooking, respondVenueBooking, setVenueAvailability, initializeVenueBookingPayment, loadAvailableVenues, searchOrganizerArtists, searchEventStaffUsers, assignEventStaff, loadEventStaffForOrganizer, updateEventStaffShift, revokeEventStaffAssignment, loadEventStaffWorkspace, respondEventStaffAssignment, acknowledgeEventStaffTask, loadSuperAdminAnalytics, loadAdminDashboardSnapshot, adminListUsers, adminSuspendUser, adminReviewEvent, loadAdminPaymentSupport, loadAdminAuditLogs, loadUserExperienceSnapshot, loadUserCollections, recordUserSearch, clearUserSearchHistory, updateUserPreferences, markUserNotificationRead, markAllUserNotificationsRead, createSupportRequest, uploadMediaFile, loadMyPosts, createPost, updatePost, setPostStatus, deletePost, removeMediaAsset, loadPolicySettings, updatePolicySetting, loadRoleCapabilityMatrix, loadAdminPermissionGrants, setAdminPermission, loadRoleGovernanceSnapshot, loadOnboardingConfig, loadPublicRoleOnboardingConfig, saveOnboardingQuestion, submitRoleApplication, loadRoleApplication, initializeRoleApplicationPayment, reviewRoleApplication, creditWalletForCancelledOrder, loadPublicContentAnalytics, createContentComment, setContentRating, setContentLike, setRoleFeePolicy, setPlatformFeePolicy, adminSetEventStatus, loadGovernanceEvents, loadContentEngagement, superAdminSetRole, superAdminSetRolePermission, loadRoleAssignmentHistory } from "./services/user";
 import QRCode from "qrcode";
 import { ATIZZY_TOKENS, EMPTY_CATALOG, normalizeCatalog, resourceState } from "./ui/designSystem";
+import { loadDiscoverySnapshot, recordDiscoveryEvent } from "./services/discovery";
 import SuperAdminModuleRegistry from "./components/SuperAdminModuleRegistry";
 import AdvancedGovernancePanels from "./components/AdvancedGovernancePanels";
 
@@ -326,6 +327,7 @@ const AudioController = React.forwardRef(function AudioController({ song, playin
   const audioRef = useRef(null);
   const frameRef = useRef(null);
   const intervalRef = useRef(null);
+  const analyticsRef = useRef({ audio: null, sessionId: null, qualified: false });
   const syncProgress = (audio, { forceEnd = false } = {}) => {
     const duration = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 0;
     const rawCurrentTime = Number.isFinite(audio.currentTime) && audio.currentTime >= 0 ? audio.currentTime : 0;
@@ -380,8 +382,21 @@ const AudioController = React.forwardRef(function AudioController({ song, playin
     const audio = new Audio(song.audioUrl);
     audio.preload = "metadata";
     audioRef.current = audio;
+    analyticsRef.current = { audio, sessionId: `${song.id}:${Date.now()}:${Math.random().toString(36).slice(2)}`, qualified: false };
     const sync = () => syncProgress(audio);
-    const playStarted = () => startProgressLoop(audio);
+    const playStarted = () => {
+      startProgressLoop(audio);
+      const analytics = analyticsRef.current;
+      if (analytics.audio === audio && analytics.sessionId) {
+        void recordDiscoveryEvent({ eventType: "SONG_PLAY_START", entityType: "SONG", entityId: song.id, sessionId: analytics.sessionId, idempotencyKey: `${analytics.sessionId}:start` }).catch(() => {});
+      }
+    };
+    const qualifiedPlay = () => {
+      const analytics = analyticsRef.current;
+      if (analytics.audio !== audio || analytics.qualified || !Number.isFinite(audio.currentTime) || audio.currentTime < 30) return;
+      analytics.qualified = true;
+      void recordDiscoveryEvent({ eventType: "SONG_PLAY_QUALIFIED", entityType: "SONG", entityId: song.id, sessionId: analytics.sessionId, idempotencyKey: `${analytics.sessionId}:qualified`, durationSeconds: Math.floor(audio.currentTime) }).catch(() => {});
+    };
     const playbackStopped = () => { sync(); if (audio.paused || audio.ended) stopProgressLoop(); };
     const ended = () => {
       syncProgress(audio, { forceEnd: true });
@@ -393,6 +408,7 @@ const AudioController = React.forwardRef(function AudioController({ song, playin
     ["loadedmetadata", "loadeddata", "canplay", "durationchange", "timeupdate", "progress", "seeking", "seeked", "ratechange", "playing"].forEach((eventName) => audio.addEventListener(eventName, sync));
     audio.addEventListener("play", playStarted);
     audio.addEventListener("playing", playStarted);
+    audio.addEventListener("timeupdate", qualifiedPlay);
     audio.addEventListener("pause", playbackStopped);
     audio.addEventListener("waiting", playbackStopped);
     audio.addEventListener("ended", ended);
@@ -404,6 +420,7 @@ const AudioController = React.forwardRef(function AudioController({ song, playin
         ["loadedmetadata", "loadeddata", "canplay", "durationchange", "timeupdate", "progress", "seeking", "seeked", "ratechange", "playing"].forEach((eventName) => audio.removeEventListener(eventName, sync));
       audio.removeEventListener("play", playStarted);
       audio.removeEventListener("playing", playStarted);
+      audio.removeEventListener("timeupdate", qualifiedPlay);
       audio.removeEventListener("pause", playbackStopped);
       audio.removeEventListener("waiting", playbackStopped);
       audio.removeEventListener("ended", ended);
@@ -700,7 +717,8 @@ function Verify({ nav, data }) {
 function AttendeeHome({ nav, player, catalog, account, loading, error }) {
   const [cat, setCat] = useState("All");
   const events = catalog?.events || [];
-  const artists = catalog?.artists || [];
+  const artists = catalog?.popularArtists || [];
+  const songs = catalog?.popularSongs || [];
   const categories = [{ name: "All" }, ...(catalog?.categories || [])];
   const displayName = account?.profile?.full_name || account?.user?.user_metadata?.full_name || account?.user?.email?.split("@")[0] || "there";
   const hour = new Date().getHours();
@@ -776,8 +794,8 @@ function AttendeeHome({ nav, player, catalog, account, loading, error }) {
             <button onClick={() => nav.tab("music")} className="text-[12px]" style={{ color: C.gold }}>See all</button>
           </div>
           <div className="flex gap-3 px-5 overflow-x-auto no-scrollbar">
-            {(catalog?.songs || []).slice(0, 4).map((song) => <button key={song.id} onClick={() => nav.push("musicDetail", song)} className="flex-shrink-0 w-36 rounded-2xl p-3 text-left" style={{ background: C.card, border: `1px solid ${C.line}` }}><div className="h-24 rounded-xl" style={imageStyle(song.coverUrl, C.card)} /><p className="text-[12px] font-semibold mt-2 truncate" style={{ color: C.ivory }}>{song.title}</p><p className="text-[11px] mt-1 truncate" style={{ color: C.muted }}>{song.artist}</p></button>)}
-            {!(catalog?.songs || []).length && [0, 1, 2].map((slot) => <EmptySongCard key={`song-empty-${slot}`} />)}
+            {songs.slice(0, 4).map((song) => <button key={song.id} onClick={() => nav.push("musicDetail", song)} className="flex-shrink-0 w-36 rounded-2xl p-3 text-left" style={{ background: C.card, border: `1px solid ${C.line}` }}><div className="h-24 rounded-xl" style={imageStyle(song.coverUrl, C.card)} /><p className="text-[12px] font-semibold mt-2 truncate" style={{ color: C.ivory }}>{song.title}</p><p className="text-[11px] mt-1 truncate" style={{ color: C.muted }}>{song.artist}</p></button>)}
+            {!songs.length && [0, 1, 2].map((slot) => <EmptySongCard key={`song-empty-${slot}`} />)}
           </div>
         </div>
       </div>
@@ -792,8 +810,10 @@ function AttendeeHome({ nav, player, catalog, account, loading, error }) {
 function Explore({ nav, player, catalog }) {
   const [cat, setCat] = useState("All");
   const events = catalog?.events || [];
+  const trendingEvents = catalog?.trendingEvents || [];
+  const nearbyEvents = catalog?.nearbyEvents || [];
   const categories = [{ name: "All" }, ...(catalog?.categories || [])];
-  const venues = catalog?.venues || [];
+  const venues = catalog?.popularVenues || [];
   return (
     <Phone>
       <div className="px-5 pt-1 pb-3">
@@ -809,12 +829,12 @@ function Explore({ nav, player, catalog }) {
 
       <div className="flex-1 overflow-y-auto">
         <Section title="Trending Events" nav={nav}>
-            {events.slice(0, 3).map((ev) => <EventCard key={ev.id} ev={ev} onClick={() => nav.push("eventDetail", ev)} />)}
-            {!events.length && [0, 1, 2].map((slot) => <EmptyEventCard key={`trending-empty-${slot}`} />)}
+            {trendingEvents.slice(0, 3).map((ev) => <EventCard key={ev.id} ev={ev} onClick={() => nav.push("eventDetail", ev)} />)}
+            {!trendingEvents.length && [0, 1, 2].map((slot) => <EmptyEventCard key={`trending-empty-${slot}`} />)}
         </Section>
         <Section title="Events Near You" nav={nav}>
-            {events.filter((e) => e.tag === "Near You").concat(events[3] ? [events[3]] : []).map((ev) => <EventCard key={ev.id} ev={ev} onClick={() => nav.push("eventDetail", ev)} />)}
-            {!events.length && [0, 1, 2].map((slot) => <EmptyEventCard key={`nearby-empty-${slot}`} />)}
+            {nearbyEvents.map((ev) => <EventCard key={ev.id} ev={ev} onClick={() => nav.push("eventDetail", ev)} />)}
+            {!nearbyEvents.length && [0, 1, 2].map((slot) => <EmptyEventCard key={`nearby-empty-${slot}`} />)}
         </Section>
         <Section title="Popular Venues" nav={nav} last>
           {venues.slice(0, 6).map((venue) => (
@@ -1913,7 +1933,7 @@ function ArtistProfile({ nav, data, account, catalog }) {
         </div>
       </div>
       <div className="flex-1 overflow-y-auto px-5">
-        {(catalog?.songs || []).slice(0, 4).map((s, i) => (
+        {songs.slice(0, 4).map((s, i) => (
           <div key={s.id} className="flex items-center gap-3 py-2.5">
             <span className="w-4 text-[12px]" style={{ color: C.muted }}>{i + 1}</span>
             <div className="w-10 h-10 rounded-lg" style={{ background: `linear-gradient(135deg, ${C.wood}, ${C.green})` }} />
@@ -1934,8 +1954,10 @@ function ArtistProfile({ nav, data, account, catalog }) {
 
 /* ============================== MUSIC HOME ============================== */
 function MusicHome({ nav, player, catalog, account }) {
-  const songs = catalog?.songs || [];
-  const artists = catalog?.artists || [];
+  const songs = catalog?.popularSongs || [];
+  const artists = catalog?.popularArtists || [];
+  const recentlyPlayed = catalog?.recentlyPlayed || [];
+  const popularAlbums = catalog?.popularAlbums || [];
   const [favorites, setFavorites] = useState([]);
   const [playlistName, setPlaylistName] = useState("");
   const [playlistMessage, setPlaylistMessage] = useState("");
@@ -1955,14 +1977,14 @@ function MusicHome({ nav, player, catalog, account }) {
       </div>
       <div className="flex-1 overflow-y-auto">
         <Section title="Recently Played" nav={nav}>
-          {songs.slice(0, 3).map((s) => (
+          {recentlyPlayed.slice(0, 3).map((s) => (
             <button key={s.id} onClick={() => player.play(s)} className="flex-shrink-0 w-28 text-left">
               <div className="w-28 h-28 rounded-xl mb-2" style={imageStyle(s.coverUrl, `linear-gradient(135deg, ${C.wood}, ${C.green})`)} />
               <p className="text-[12px] font-semibold truncate" style={{ color: C.ivory }}>{s.title}</p>
               <p className="text-[10.5px] truncate" style={{ color: C.muted }}>{s.artist}</p>
             </button>
           ))}
-          {!songs.length && [0, 1, 2].map((slot) => <EmptySongCard key={`recent-empty-${slot}`} />)}
+          {!recentlyPlayed.length && [0, 1, 2].map((slot) => <EmptySongCard key={`recent-empty-${slot}`} />)}
         </Section>
         <div className="mb-6">
           <div className="flex items-center justify-between px-5 mb-3">
@@ -2277,7 +2299,47 @@ export default function EventVerseApp() {
       setCatalogLoading(true);
       try {
         const liveCatalog = await loadCatalog();
-        if (mounted) setCatalog(normalizeCatalog(liveCatalog));
+        let location = { latitude: null, longitude: null };
+        if (typeof navigator !== "undefined" && navigator.geolocation) {
+          location = await new Promise((resolve) => {
+            navigator.geolocation.getCurrentPosition(
+              (position) => resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
+              () => resolve({ latitude: null, longitude: null }),
+              { enableHighAccuracy: false, maximumAge: 300000, timeout: 5000 },
+            );
+          });
+        }
+        let discovery = null;
+        try {
+          discovery = await loadDiscoverySnapshot(location);
+        } catch (discoveryError) {
+          console.error("Atizzy live discovery snapshot failed", discoveryError);
+          if (mounted) setCatalogError(discoveryError.message || "Unable to load live discovery.");
+        }
+        const merged = discovery ? {
+          ...liveCatalog,
+          discovery,
+          events: discovery.events.length ? discovery.events : liveCatalog.events,
+          artists: discovery.popularArtists.length ? discovery.popularArtists : liveCatalog.artists,
+          songs: discovery.popularSongs.length ? discovery.popularSongs : liveCatalog.songs,
+          venues: discovery.popularVenues.length ? discovery.popularVenues : liveCatalog.venues,
+          upcomingEvents: discovery.upcomingEvents,
+          popularArtists: discovery.popularArtists,
+          trendingEvents: discovery.trendingEvents,
+          nearbyEvents: discovery.nearbyEvents,
+          popularVenues: discovery.popularVenues,
+          recentlyPlayed: discovery.recentlyPlayed,
+          personalMostPlayed: discovery.personalMostPlayed,
+          platformMostPlayed: discovery.platformMostPlayed,
+          popularSongs: discovery.popularSongs,
+          popularAlbums: discovery.popularAlbums,
+          mostLikedSongs: discovery.mostLikedSongs,
+          mostLikedArtists: discovery.mostLikedArtists,
+          mostWatchedMusicVideos: discovery.mostWatchedMusicVideos,
+          privatePlaylists: discovery.privatePlaylists,
+          publicPlaylists: discovery.publicPlaylists,
+        } : liveCatalog;
+        if (mounted) setCatalog(normalizeCatalog(merged));
       } catch (error) {
         if (mounted) setCatalogError(error.message || "Unable to load live catalog.");
       } finally {
@@ -2367,7 +2429,7 @@ export default function EventVerseApp() {
     queue,
     currentTime: playback.currentTime,
     duration: playback.duration,
-    play: (s, nextQueue = catalog?.songs || []) => { setQueue(nextQueue.length ? nextQueue : [s]); setSong(s); setPlayback({ currentTime: 0, duration: 0 }); setPlaying(true); },
+    play: (s, nextQueue = catalog?.popularSongs?.length ? catalog.popularSongs : catalog?.songs || []) => { setQueue(nextQueue.length ? nextQueue : [s]); setSong(s); setPlayback({ currentTime: 0, duration: 0 }); setPlaying(true); },
     toggle: () => (song ? setPlaying((p) => !p) : null),
     seek: (seconds) => audioControllerRef.current?.seekTo(seconds),
     previous: () => { const index = queue.findIndex((item) => item.id === song?.id); if (index > 0) { setSong(queue[index - 1]); setPlayback({ currentTime: 0, duration: 0 }); setPlaying(true); } },

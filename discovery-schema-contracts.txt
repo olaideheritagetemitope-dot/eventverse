@@ -1,0 +1,150 @@
+--- events and engagement schema ---
+supabase/0001_eventverse_core.sql:53:create table if not exists public.venues (
+supabase/0001_eventverse_core.sql:76:create table if not exists public.events (
+supabase/0001_eventverse_core.sql:193:create table if not exists public.event_favorites (
+supabase/0015_venue_manager_workflow.sql:7:create table if not exists public.venue_manager_applications (
+supabase/0015_venue_manager_workflow.sql:30:create table if not exists public.venue_availability (
+supabase/0015_venue_manager_workflow.sql:44:create table if not exists public.venue_bookings (
+supabase/0016_venue_manager_completion.sql:8:create table if not exists public.venue_booking_payments (
+supabase/0038_role_governance_operational_control.sql:66:create table if not exists public.content_comments (
+supabase/0038_role_governance_operational_control.sql:78:create table if not exists public.content_ratings (
+supabase/0038_role_governance_operational_control.sql:89:create table if not exists public.content_likes (
+supabase/0055_artist_albums_music_videos.sql:3:create table if not exists public.albums (
+supabase/0055_artist_albums_music_videos.sql:15:create table if not exists public.music_videos (
+--- relevant table definitions ---
+supabase/0001_eventverse_core.sql:76:create table if not exists public.events (
+supabase/0001_eventverse_core.sql-77-  id uuid primary key default gen_random_uuid(),
+supabase/0001_eventverse_core.sql-78-  organizer_id uuid references auth.users(id) on delete set null,
+supabase/0001_eventverse_core.sql-79-  venue_id uuid references public.venues(id) on delete set null,
+supabase/0001_eventverse_core.sql-80-  title text not null,
+supabase/0001_eventverse_core.sql-81-  description text,
+supabase/0001_eventverse_core.sql-82-  event_type text,
+supabase/0001_eventverse_core.sql-83-  city text not null,
+supabase/0001_eventverse_core.sql-84-  starts_at timestamptz not null,
+supabase/0001_eventverse_core.sql-85-  ends_at timestamptz,
+supabase/0001_eventverse_core.sql-86-  cover_url text,
+supabase/0001_eventverse_core.sql-87-  status public.event_status not null default 'DRAFT',
+supabase/0001_eventverse_core.sql-88-  rating numeric(3,2) check (rating is null or (rating >= 0 and rating <= 5)),
+supabase/0001_eventverse_core.sql-89-  review_count integer not null default 0 check (review_count >= 0),
+supabase/0001_eventverse_core.sql-90-  created_at timestamptz not null default now(),
+supabase/0001_eventverse_core.sql-91-  updated_at timestamptz not null default now()
+supabase/0001_eventverse_core.sql-92-);
+supabase/0001_eventverse_core.sql-93-
+supabase/0001_eventverse_core.sql-94-create table if not exists public.event_categories (
+supabase/0001_eventverse_core.sql-95-  event_id uuid not null references public.events(id) on delete cascade,
+supabase/0001_eventverse_core.sql-96-  category_id uuid not null references public.categories(id) on delete cascade,
+supabase/0001_eventverse_core.sql-97-  primary key (event_id, category_id)
+supabase/0001_eventverse_core.sql-98-);
+supabase/0001_eventverse_core.sql-99-
+supabase/0001_eventverse_core.sql-100-create table if not exists public.event_artists (
+supabase/0001_eventverse_core.sql-101-  event_id uuid not null references public.events(id) on delete cascade,
+supabase/0001_eventverse_core.sql-102-  artist_id uuid not null references public.artists(id) on delete cascade,
+supabase/0001_eventverse_core.sql-103-  primary key (event_id, artist_id)
+supabase/0001_eventverse_core.sql-104-);
+supabase/0001_eventverse_core.sql-105-
+supabase/0001_eventverse_core.sql-106-create table if not exists public.ticket_types (
+supabase/0001_eventverse_core.sql-107-  id uuid primary key default gen_random_uuid(),
+supabase/0001_eventverse_core.sql-108-  event_id uuid not null references public.events(id) on delete cascade,
+supabase/0001_eventverse_core.sql-109-  name text not null,
+supabase/0001_eventverse_core.sql-110-  price numeric(12,2) not null check (price >= 0),
+supabase/0001_eventverse_core.sql-111-  capacity integer not null check (capacity > 0),
+supabase/0001_eventverse_core.sql-112-  sold integer not null default 0 check (sold >= 0),
+supabase/0001_eventverse_core.sql-113-  reserved integer not null default 0 check (reserved >= 0),
+supabase/0001_eventverse_core.sql-114-  sales_start timestamptz,
+supabase/0001_eventverse_core.sql-115-  sales_end timestamptz,
+supabase/0001_eventverse_core.sql-116-  maximum_per_customer integer not null default 4 check (maximum_per_customer > 0),
+supabase/0001_eventverse_core.sql-117-  created_at timestamptz not null default now(),
+supabase/0001_eventverse_core.sql-118-  check (sold + reserved <= capacity)
+supabase/0001_eventverse_core.sql-119-);
+supabase/0001_eventverse_core.sql-120-
+supabase/0001_eventverse_core.sql-121-create table if not exists public.ticket_reservations (
+supabase/0001_eventverse_core.sql-122-  id uuid primary key default gen_random_uuid(),
+supabase/0001_eventverse_core.sql-123-  user_id uuid not null references auth.users(id) on delete cascade,
+supabase/0001_eventverse_core.sql-124-  event_id uuid not null references public.events(id) on delete cascade,
+supabase/0001_eventverse_core.sql-125-  status public.reservation_status not null default 'ACTIVE',
+supabase/0001_eventverse_core.sql-126-  expires_at timestamptz not null,
+supabase/0001_eventverse_core.sql-127-  idempotency_key text unique,
+supabase/0001_eventverse_core.sql-128-  created_at timestamptz not null default now()
+supabase/0001_eventverse_core.sql-129-);
+supabase/0001_eventverse_core.sql-130-
+supabase/0001_eventverse_core.sql-131-create table if not exists public.reservation_items (
+--
+supabase/0038_role_governance_operational_control.sql:66:create table if not exists public.content_comments (
+supabase/0038_role_governance_operational_control.sql-67-  id uuid primary key default gen_random_uuid(),
+supabase/0038_role_governance_operational_control.sql-68-  author_id uuid not null references auth.users(id) on delete cascade,
+supabase/0038_role_governance_operational_control.sql-69-  target_type text not null check (target_type in ('EVENT','SONG','ALBUM','ARTIST','VENUE','ORGANIZER','MUSIC_VIDEO')),
+supabase/0038_role_governance_operational_control.sql-70-  target_id uuid not null,
+supabase/0038_role_governance_operational_control.sql-71-  body text not null check (char_length(trim(body)) between 1 and 2000),
+supabase/0038_role_governance_operational_control.sql-72-  status text not null default 'VISIBLE' check (status in ('VISIBLE','HIDDEN','DELETED')),
+supabase/0038_role_governance_operational_control.sql-73-  created_at timestamptz not null default now(),
+supabase/0038_role_governance_operational_control.sql-74-  updated_at timestamptz not null default now()
+supabase/0038_role_governance_operational_control.sql-75-);
+supabase/0038_role_governance_operational_control.sql-76-create index if not exists content_comments_target_idx on public.content_comments(target_type, target_id, created_at desc);
+supabase/0038_role_governance_operational_control.sql-77-
+supabase/0038_role_governance_operational_control.sql:78:create table if not exists public.content_ratings (
+supabase/0038_role_governance_operational_control.sql-79-  id uuid primary key default gen_random_uuid(),
+supabase/0038_role_governance_operational_control.sql-80-  user_id uuid not null references auth.users(id) on delete cascade,
+supabase/0038_role_governance_operational_control.sql-81-  target_type text not null check (target_type in ('EVENT','SONG','ALBUM','ARTIST','VENUE','ORGANIZER','MUSIC_VIDEO')),
+supabase/0038_role_governance_operational_control.sql-82-  target_id uuid not null,
+supabase/0038_role_governance_operational_control.sql-83-  rating smallint not null check (rating between 1 and 5),
+supabase/0038_role_governance_operational_control.sql-84-  created_at timestamptz not null default now(),
+supabase/0038_role_governance_operational_control.sql-85-  updated_at timestamptz not null default now(),
+supabase/0038_role_governance_operational_control.sql-86-  unique(user_id, target_type, target_id)
+supabase/0038_role_governance_operational_control.sql-87-);
+supabase/0038_role_governance_operational_control.sql-88-
+supabase/0038_role_governance_operational_control.sql:89:create table if not exists public.content_likes (
+supabase/0038_role_governance_operational_control.sql-90-  user_id uuid not null references auth.users(id) on delete cascade,
+supabase/0038_role_governance_operational_control.sql-91-  target_type text not null check (target_type in ('EVENT','SONG','ALBUM','ARTIST','VENUE','ORGANIZER','MUSIC_VIDEO')),
+supabase/0038_role_governance_operational_control.sql-92-  target_id uuid not null,
+supabase/0038_role_governance_operational_control.sql-93-  created_at timestamptz not null default now(),
+supabase/0038_role_governance_operational_control.sql-94-  primary key(user_id, target_type, target_id)
+supabase/0038_role_governance_operational_control.sql-95-);
+supabase/0038_role_governance_operational_control.sql-96-
+supabase/0038_role_governance_operational_control.sql-97-alter table public.role_onboarding_questions enable row level security;
+supabase/0038_role_governance_operational_control.sql-98-alter table public.role_applications enable row level security;
+supabase/0038_role_governance_operational_control.sql-99-alter table public.role_fee_policies enable row level security;
+supabase/0038_role_governance_operational_control.sql-100-alter table public.wallet_accounts enable row level security;
+supabase/0038_role_governance_operational_control.sql-101-alter table public.wallet_ledger enable row level security;
+supabase/0038_role_governance_operational_control.sql-102-alter table public.content_comments enable row level security;
+supabase/0038_role_governance_operational_control.sql-103-alter table public.content_ratings enable row level security;
+supabase/0038_role_governance_operational_control.sql-104-alter table public.content_likes enable row level security;
+supabase/0038_role_governance_operational_control.sql-105-
+supabase/0038_role_governance_operational_control.sql-106-create or replace function public.is_super_admin() returns boolean language sql stable security definer set search_path=public as $$ select exists(select 1 from public.user_roles ur join public.roles r on r.id=ur.role_id where ur.user_id=auth.uid() and r.code='SUPER_ADMIN'); $$;
+supabase/0038_role_governance_operational_control.sql-107-
+supabase/0038_role_governance_operational_control.sql-108-create or replace function public.get_onboarding_config(p_role_code text default null)
+supabase/0038_role_governance_operational_control.sql-109-returns setof public.role_onboarding_questions language sql stable security definer set search_path=public as $$
+supabase/0038_role_governance_operational_control.sql-110-  select q.* from public.role_onboarding_questions q where q.active and (p_role_code is null or q.role_code=p_role_code) order by q.role_code,q.sort_order,q.created_at;
+supabase/0038_role_governance_operational_control.sql-111-$$;
+supabase/0038_role_governance_operational_control.sql-112-create or replace function public.save_onboarding_question(p_id uuid, p_role_code text, p_prompt text, p_question_type text, p_options jsonb, p_required boolean, p_sort_order integer)
+supabase/0038_role_governance_operational_control.sql-113-returns public.role_onboarding_questions language plpgsql security definer set search_path=public as $$
+supabase/0038_role_governance_operational_control.sql-114-declare v_row public.role_onboarding_questions;
+supabase/0038_role_governance_operational_control.sql-115-begin if not public.is_super_admin() then raise exception 'Super Admin access required'; end if;
+supabase/0038_role_governance_operational_control.sql-116- if p_id is null then insert into public.role_onboarding_questions(role_code,prompt,question_type,options,required,sort_order,created_by) values(p_role_code,trim(p_prompt),p_question_type,coalesce(p_options,'[]'::jsonb),coalesce(p_required,true),coalesce(p_sort_order,0),auth.uid()) returning * into v_row;
+supabase/0038_role_governance_operational_control.sql-117- else update public.role_onboarding_questions set role_code=p_role_code,prompt=trim(p_prompt),question_type=p_question_type,options=coalesce(p_options,'[]'::jsonb),required=coalesce(p_required,true),sort_order=coalesce(p_sort_order,0),updated_at=now() where id=p_id returning * into v_row; end if;
+supabase/0038_role_governance_operational_control.sql-118- return v_row; end; $$;
+supabase/0038_role_governance_operational_control.sql-119-
+supabase/0038_role_governance_operational_control.sql-120-create or replace function public.submit_role_application(p_role_code text, p_answers jsonb)
+supabase/0038_role_governance_operational_control.sql-121-returns public.role_applications language plpgsql security definer set search_path=public as $$
+supabase/0038_role_governance_operational_control.sql-122-declare v_row public.role_applications; v_policy public.role_fee_policies;
+supabase/0038_role_governance_operational_control.sql-123-begin if auth.uid() is null then raise exception 'Authentication required'; end if;
+supabase/0038_role_governance_operational_control.sql-124- select * into v_policy from public.role_fee_policies where role_code=p_role_code;
+supabase/0038_role_governance_operational_control.sql-125- if v_policy.role_code is null or not v_policy.enabled then raise exception 'Role onboarding is unavailable'; end if;
+supabase/0038_role_governance_operational_control.sql-126- insert into public.role_applications(user_id,role_code,status,answers,fee_amount,fee_currency,fee_status,submitted_at,review_due_at)
+supabase/0038_role_governance_operational_control.sql-127- values(auth.uid(),p_role_code,case when v_policy.amount>0 then 'PENDING_PAYMENT' else 'PENDING_REVIEW' end,coalesce(p_answers,'{}'::jsonb),v_policy.amount,v_policy.currency,case when v_policy.amount>0 then 'PENDING' else 'NOT_REQUIRED' end,now(),case when p_role_code='ORGANIZER' then now()+make_interval(hours=>v_policy.organizer_review_hours) else null end)
+supabase/0038_role_governance_operational_control.sql-128- on conflict (user_id,role_code) where status in ('DRAFT','PENDING_PAYMENT','PENDING_REVIEW') do update set answers=excluded.answers,updated_at=now() returning * into v_row;
+supabase/0038_role_governance_operational_control.sql-129- return v_row; end; $$;
+supabase/0038_role_governance_operational_control.sql-130-
+supabase/0038_role_governance_operational_control.sql-131-create or replace function public.admin_role_governance_snapshot()
+supabase/0038_role_governance_operational_control.sql-132-returns jsonb language plpgsql security definer set search_path=public as $$
+supabase/0038_role_governance_operational_control.sql-133-declare v jsonb;
+supabase/0038_role_governance_operational_control.sql-134-begin if not public.is_super_admin() then raise exception 'Super Admin access required'; end if;
+supabase/0038_role_governance_operational_control.sql-135- select jsonb_build_object(
+supabase/0038_role_governance_operational_control.sql-136- 'users',(select coalesce(jsonb_agg(jsonb_build_object('id',u.id,'email',u.email,'created_at',u.created_at,'profile',to_jsonb(p),'roles',coalesce((select jsonb_agg(r.code) from public.user_roles ur join public.roles r on r.id=ur.role_id where ur.user_id=u.id),'[]'::jsonb)) order by u.created_at desc),'[]'::jsonb) from auth.users u left join public.user_profiles p on p.id=u.id limit 500),
+supabase/0038_role_governance_operational_control.sql-137- 'applications',(select coalesce(jsonb_agg(to_jsonb(a) order by a.created_at desc),'[]'::jsonb) from public.role_applications a limit 500),
+supabase/0038_role_governance_operational_control.sql-138- 'fees',(select coalesce(jsonb_agg(to_jsonb(f) order by f.role_code),'[]'::jsonb) from public.role_fee_policies f),
+supabase/0038_role_governance_operational_control.sql-139- 'questions',(select coalesce(jsonb_agg(to_jsonb(q) order by q.role_code,q.sort_order),'[]'::jsonb) from public.role_onboarding_questions q where q.active),
+supabase/0038_role_governance_operational_control.sql-140- 'wallets',(select coalesce(jsonb_agg(to_jsonb(w) order by w.updated_at desc),'[]'::jsonb) from public.wallet_accounts w limit 500),
+supabase/0038_role_governance_operational_control.sql-141- 'analytics',jsonb_build_object('comments',(select count(*) from public.content_comments where status='VISIBLE'),'ratings',(select count(*) from public.content_ratings),'likes',(select count(*) from public.content_likes))
+supabase/0038_role_governance_operational_control.sql-142- ) into v; return v; end; $$;
+supabase/0038_role_governance_operational_control.sql-143-
+supabase/0038_role_governance_operational_control.sql-144-create or replace function public.admin_review_role_application(p_application_id uuid,p_status text,p_reason text default null)

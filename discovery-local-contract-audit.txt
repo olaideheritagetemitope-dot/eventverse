@@ -1,0 +1,261 @@
+--- package and project type ---
+{
+  "name": "eventverse",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "check": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.112.3",
+    "@vitejs/plugin-react": "latest",
+    "@zxing/browser": "^0.2.1",
+    "lucide-react": "^0.468.0",
+    "qrcode": "^1.5.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.6.3",
+    "vite": "latest"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.5.4",
+    "postcss": "^8.5.26",
+    "tailwindcss": "3.4.17",
+    "vitest": "^4.1.11"
+  }
+}
+--- analytics-like schema objects ---
+supabase/0001_eventverse_core.sql:70:  follower_count integer not null default 0 check (follower_count >= 0),
+supabase/0001_eventverse_core.sql:89:  review_count integer not null default 0 check (review_count >= 0),
+supabase/0001_eventverse_core.sql:186:create table if not exists public.artist_followers (
+supabase/0001_eventverse_core.sql:207:  play_count bigint not null default 0 check (play_count >= 0),
+supabase/0001_eventverse_core.sql:211:create table if not exists public.playlists (
+supabase/0001_eventverse_core.sql:218:create table if not exists public.playlist_items (
+supabase/0001_eventverse_core.sql:219:  playlist_id uuid not null references public.playlists(id) on delete cascade,
+supabase/0001_eventverse_core.sql:222:  primary key (playlist_id, song_id)
+supabase/0001_eventverse_core.sql:236:  played_at timestamptz not null default now(),
+supabase/0001_eventverse_core.sql:287:alter table public.artist_followers enable row level security;
+supabase/0001_eventverse_core.sql:291:alter table public.playlists enable row level security;
+supabase/0001_eventverse_core.sql:292:alter table public.playlist_items enable row level security;
+supabase/0001_eventverse_core.sql:303:create policy "users manage own follows" on public.artist_followers for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+supabase/0001_eventverse_core.sql:308:create policy "users manage own playlists" on public.playlists for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+supabase/0001_eventverse_core.sql:309:create policy "users manage own playlist items" on public.playlist_items for all using (exists (select 1 from public.playlists p where p.id = playlist_id and p.user_id = auth.uid())) with check (exists (select 1 from public.playlists p where p.id = playlist_id and p.user_id = auth.uid()));
+supabase/0004_eventverse_catalog_seed.sql:18:insert into public.artists (id, name, bio, verified, follower_count, image_url) values
+supabase/0004_eventverse_catalog_seed.sql:27:insert into public.events (id, title, description, event_type, city, venue_id, starts_at, cover_url, status, rating, review_count) values
+supabase/0004_eventverse_catalog_seed.sql:64:insert into public.songs (id, artist_id, title, duration_seconds, cover_url, play_count) values
+supabase/0018_super_admin_analytics.sql:1:-- Atizzy Super Admin live analytics
+supabase/0018_super_admin_analytics.sql:2:create or replace function public.get_super_admin_analytics()
+supabase/0018_super_admin_analytics.sql:32:revoke all on function public.get_super_admin_analytics() from public;
+supabase/0018_super_admin_analytics.sql:33:grant execute on function public.get_super_admin_analytics() to authenticated;
+supabase/0021_admin_operations.sql:122:create or replace function public.admin_recent_audit_logs()
+supabase/0021_admin_operations.sql:126:revoke all on function public.admin_recent_audit_logs() from public;
+supabase/0021_admin_operations.sql:127:grant execute on function public.admin_recent_audit_logs() to authenticated;
+supabase/0022_user_experience_persistence.sql:14:  location jsonb not null default '{}'::jsonb,
+supabase/0022_user_experience_persistence.sql:93:  insert into public.user_preferences(user_id,music,events,location,notifications,discovery,updated_at)
+supabase/0022_user_experience_persistence.sql:94:  values (auth.uid(), coalesce(p_preferences->'music','{}'), coalesce(p_preferences->'events','{}'), coalesce(p_preferences->'location','{}'), coalesce(p_preferences->'notifications','{}'), coalesce(p_preferences->'discovery','{}'), now())
+supabase/0022_user_experience_persistence.sql:95:  on conflict (user_id) do update set music=excluded.music,events=excluded.events,location=excluded.location,notifications=excluded.notifications,discovery=excluded.discovery,updated_at=now()
+supabase/0023_follow_notifications.sql:1:create or replace function public.toggle_artist_follow(p_artist_id uuid, p_follow boolean)
+supabase/0023_follow_notifications.sql:15:  if p_follow then
+supabase/0023_follow_notifications.sql:16:    insert into public.artist_followers(user_id, artist_id)
+supabase/0023_follow_notifications.sql:19:    update public.artists set follower_count = follower_count + 1
+supabase/0023_follow_notifications.sql:34:    delete from public.artist_followers where user_id = auth.uid() and artist_id = p_artist_id;
+supabase/0023_follow_notifications.sql:35:    update public.artists set follower_count = greatest(follower_count - 1, 0) where id = p_artist_id;
+supabase/0023_follow_notifications.sql:38:  select jsonb_build_object('following', p_follow, 'artist_id', p_artist_id) into result;
+supabase/0023_follow_notifications.sql:42:revoke all on function public.toggle_artist_follow(uuid,boolean) from public;
+supabase/0023_follow_notifications.sql:43:grant execute on function public.toggle_artist_follow(uuid,boolean) to authenticated;
+supabase/0032_private_ticket_access.sql:33:  add column if not exists visibility text not null default 'PUBLIC',
+supabase/0032_private_ticket_access.sql:41:alter table public.ticket_types drop constraint if exists ticket_types_visibility_check;
+supabase/0032_private_ticket_access.sql:42:alter table public.ticket_types add constraint ticket_types_visibility_check
+supabase/0032_private_ticket_access.sql:43:  check (visibility in ('PUBLIC','PRIVATE'));
+supabase/0032_private_ticket_access.sql:50:    (visibility = 'PUBLIC' and access_method is null and access_credential_hash is null)
+supabase/0032_private_ticket_access.sql:52:    (visibility = 'PRIVATE' and access_method is not null and access_credential_hash is not null)
+supabase/0032_private_ticket_access.sql:67:    visibility = 'PUBLIC'
+supabase/0032_private_ticket_access.sql:77:  where visibility = 'PRIVATE';
+supabase/0032_private_ticket_access.sql:117:  p_visibility text default 'PUBLIC',
+supabase/0032_private_ticket_access.sql:133:  v_visibility text := upper(trim(coalesce(p_visibility, 'PUBLIC')));
+supabase/0032_private_ticket_access.sql:143:  if v_visibility not in ('PUBLIC','PRIVATE') then raise exception using errcode = '22023', message = 'Invalid ticket visibility'; end if;
+supabase/0032_private_ticket_access.sql:144:  if v_visibility = 'PRIVATE' then
+supabase/0032_private_ticket_access.sql:150:  insert into public.ticket_types(name, event_id, price, capacity, sales_start, sales_end, maximum_per_customer, visibility, access_method, access_credential_hash, access_credential_hint, maximum_redemptions, maximum_purchases_per_user)
+supabase/0032_private_ticket_access.sql:151:  values (trim(p_name), p_event_id, p_price, p_capacity, p_sales_start, p_sales_end, greatest(1, coalesce(p_maximum_per_customer, 4)), v_visibility, v_method, v_hash, nullif(trim(p_access_credential_hint), ''), p_maximum_redemptions, p_maximum_purchases_per_user)
+supabase/0032_private_ticket_access.sql:154:  values (auth.uid(), 'private_ticket.created', 'ticket_type', v_ticket.id, jsonb_build_object('event_id', p_event_id, 'visibility', v_visibility, 'access_method', v_method));
+supabase/0032_private_ticket_access.sql:155:  return jsonb_build_object('id', v_ticket.id, 'event_id', v_ticket.event_id, 'name', v_ticket.name, 'price', v_ticket.price, 'capacity', v_ticket.capacity, 'sold', v_ticket.sold, 'reserved', v_ticket.reserved, 'sales_start', v_ticket.sales_start, 'sales_end', v_ticket.sales_end, 'maximum_per_customer', v_ticket.maximum_per_customer, 'visibility', v_ticket.visibility, 'access_method', v_ticket.access_method, 'access_credential_hint', v_ticket.access_credential_hint, 'maximum_redemptions', v_ticket.maximum_redemptions, 'redemptions', v_ticket.redemptions, 'maximum_purchases_per_user', v_ticket.maximum_purchases_per_user);
+supabase/0032_private_ticket_access.sql:183:  for v_ticket in select * from public.ticket_types where event_id = p_event_id and visibility = 'PRIVATE' and (sales_start is null or sales_start <= now()) and (sales_end is null or sales_end >= now()) loop
+supabase/0032_private_ticket_access.sql:193:        return jsonb_build_object('id', v_ticket.id, 'event_id', v_ticket.event_id, 'name', v_ticket.name, 'price', v_ticket.price, 'capacity', v_ticket.capacity, 'sold', v_ticket.sold, 'reserved', v_ticket.reserved, 'sales_start', v_ticket.sales_start, 'sales_end', v_ticket.sales_end, 'maximum_per_customer', v_ticket.maximum_per_customer, 'visibility', v_ticket.visibility, 'access_method', v_ticket.access_method, 'access_credential_hint', v_ticket.access_credential_hint, 'maximum_redemptions', v_ticket.maximum_redemptions, 'redemptions', v_ticket.redemptions, 'maximum_purchases_per_user', v_ticket.maximum_purchases_per_user);
+supabase/0032_private_ticket_access.sql:200:      return jsonb_build_object('id', v_ticket.id, 'event_id', v_ticket.event_id, 'name', v_ticket.name, 'price', v_ticket.price, 'capacity', v_ticket.capacity, 'sold', v_ticket.sold, 'reserved', v_ticket.reserved, 'sales_start', v_ticket.sales_start, 'sales_end', v_ticket.sales_end, 'maximum_per_customer', v_ticket.maximum_per_customer, 'visibility', v_ticket.visibility, 'access_method', v_ticket.access_method, 'access_credential_hint', v_ticket.access_credential_hint, 'maximum_redemptions', v_ticket.maximum_redemptions, 'redemptions', v_ticket.redemptions, 'maximum_purchases_per_user', v_ticket.maximum_purchases_per_user);
+supabase/0032_private_ticket_access.sql:249:    if event_row.visibility = 'PRIVATE' then
+supabase/0034_delegated_admin_capabilities.sql:171:create or replace function public.admin_recent_audit_logs()
+supabase/0034_delegated_admin_capabilities.sql:182:revoke all on function public.admin_recent_audit_logs() from public;
+supabase/0034_delegated_admin_capabilities.sql:189:grant execute on function public.admin_recent_audit_logs() to authenticated;
+supabase/0038_role_governance_operational_control.sql:141: 'analytics',jsonb_build_object('comments',(select count(*) from public.content_comments where status='VISIBLE'),'ratings',(select count(*) from public.content_ratings),'likes',(select count(*) from public.content_likes))
+supabase/0038_role_governance_operational_control.sql:159:create or replace function public.public_content_analytics()
+supabase/0038_role_governance_operational_control.sql:174:grant execute on function public.public_content_analytics() to anon,authenticated;
+supabase/0040_super_admin_governance_completion.sql:4:-- onboarding queues, lifecycle accounting, niche engagement analytics, support,
+supabase/0040_super_admin_governance_completion.sql:94:    'analytics', jsonb_build_object(
+supabase/0044_remove_retained_synthetic_venues.sql:1:-- Atizzy Clean Slate follow-up: remove synthetic venues retained only because their
+supabase/0045_ticket_fee_governance_completion.sql:93:    'analytics', jsonb_build_object('likes',(select count(*) from public.content_likes),'ratings',(select count(*) from public.content_ratings),'comments',(select count(*) from public.content_comments where status='VISIBLE'))
+supabase/0061_onboarding_question_lifecycle.sql:85:    'analytics', jsonb_build_object('likes',(select count(*) from public.content_likes),'ratings',(select count(*) from public.content_ratings),'comments',(select count(*) from public.content_comments where status='VISIBLE'))
+--- frontend service exports ---
+src/services/user.js:14:export async function uploadMediaFile(userId, file, mediaKind, entityType = null, entityId = null) {
+src/services/user.js:31:export async function removeMediaAsset(asset) {
+src/services/user.js:39:export async function loadCurrentUser() {
+src/services/user.js:65:export async function loadFavoriteState(userId, eventId, artistId) {
+src/services/user.js:76:export async function toggleFavorite(table, key, userId, value) {
+src/services/user.js:88:export async function toggleEventFavorite(userId, eventId, next) {
+src/services/user.js:92:export async function toggleArtistFollow(userId, artistId, next) {
+src/services/user.js:99:export async function toggleMusicFavorite(userId, songId, next) {
+src/services/user.js:103:export async function loadMusicFavorites(userId) {
+src/services/user.js:110:export async function recordPlay(userId, songId, secondsPlayed = 0) {
+src/services/user.js:116:export async function loadPlaylists(userId) {
+src/services/user.js:123:export async function createPlaylist(userId, name) {
+src/services/user.js:132:export async function submitBooking(userId, artistId, payload) {
+src/services/user.js:139:export async function loadRoleDashboard(userId, roles = []) {
+src/services/user.js:164:export async function issueTicketQrToken(ticketId) {
+src/services/user.js:171:export async function checkInTicket(ticketId) {
+src/services/user.js:178:export async function checkInTicketWithToken(qrToken) {
+src/services/user.js:185:export async function validateTicketQr(qrToken, expectedEventId = null) {
+src/services/user.js:196:export async function updateProfile(userId, updates) {
+src/services/user.js:210:export async function loadArtistWorkspace(userId) {
+src/services/user.js:225:export async function loadArtistCreatorContent(artistId, userId) {
+src/services/user.js:239:export async function createArtistAlbum(artistId, userId, input) {
+src/services/user.js:247:export async function updateArtistAlbum(albumId, artistId, input) {
+src/services/user.js:255:export async function setArtistAlbumStatus(albumId, status) {
+src/services/user.js:261:export async function createArtistMusicVideo(artistId, userId, input) {
+src/services/user.js:269:export async function updateArtistMusicVideo(videoId, artistId, input) {
+src/services/user.js:277:export async function setArtistMusicVideoStatus(videoId, status) {
+src/services/user.js:283:export async function updateArtistProfile(artistId, userId, updates) {
+src/services/user.js:292:export async function createArtistSong(artistId, userId, input) {
+src/services/user.js:311:export async function setArtistSongStatus(songId, status) {
+src/services/user.js:316:export async function archiveArtistSong(songId) {
+src/services/user.js:323:export async function deleteArtistSong(songId) {
+src/services/user.js:336:export async function updateArtistSong(songId, artistId, updates) {
+src/services/user.js:345:export async function artistUpdateBookingStatus(bookingId, status) {
+src/services/user.js:352:export async function loadArtistOnboarding(userId) {
+src/services/user.js:371:export async function initializeArtistFeePayment(userId, transactionType) {
+src/services/user.js:379:export async function loadArtistFeeTransaction(transactionId) {
+src/services/user.js:386:export async function loadArtistAdminOverview() {
+src/services/user.js:400:export async function updateArtistFee(key, amount, userId) {
+src/services/user.js:409:export async function loadRoleApplication(userId, roleCode) {
+src/services/user.js:416:export async function loadOrganizerApplication(userId) {
+src/services/user.js:420:export async function applyAsOrganizer(userId, displayName, reason) {
+src/services/user.js:425:export async function loadOrganizerEvents(userId) {
+src/services/user.js:432:export async function createOrganizerEvent(userId, payload) {
+src/services/user.js:441:export async function updateOrganizerEvent(eventId, userId, payload) {
+src/services/user.js:449:export async function addOrganizerTicketType(eventId, userId, payload) {
+src/services/user.js:476:export async function discoverPrivateTicket(eventId, { code = null, word = null } = {}) {
+src/services/user.js:483:export async function linkOrganizerArtist(eventId, userId, artistId) {
+src/services/user.js:492:export async function publishOrganizerEvent(eventId) {
+src/services/user.js:499:export async function cancelOrganizerEvent(eventId) {
+src/services/user.js:506:export async function loadOrganizerEventDashboard(eventId) {
+src/services/user.js:513:export async function loadVenueManagerWorkspace(userId) {
+src/services/user.js:548:export async function applyAsVenueManager(userId, displayName, reason) {
+src/services/user.js:553:export async function createOwnedVenue(userId, payload) {
+src/services/user.js:565:export async function requestVenueBooking(userId, payload) {
+src/services/user.js:576:export async function respondVenueBooking(bookingId, status, reason = null) {
+src/services/user.js:583:export async function archiveOwnedVenue(venueId) {
+src/services/user.js:590:export async function deleteOwnedVenue(venueId) {
+src/services/user.js:603:export async function updateOwnedVenue(venueId, payload) {
+src/services/user.js:615:export async function setVenueAvailability(venueId, payload) {
+src/services/user.js:622:export async function initializeVenueBookingPayment(bookingId, idempotencyKey) {
+src/services/user.js:629:export async function loadAvailableVenues(startsAt, endsAt) {
+src/services/user.js:639:export async function loadSuperAdminAnalytics() {
+src/services/user.js:645:export async function searchOrganizerArtists(query = "") {
+src/services/user.js:659:export async function searchEventStaffUsers(query = "") {
+src/services/user.js:665:export async function assignEventStaff(eventId, staffUserId, responsibility = "GENERAL", instructions = "") {
+src/services/user.js:671:export async function loadEventStaffForOrganizer(eventId) {
+src/services/user.js:677:export async function updateEventStaffShift(assignmentId, shiftStartsAt = null, shiftEndsAt = null, shiftNote = "") {
+src/services/user.js:689:export async function revokeEventStaffAssignment(assignmentId) {
+src/services/user.js:695:export async function loadEventStaffWorkspace() {
+src/services/user.js:701:export async function respondEventStaffAssignment(assignmentId, status) {
+src/services/user.js:707:export async function acknowledgeEventStaffTask(taskId, status = "ACKNOWLEDGED") {
+src/services/user.js:713:export async function markEventStaffNotificationRead(notificationId) {
+src/services/user.js:719:export async function eventStaffEntryDecision(qrToken, decision = "ACCEPT") {
+src/services/user.js:725:export async function loadAdminDashboardSnapshot() {
+src/services/user.js:730:export async function adminListUsers(search = "") {
+src/services/user.js:735:export async function adminSuspendUser(userId, suspend, reason = "") {
+src/services/user.js:740:export async function adminReviewEvent(eventId, status, note = "") {
+src/services/user.js:745:export async function adminUpdateReport(reportId, status, note = "") {
+src/services/user.js:750:export async function loadAdminPaymentSupport() {
+src/services/user.js:755:export async function loadAdminAuditLogs() {
+src/services/user.js:761:export async function loadUserExperienceSnapshot() {
+src/services/user.js:767:export async function recordUserSearch(query) {
+src/services/user.js:773:export async function clearUserSearchHistory() {
+src/services/user.js:778:export async function updateUserPreferences(preferences) {
+src/services/user.js:784:export async function markUserNotificationRead(notificationId) {
+src/services/user.js:789:export async function markAllUserNotificationsRead() {
+src/services/user.js:794:export async function createSupportRequest(category, subject, message) {
+src/services/user.js:800:export async function loadUserCollections(userId) {
+src/services/user.js:818:export async function loadMyPosts(userId) {
+src/services/user.js:824:export async function createPost(payload) {
+src/services/user.js:829:export async function updatePost(postId, payload) {
+src/services/user.js:835:export async function setPostStatus(postId, status) {
+src/services/user.js:842:export async function deletePost(postId) {
+src/services/user.js:849:export async function loadPolicySettings() {
+src/services/user.js:855:export async function updatePolicySetting(key, value) {
+src/services/user.js:862:export async function loadRoleCapabilityMatrix() {
+src/services/user.js:867:export async function loadAdminPermissionGrants(adminUserId = null) {
+src/services/user.js:872:export async function setAdminPermission(adminUserId, permissionCode, granted, expiresAt = null) {
+src/services/user.js:879:export async function loadRoleGovernanceSnapshot() {
+src/services/user.js:885:export async function loadOnboardingConfig(roleCode = null) {
+src/services/user.js:891:export async function loadPublicRoleOnboardingConfig(roleCode) {
+src/services/user.js:898:export async function saveOnboardingQuestion(question = {}) {
+src/services/user.js:912:export async function setOnboardingQuestionStatus(questionId, action, reason = "") {
+src/services/user.js:923:export async function submitRoleApplication(roleCode, answers) {
+src/services/user.js:929:export async function initializeRoleApplicationPayment(applicationId, idempotencyKey, email, callbackUrl) {
+src/services/user.js:939:export async function reviewRoleApplication(applicationId, status, reason = null) {
+src/services/user.js:945:export async function creditWalletForCancelledOrder(userId, amount, reason, referenceId = null) {
+src/services/user.js:951:export async function loadPublicContentAnalytics() {
+src/services/user.js:957:export async function createContentComment(targetType, targetId, body, authorId) {
+src/services/user.js:967:export async function setContentRating(targetType, targetId, rating, userId) {
+src/services/user.js:977:export async function setContentLike(targetType, targetId, userId, liked) {
+src/services/user.js:990:export async function setRoleFeePolicy(roleCode, enabled, amount, currency = "NGN", reviewHours = 24) {
+src/services/user.js:995:export async function setPlatformFeePolicy(policyKey, enabled, feeType, amount, currency = "NGN") {
+src/services/user.js:1007:export async function adminSetEventStatus(eventId, status, reason = null) {
+src/services/user.js:1018:export async function loadGovernanceEvents() {
+src/services/user.js:1024:export async function loadContentEngagement(targetType, targetId, userId = null) {
+src/services/user.js:1048:export async function superAdminSetRole(targetUserId, roleCode, action, reason = "") {
+src/services/user.js:1060:export async function loadRoleAssignmentHistory(targetUserId = null) {
+src/services/user.js:1068:export async function superAdminSetRolePermission(roleCode, permissionCode, granted, reason = "") {
+src/services/catalog.js:5:export const SYNTHETIC_CATALOG_IDS = Object.freeze({
+src/services/catalog.js:39:export const isSyntheticCatalogRecord = (kind, record) => Boolean(record?.id && SYNTHETIC_CATALOG_IDS[kind]?.has(record.id));
+src/services/catalog.js:40:export const filterLiveCatalogRows = (kind, rows) => (rows || []).filter((row) => !isSyntheticCatalogRecord(kind, row));
+src/services/catalog.js:58:export const formatFollowers = (value) => {
+src/services/catalog.js:65:export const formatDateTime = (value) => {
+src/services/catalog.js:75:export const toEvent = (event, index = 0) => {
+src/services/catalog.js:98:export const toArtist = (artist) => {
+src/services/catalog.js:114:export async function loadArtistDetail(artistId) {
+src/services/catalog.js:121:export const toSong = (song) => ({
+src/services/catalog.js:133:export async function loadCatalog() {
+src/services/catalog.js:152:export async function searchCatalog(query) {
+src/services/catalog.js:172:export async function loadEventDetail(eventId) {
+src/services/catalog.js:188:export async function loadVenueDetail(venueId) {
+--- active section loaders ---
+src/EventVerse.jsx:9:import { loadCatalog, loadArtistDetail, loadEventDetail, loadVenueDetail, searchCatalog, formatFollowers } from "./services/catalog";
+src/EventVerse.jsx:11:import { loadCurrentUser, loadFavoriteState, toggleEventFavorite, toggleArtistFollow, toggleMusicFavorite, loadMusicFavorites, recordPlay, loadPlaylists, createPlaylist, submitBooking, loadRoleDashboard, loadArtistWorkspace, loadArtistCreatorContent, createArtistSong, setArtistSongStatus, archiveArtistSong, deleteArtistSong, createArtistAlbum, updateArtistAlbum, setArtistAlbumStatus, createArtistMusicVideo, updateArtistMusicVideo, setArtistMusicVideoStatus, updateArtistProfile, updateArtistSong, artistUpdateBookingStatus, issueTicketQrToken, updateProfile, loadArtistOnboarding, initializeArtistFeePayment, loadArtistFeeTransaction, loadArtistAdminOverview, updateArtistFee, loadOrganizerApplication, applyAsOrganizer, loadOrganizerEvents, createOrganizerEvent, updateOrganizerEvent, addOrganizerTicketType, discoverPrivateTicket, linkOrganizerArtist, publishOrganizerEvent, cancelOrganizerEvent, loadOrganizerEventDashboard, loadVenueManagerWorkspace, applyAsVenueManager, createOwnedVenue, updateOwnedVenue, archiveOwnedVenue, deleteOwnedVenue, requestVenueBooking, respondVenueBooking, setVenueAvailability, initializeVenueBookingPayment, loadAvailableVenues, searchOrganizerArtists, searchEventStaffUsers, assignEventStaff, loadEventStaffForOrganizer, updateEventStaffShift, revokeEventStaffAssignment, loadEventStaffWorkspace, respondEventStaffAssignment, acknowledgeEventStaffTask, loadSuperAdminAnalytics, loadAdminDashboardSnapshot, adminListUsers, adminSuspendUser, adminReviewEvent, loadAdminPaymentSupport, loadAdminAuditLogs, loadUserExperienceSnapshot, loadUserCollections, recordUserSearch, clearUserSearchHistory, updateUserPreferences, markUserNotificationRead, markAllUserNotificationsRead, createSupportRequest, uploadMediaFile, loadMyPosts, createPost, updatePost, setPostStatus, deletePost, removeMediaAsset, loadPolicySettings, updatePolicySetting, loadRoleCapabilityMatrix, loadAdminPermissionGrants, setAdminPermission, loadRoleGovernanceSnapshot, loadOnboardingConfig, loadPublicRoleOnboardingConfig, saveOnboardingQuestion, submitRoleApplication, loadRoleApplication, initializeRoleApplicationPayment, reviewRoleApplication, creditWalletForCancelledOrder, loadPublicContentAnalytics, createContentComment, setContentRating, setContentLike, setRoleFeePolicy, setPlatformFeePolicy, adminSetEventStatus, loadGovernanceEvents, loadContentEngagement, superAdminSetRole, superAdminSetRolePermission, loadRoleAssignmentHistory } from "./services/user";
+src/EventVerse.jsx:390:      void recordPlay(userId, song.id, Math.floor(audio.currentTime || song.duration_seconds || 0));
+src/EventVerse.jsx:757:            <span className="text-[14px] font-semibold" style={{ color: C.ivory }}>Popular Artists</span>
+src/EventVerse.jsx:811:        <Section title="Trending Events" nav={nav}>
+src/EventVerse.jsx:815:        <Section title="Events Near You" nav={nav}>
+src/EventVerse.jsx:819:        <Section title="Popular Venues" nav={nav} last>
+src/EventVerse.jsx:1753:  useEffect(() => { let mounted = true; loadUserExperienceSnapshot().then((data) => { if (mounted) setSnapshot(data); }).catch((error) => { if (mounted) setMessage(error.message || "Unable to load your account preferences."); }).finally(() => { if (mounted) setLoading(false); }); return () => { mounted = false; }; }, []);
+src/EventVerse.jsx:1794:  const items = ["My Tickets", "Music Library", "Followed Artists", "Liked Music", "Recently Played", "Activity", "Preferences", "Notifications", "Security", "Help & Support"];
+src/EventVerse.jsx:1851:          <button key={it} onClick={() => it === "My Tickets" ? nav.push("tickets") : it === "Music Library" ? nav.push("music") : ["Followed Artists", "Liked Music", "Recently Played", "Activity"].includes(it) ? nav.push("profileCollections", { initialTab: it }) : ["Preferences", "Notifications", "Help & Support"].includes(it) ? nav.push("userExperience", { initialTab: it }) : it === "Security" ? nav.push("security") : null} className="w-full flex items-center justify-between py-3.5" style={{ borderBottom: `1px solid ${C.line}` }}>
+src/EventVerse.jsx:1957:        <Section title="Recently Played" nav={nav}>
+src/EventVerse.jsx:1969:            <span className="text-[14px] font-semibold" style={{ color: C.ivory }}>Popular Songs</span>
+src/EventVerse.jsx:1985:        <Section title="Popular Artists" nav={nav} last>
+src/EventVerse.jsx:2226:  return <Phone><TopBack title="Music Detail" onBack={nav.pop} right={<button onClick={toggleLike}><Heart size={18} color={liked ? C.gold : C.ivory} fill={liked ? C.gold : "none"} /></button>} /><div className="flex-1 overflow-y-auto px-5 pb-6"><div className="aspect-square rounded-3xl mb-5" style={imageStyle(song.coverUrl, `linear-gradient(145deg, ${C.green}, ${C.wood})`)} /><h1 className="ev-display text-2xl" style={{ color: C.ivory }}>{song.title}</h1><p className="text-[13px] mt-1" style={{ color: C.goldSoft }}>{song.artist}</p><p className="text-[11px] mt-2" style={{ color: C.muted }}>{song.plays || "0"} plays · {song.duration}</p><div className="mt-6"><GoldButton onClick={() => { player.play(song); recordPlay(account?.user?.id, song.id).catch(() => {}); }}> <Play size={15} fill="#1A1408" className="inline mr-2" /> Play now</GoldButton></div><div className="mt-4"><GhostButton onClick={() => nav.push("musicPlayer", song)}>Open full player</GhostButton></div><EngagementPanel targetType="SONG" targetId={song.id} account={account} /></div></Phone>;
+src/EventVerse.jsx:2235:  useEffect(() => { if (account?.user?.id) loadUserExperienceSnapshot().then(setSnapshot).catch(() => {}); }, [account?.user?.id]);
+src/EventVerse.jsx:2237:  return <Phone><TopBack title="Notifications" onBack={nav.pop} right={<button onClick={() => markAllUserNotificationsRead().then(() => loadUserExperienceSnapshot().then(setSnapshot))}><Check size={17} color={C.gold} /></button>} /><div className="flex-1 overflow-y-auto px-5 pb-6">{notifications.map((item) => <button key={item.id} onClick={() => { markUserNotificationRead(item.id).catch(() => {}); const deepLink = item.deep_link || item.metadata?.deep_link; if (deepLink) nav.push(deepLink.screen || "userExperience", deepLink.data); }} className="ev-card w-full text-left rounded-2xl p-4 mb-3" style={{ background: item.read_at ? C.card : `linear-gradient(135deg, ${C.woodLight}55, ${C.card})`, border: `1px solid ${item.read_at ? C.line : C.gold + "55"}` }}><p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{item.title || "Atizzy update"}</p><p className="text-[11px] mt-1" style={{ color: C.muted }}>{item.body || item.message || "Open to view details."}</p></button>)}{!notifications.length && <p className="py-8 text-center text-[13px]" style={{ color: C.muted }}>You have no notifications.</p>}</div></Phone>;
+src/EventVerse.jsx:2245:  useEffect(() => { let mounted = true; loadUserCollections(account?.user?.id).then((value) => mounted && setData(value)).catch(() => mounted && setData({ followedArtists: [], likedMusic: [], recentlyPlayed: [], activity: [] })).finally(() => mounted && setLoading(false)); return () => { mounted = false; }; }, [account?.user?.id]);
+src/EventVerse.jsx:2246:  const tabs = ["Followed Artists", "Liked Music", "Recently Played", "Activity"];
+src/EventVerse.jsx:2247:  const rows = tab === "Followed Artists" ? data.followedArtists : tab === "Liked Music" ? data.likedMusic : tab === "Recently Played" ? data.recentlyPlayed : data.activity;
+src/EventVerse.jsx:2279:        const liveCatalog = await loadCatalog();
+src/services/catalog.js:133:export async function loadCatalog() {
+src/services/user.js:110:export async function recordPlay(userId, songId, secondsPlayed = 0) {
+src/services/user.js:761:export async function loadUserExperienceSnapshot() {
+src/services/user.js:800:export async function loadUserCollections(userId) {
+src/services/user.js:951:export async function loadPublicContentAnalytics() {

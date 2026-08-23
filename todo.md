@@ -1604,3 +1604,25 @@
 - [x] Ensure all future tickets receive a high-contrast, standards-compliant scannable QR code
 - [x] Verify QR rendering and scanner validation across ticket detail, ticket list, and future ticket flows
 - [x] Run focused and full regression validation, production build, and save a QR repair checkpoint
+
+# Master Discovery and Analytics Directive — 2026-08-23
+- [x] Extract and map every directive from pasted_content.txt into an auditable requirements matrix
+- [x] Audit current discovery sections, schemas, relationships, RLS, analytics events, ranking queries, caching, location, and frontend data sources
+- [ ] Establish one canonical server-side analytics/event model for qualified plays, likes, follows, views, event interactions, purchases, playlists, and searches
+- [ ] Implement qualified song-play tracking from actual playback start with duration, completion, timestamp, user, song, and session semantics
+- [ ] Implement literal Events catalogue ordering and future-only chronological Upcoming Events semantics
+- [ ] Implement deterministic measurable Popular Artists ranking with documented normalized engagement signals
+- [ ] Implement recent-window momentum Trending Events ranking distinct from lifetime popularity
+- [ ] Implement privacy-safe coordinate-based Events Near You with configured radius and graceful location denial fallback
+- [ ] Implement measurable Popular Venues ranking from real engagement signals
+- [ ] Implement current-user Recently Played and private Most Played Songs with server-side scope enforcement
+- [ ] Implement platform-wide Most Played Songs using aggregate qualified plays without exposing private identities
+- [ ] Implement Popular Songs, Popular Albums, Most Liked Songs, Most Liked Artists, and Most Watched Music Videos using literal real metrics
+- [ ] Enforce private/public/collaborative playlist visibility in database authorization and discovery queries
+- [x] Define and document time windows, normalization, indexes, aggregation strategy, and empty states for every category
+- [x] Centralize all discovery category queries in one authoritative service/data layer
+- [x] Connect every preserved Atizzy discovery section to live data and reactive loading/error/empty states without mock data or visual redesign
+- [ ] Audit playback, video, likes, follows, playlist, event interaction, caching, and data-consistency lifecycles end-to-end
+- [x] Add regression coverage for semantic rankings, privacy boundaries, location filtering, qualified analytics, and no-fake-data behavior
+- [ ] Run database/RLS/frontend/responsive/production verification and literal semantic acceptance tests for every category
+- [ ] Deploy the completed directive implementation, save a final checkpoint, and produce the exact definition/source/calculation/privacy/window report
