@@ -1694,7 +1694,16 @@
 
 # Deletion Authorization Schema Regression — 2026-08-23
 
-- [ ] Inspect live role-assignment columns and deployed deletion authorization path for `ur.role`
-- [ ] Locate and remove every stale `ur.role` reference from deletion-related SQL/API code
-- [ ] Add regression coverage for the actual role relationship shape
-- [ ] Redeploy and verify artist, Super Admin, and venue deletion against the live path
+- [x] Inspect live role-assignment columns and deployed deletion authorization path for `ur.role`
+- [x] Locate and remove every stale `ur.role` reference from deletion-related SQL/API code
+- [x] Add regression coverage for the actual role relationship shape
+- [x] Redeploy and verify artist, Super Admin, and venue deletion against the live path
+
+# Music Video Visibility Regression — 2026-08-23
+
+- [x] Trace artist music-video creation, upload, media_assets, and publish-state paths
+- [x] Trace music-video catalog/discovery queries, filters, joins, and intended UI render surfaces
+- [x] Reproduce the missing-video path and identify the first broken data or visibility invariant
+- [x] Implement the root fix without changing the Atizzy design system or adding mock data
+- [x] Add regression coverage proving a published music video reaches its intended UI surface
+- [ ] Run full validation and verify the deployed production path

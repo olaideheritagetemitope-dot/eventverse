@@ -1907,6 +1907,7 @@ function ArtistProfile({ nav, data, account, catalog }) {
   if (!a) return <Phone><div className="flex-1 flex items-center justify-center px-6 text-center" style={{ color: C.muted }}>Artist details are unavailable.</div></Phone>;
   const avatarSource = a.avatarUrl || a.img || a.image_url || a.avatar_url || a.profile_image_url || null;
   const backgroundSource = a.backgroundUrl || a.coverUrl || a.background_url || a.background_image_url || a.cover_url || null;
+  const musicVideos = firstNonEmpty(a.musicVideos, catalog?.allMusicVideos?.filter((video) => video.artistId === a.id || video.artist_id === a.id), catalog?.latestMusicVideos?.filter((video) => video.artistId === a.id || video.artist_id === a.id));
   const toggleFollow = async () => { try { const next = !following; await toggleArtistFollow(account?.user?.id, a.id, next); setFollowing(next); } catch (followError) { setError(followError.message || "Unable to update follow."); } };
   return (
     <Phone>
@@ -1930,13 +1931,20 @@ function ArtistProfile({ nav, data, account, catalog }) {
         </div>
         {error && <AuthMessage error={error} />}
         <div className="flex gap-5 mb-4 overflow-x-auto no-scrollbar">
-          {["Popular", "Songs", "Albums", "Events", "About"].map((t) => (
+          {["Popular", "Songs", "Albums", "Music Videos", "Events", "About"].map((t) => (
             <button key={t} onClick={() => setTab(t)} className="text-[13px] pb-2 whitespace-nowrap" style={{ color: tab === t ? C.gold : C.muted, borderBottom: tab === t ? `2px solid ${C.gold}` : "2px solid transparent" }}>{t}</button>
           ))}
         </div>
       </div>
       <div className="flex-1 overflow-y-auto px-5">
-        {songs.slice(0, 4).map((s, i) => (
+        {tab === "Music Videos" ? (
+          musicVideos.length ? musicVideos.map((video) => (
+            <button type="button" key={video.id} onClick={() => nav.push("musicDetail", { ...video, musicVideoUrl: video.videoUrl || video.musicVideoUrl, artist: video.artist || a.name })} className="w-full flex items-center gap-3 py-2.5 text-left">
+              <div className="w-16 h-10 rounded-lg flex-shrink-0" style={imageStyle(video.thumbnailUrl, `linear-gradient(135deg, ${C.wood}, ${C.green})`)} />
+              <div className="flex-1"><p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{video.title}</p><p className="text-[11px]" style={{ color: C.muted }}>{a.name}</p></div><Play size={16} color={C.gold} />
+            </button>
+          )) : <EmptyResourceCard label="No music videos yet" description="Published music videos from this artist will appear here." />
+        ) : songs.slice(0, 4).map((s, i) => (
           <div key={s.id} className="flex items-center gap-3 py-2.5">
             <span className="w-4 text-[12px]" style={{ color: C.muted }}>{i + 1}</span>
             <div className="w-10 h-10 rounded-lg" style={{ background: `linear-gradient(135deg, ${C.wood}, ${C.green})` }} />
@@ -1959,6 +1967,7 @@ function ArtistProfile({ nav, data, account, catalog }) {
 function MusicHome({ nav, player, catalog, account }) {
   const songs = firstNonEmpty(catalog?.popularSongs, catalog?.latestSongs, catalog?.allSongs);
   const artists = firstNonEmpty(catalog?.popularArtists, catalog?.latestArtists, catalog?.allArtists);
+  const musicVideos = firstNonEmpty(catalog?.mostWatchedMusicVideos, catalog?.latestMusicVideos, catalog?.allMusicVideos);
   const recentlyPlayed = catalog?.recentlyPlayed || [];
   const popularAlbums = catalog?.popularAlbums || [];
   const [favorites, setFavorites] = useState([]);
@@ -2007,6 +2016,15 @@ function MusicHome({ nav, player, catalog, account }) {
             {!songs.length && [0, 1, 2].map((slot) => <EmptySongRow key={`popular-song-empty-${slot}`} />)}
           </div>
         </div>
+        <Section title="Music Videos" nav={nav}>
+          {musicVideos.slice(0, 6).map((video) => (
+            <button type="button" key={video.id} onClick={() => nav.push("musicDetail", { ...video, musicVideoUrl: video.videoUrl || video.musicVideoUrl })} className="flex-shrink-0 w-44 rounded-2xl overflow-hidden text-left" style={{ background: C.card, border: `1px solid ${C.line}` }}>
+              <div className="relative" style={{ height: 96, ...imageStyle(video.thumbnailUrl, `linear-gradient(135deg, ${C.wood}, ${C.green})`) }}><div className="absolute inset-0 flex items-center justify-center" style={{ background: "#00000028" }}><Play size={22} color={C.ivory} fill={C.ivory} /></div></div>
+              <div className="p-3"><p className="text-[12.5px] font-semibold truncate" style={{ color: C.ivory }}>{video.title}</p><p className="text-[11px] truncate" style={{ color: C.muted }}>{video.artist}</p></div>
+            </button>
+          ))}
+          {!musicVideos.length && [0, 1, 2].map((slot) => <EmptySongCard key={`music-video-empty-${slot}`} />)}
+        </Section>
         <Section title="Popular Artists" nav={nav} last>
           {artists.map((a) => (
             <button key={a.id} onClick={() => nav.push("artist", a)} className="flex-shrink-0 flex flex-col items-center gap-1.5 w-16">

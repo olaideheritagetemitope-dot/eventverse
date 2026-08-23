@@ -113,10 +113,27 @@ export const toArtist = (artist) => {
 
 export async function loadArtistDetail(artistId) {
   if (!artistId) return null;
-  const { data, error } = await supabase.from("artists").select("id,user_id,name,bio,verified,follower_count,image_url,background_url,created_at,updated_at").eq("id", artistId).maybeSingle();
+  const [{ data, error }, videosResult] = await Promise.all([
+    supabase.from("artists").select("id,user_id,name,bio,verified,follower_count,image_url,background_url,created_at,updated_at").eq("id", artistId).maybeSingle(),
+    supabase.from("music_videos").select("id,artist_id,title,description,thumbnail_url,video_url,status,published_at,created_at,artists(id,name)").eq("artist_id", artistId).eq("status", "PUBLISHED").not("video_url", "is", null).order("published_at", { ascending: false }),
+  ]);
   if (error) throw error;
-  return data ? toArtist(data) : null;
+  if (videosResult.error) throw videosResult.error;
+  return data ? { ...toArtist(data), musicVideos: (videosResult.data || []).map(toMusicVideo) } : null;
 }
+
+export const toMusicVideo = (video) => ({
+  ...video,
+  id: video.id,
+  title: video.title,
+  artistId: video.artist_id,
+  artist: video.artists?.name || "Artist pending",
+  description: video.description || "",
+  videoUrl: mediaUrl(video.video_url || video.videoUrl),
+  thumbnailUrl: mediaUrl(video.thumbnail_url || video.thumbnailUrl || video.cover_url),
+  musicVideoUrl: mediaUrl(video.video_url || video.videoUrl),
+  publishedAt: video.published_at || null,
+});
 
 export const toSong = (song) => ({
   ...song,
@@ -134,6 +151,7 @@ const baseCatalogQueries = {
   events: () => supabase.from("events").select("id,organizer_id,venue_id,title,description,event_type,city,starts_at,ends_at,cover_url,status,rating,review_count,venues(id,name,city,address,capacity),ticket_types(id,price)").in("status", ["PUBLISHED", "SOLD_OUT", "LIVE", "COMPLETED"]).order("starts_at"),
   artists: () => supabase.from("artists").select("id,user_id,name,bio,verified,follower_count,image_url,background_url").eq("verified", true).order("follower_count", { ascending: false }),
   songs: () => supabase.from("songs").select("id,artist_id,title,duration_seconds,audio_url,cover_url,play_count,status,published_at,artists(id,name,image_url)").eq("status", "PUBLISHED").not("audio_url", "is", null).order("play_count", { ascending: false }),
+  musicVideos: () => supabase.from("music_videos").select("id,artist_id,title,description,thumbnail_url,video_url,status,published_at,created_at,artists(id,name)").eq("status", "PUBLISHED").not("video_url", "is", null).order("published_at", { ascending: false }),
   categories: () => supabase.from("categories").select("id,name,slug").order("name"),
   venues: () => supabase.from("venues").select("id,name,city,address,capacity,status,image_urls").eq("status", "ACTIVE").order("name"),
 };
@@ -155,6 +173,9 @@ export async function loadCatalog() {
     events: filterLiveCatalogRows("events", results.events.data).map(toEvent),
     artists: filterLiveCatalogRows("artists", results.artists.data).map(toArtist),
     songs: filterLiveCatalogRows("songs", results.songs.data).map(toSong),
+    musicVideos: results.musicVideos.data.map(toMusicVideo),
+    latestMusicVideos: results.musicVideos.data.map(toMusicVideo),
+    allMusicVideos: results.musicVideos.data.map(toMusicVideo),
     categories: results.categories.data,
     venues: filterLiveCatalogRows("venues", results.venues.data).map((venue) => ({ ...venue, imageUrl: firstVenueImage(venue) })),
     catalogErrors: Object.fromEntries(Object.entries(results).filter(([, result]) => result.error).map(([name, result]) => [name, result.error])),

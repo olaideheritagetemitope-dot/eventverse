@@ -38,3 +38,11 @@ The reported `column ur.role does not exist` error came from the destructive RPC
 Migration 0083, `fix_delete_role_column`, recreated `delete_artist_song(uuid)` and `delete_owned_venue(uuid)` with `join public.roles r on r.id = ur.role_id` and `r.code in ('ADMIN','SUPER_ADMIN')`, while preserving ownership checks, active-status checks, audit logging, venue booking-history preservation, and existing return contracts. Supabase accepted the migration, and live function inspection confirmed both deployed bodies use the canonical join.
 
 Validation passed: focused deletion regression, full suite with 58 files and 209 passing tests plus 2 skipped, TypeScript validation, production build, diff check, and source scan showing no stale executable `ur.role` reference in `src`, `api`, or tests. Live authenticated deletion smoke testing remains the final user-side confirmation gate.
+
+## Music-video visibility regression — 2026-08-23
+
+The artist publishing path and Supabase `music_videos` public-read policy were already present. The user-visible omission occurred after publishing: the root catalog did not load music videos as a base live-data resource, `loadArtistDetail` returned only the artist row, and the public Music and Artist Profile render branches contained no music-video section/tab. Discovery arrays were preserved but could not guarantee visibility when discovery was empty or unavailable.
+
+Root fix applied: added a published-video base catalog query with URL eligibility, a shared `toMusicVideo` UI normalization boundary, published-video loading in artist detail, a Music screen section using the existing Atizzy section/card patterns, and a Music Videos tab on Artist Profile using the existing music-detail route. No mock records or visual redesign were introduced.
+
+Validation: focused music-video visibility tests passed; full suite passed with 59 files, 210 passing tests, and 3 skipped; TypeScript validation, production build, and `git diff --check` passed. Production deployment verification remains pending.
