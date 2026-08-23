@@ -2038,7 +2038,7 @@ function ArtistProfile({ nav, data, account, catalog }) {
       <div className="flex-1 overflow-y-auto px-5">
         {tab === "Music Videos" ? (
           musicVideos.length ? musicVideos.map((video) => (
-            <button type="button" key={video.id} onClick={() => nav.push("musicDetail", { ...video, musicVideoUrl: video.videoUrl || video.musicVideoUrl, artist: video.artist || a.name })} className="w-full flex items-center gap-3 py-2.5 text-left">
+            <button type="button" key={video.id} onClick={() => nav.push("musicVideoDetail", { ...video, musicVideoUrl: video.videoUrl || video.musicVideoUrl, artist: video.artist || a.name })} className="w-full flex items-center gap-3 py-2.5 text-left">
               <div className="w-16 h-10 rounded-lg flex-shrink-0" style={imageStyle(video.thumbnailUrl, `linear-gradient(135deg, ${C.wood}, ${C.green})`)} />
               <div className="flex-1"><p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{video.title}</p><p className="text-[11px]" style={{ color: C.muted }}>{a.name}</p></div><Play size={16} color={C.gold} />
             </button>
@@ -2117,7 +2117,7 @@ function MusicHome({ nav, player, catalog, account }) {
         </div>
         <Section title="Music Videos" nav={nav}>
           {musicVideos.slice(0, 6).map((video) => (
-            <button type="button" key={video.id} onClick={() => nav.push("musicDetail", { ...video, musicVideoUrl: video.videoUrl || video.musicVideoUrl })} className="flex-shrink-0 w-44 rounded-2xl overflow-hidden text-left" style={{ background: C.card, border: `1px solid ${C.line}` }}>
+            <button type="button" key={video.id} onClick={() => nav.push("musicVideoDetail", { ...video, musicVideoUrl: video.videoUrl || video.musicVideoUrl })} className="flex-shrink-0 w-44 rounded-2xl overflow-hidden text-left" style={{ background: C.card, border: `1px solid ${C.line}` }}>
               <div className="relative" style={{ height: 96, ...imageStyle(video.thumbnailUrl, `linear-gradient(135deg, ${C.wood}, ${C.green})`) }}><div className="absolute inset-0 flex items-center justify-center" style={{ background: "#00000028" }}><Play size={22} color={C.ivory} fill={C.ivory} /></div></div>
               <div className="p-3"><p className="text-[12.5px] font-semibold truncate" style={{ color: C.ivory }}>{video.title}</p><p className="text-[11px] truncate" style={{ color: C.muted }}>{video.artist}</p></div>
             </button>
@@ -2667,6 +2667,7 @@ export default function EventVerseApp() {
     eventDetail: <EventDetail nav={nav} data={current.data} account={account} />,
     venueDetail: <VenueDetail nav={nav} data={current.data} />,
     musicDetail: <MusicDetail nav={nav} data={current.data} player={player} account={account} />,
+    musicVideoDetail: <MusicVideoDetail nav={nav} video={current.data} player={player} account={account} />,
     notifications: <NotificationBoard nav={nav} account={account} />,
     security: <SecurityScreen nav={nav} account={account} />,
     tickets: <TicketSelection nav={nav} data={current.data} />,

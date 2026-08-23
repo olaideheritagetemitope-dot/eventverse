@@ -34,4 +34,15 @@ describe("music video visibility contract", () => {
     expect(app).toContain('Link to song (optional)');
     expect(app).toContain('function MusicVideoDetail');
   });
+
+  it("uses a dedicated route for every Music Video card", () => {
+    expect(app).toContain('nav.push("musicVideoDetail", { ...video, musicVideoUrl: video.videoUrl || video.musicVideoUrl })');
+    expect(app).toContain('nav.push("musicVideoDetail", { ...video, musicVideoUrl: video.videoUrl || video.musicVideoUrl, artist: video.artist || a.name })');
+    expect(app).toContain('musicVideoDetail: <MusicVideoDetail nav={nav} video={current.data} player={player} account={account} />');
+  });
+
+  it("does not rely on the overloaded Song detail route for Music Video cards", () => {
+    expect(app).not.toContain('nav.push("musicDetail", { ...video, musicVideoUrl: video.videoUrl || video.musicVideoUrl })');
+    expect(app).not.toContain('nav.push("musicDetail", { ...video, musicVideoUrl: video.videoUrl || video.musicVideoUrl, artist: video.artist || a.name })');
+  });
 });

@@ -1844,3 +1844,11 @@
 - [ ] Audit songs, music_videos, favorites, RPCs, RLS, storage objects/policies, queries, and frontend types for incompatible assumptions.
 - [ ] Add regression coverage for audio-only, standalone-video, linked Song+Video, lyrics, navigation, refresh, favorite, and playback lifecycles.
 - [ ] Run full validation and verify the actual deployed UI with authenticated production/device media flows.
+
+# Release-to-Frontend Visibility Regression — 2026-08-23
+
+- [ ] Identify whether the visible app is using the active EventVerse project, stale build output, stale deployment, or cached bundle.
+- [ ] Verify the production branch/deployment commit and frontend entrypoint actually serving the reported UI.
+- [ ] Trace route mounting, component selection, and live media data flow for the claimed changes.
+- [x] Repair the first release, runtime, route, or cache disconnection preventing changes from appearing.
+- [x] Validate the served frontend and add regression coverage for the visibility boundary.
