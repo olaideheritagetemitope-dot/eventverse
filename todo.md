@@ -1603,4 +1603,4 @@
 - [x] Repair the database QR issuance path and regenerate the existing sample ticket without charging again
 - [x] Ensure all future tickets receive a high-contrast, standards-compliant scannable QR code
 - [x] Verify QR rendering and scanner validation across ticket detail, ticket list, and future ticket flows
-- [ ] Run focused and full regression validation, production build, and save a QR repair checkpoint
+- [x] Run focused and full regression validation, production build, and save a QR repair checkpoint
