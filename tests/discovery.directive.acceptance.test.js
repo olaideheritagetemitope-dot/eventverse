@@ -14,11 +14,42 @@ describe("Atizzy canonical discovery directive contracts", () => {
       .mockResolvedValueOnce({ data: { latestSongs: [{ id: "song-new" }], latestEvents: [{ id: "event-new" }] }, error: null });
     const snapshot = await loadDiscoverySnapshot({ latitude: 6.52, longitude: 3.37, radiusKm: 25 });
     expect(rpc).toHaveBeenCalledWith("get_discovery_snapshot", { p_latitude: 6.52, p_longitude: 3.37, p_radius_km: 25 });
+    expect(rpc).toHaveBeenCalledWith("get_cold_start_discovery_catalogue", { p_limit: 24, p_offset: 0 });
     expect(snapshot.popularSongs).toEqual([{ id: "song-1" }]);
     expect(snapshot.nearbyEvents).toEqual([]);
     expect(snapshot.latestSongs).toEqual([{ id: "song-new" }]);
     expect(snapshot.latestEvents).toEqual([{ id: "event-new" }]);
     expect(snapshot).not.toHaveProperty("mock");
+  });
+
+  it("keeps ranked data when the cold-start catalogue RPC fails", async () => {
+    rpc
+      .mockResolvedValueOnce({ data: { popularSongs: [{ id: "song-ranked" }], events: [{ id: "event-ranked" }] }, error: null })
+      .mockResolvedValueOnce({ data: null, error: { message: "cold-start unavailable" } });
+    const snapshot = await loadDiscoverySnapshot();
+    expect(snapshot.popularSongs).toEqual([{ id: "song-ranked" }]);
+    expect(snapshot.events).toEqual([{ id: "event-ranked" }]);
+    expect(snapshot.discoveryStatus).toEqual({ ranked: "success", catalogue: "error" });
+  });
+
+  it("keeps cold-start data when the ranked discovery RPC fails", async () => {
+    rpc
+      .mockResolvedValueOnce({ data: null, error: { message: "ranked unavailable" } })
+      .mockResolvedValueOnce({ data: { latestSongs: [{ id: "song-new" }], latestEvents: [{ id: "event-new" }] }, error: null });
+    const snapshot = await loadDiscoverySnapshot();
+    expect(snapshot.latestSongs).toEqual([{ id: "song-new" }]);
+    expect(snapshot.latestEvents).toEqual([{ id: "event-new" }]);
+    expect(snapshot.discoveryStatus).toEqual({ ranked: "error", catalogue: "success" });
+  });
+
+  it("returns a safe empty discovery snapshot when both RPCs fail", async () => {
+    rpc
+      .mockRejectedValueOnce(new Error("ranked network failure"))
+      .mockResolvedValueOnce({ data: null, error: { message: "catalogue unavailable" } });
+    const snapshot = await loadDiscoverySnapshot();
+    expect(snapshot.events).toEqual([]);
+    expect(snapshot.latestSongs).toEqual([]);
+    expect(snapshot.discoveryStatus).toEqual({ ranked: "error", catalogue: "error" });
   });
 
   it("normalizes permission-denied location to a safe null scope at the caller boundary", async () => {

@@ -1638,4 +1638,26 @@
 - [x] Preserve private playlist and personal history privacy boundaries
 - [x] Wire preserved Atizzy UI sections to latest/catalogue data with truthful loading, empty, and error states
 - [x] Add regression coverage for cold-start visibility, ranking separation, search, pagination, eligibility, and privacy
-- [ ] Apply and verify live Supabase changes, run full validation, deploy, and save a final checkpoint
+- [x] Apply and verify live Supabase changes, run full validation, and deploy
+- [ ] Save the final validated checkpoint
+
+# Nearby Events Permission UX — 2026-08-23
+- [ ] Audit current Nearby Events permission states, loader, and fallback behavior
+- [ ] Add clear denied/unavailable/loading feedback while preserving Atizzy layout
+- [ ] Add retry permission action and privacy-safe manual/city alternative
+- [ ] Ensure alternative discovery remains truthful and does not expose user location
+- [ ] Add regression coverage for denial, retry, fallback, and responsive states
+- [ ] Run tests, TypeScript, production build, and save a checkpoint
+
+# Home Discovery Resilience Regression — 2026-08-23
+- [x] Cancel the prior Nearby Events permission UX scope as superseded by the Home regression directive
+- [x] Audit the discovery deployment commits, Promise.all failure path, loader lifecycle, and live Supabase RPC contracts
+- [x] Preserve the base catalog when ranked discovery fails
+- [x] Preserve the base catalog when cold-start discovery fails
+- [x] Preserve the base catalog when both discovery RPCs fail
+- [x] Add centralized first-non-empty fallback selection for events, artists, songs, venues, albums, music videos, and playlists
+- [x] Verify get_discovery_snapshot and get_cold_start_discovery_catalogue signatures, schema cache visibility, grants, and returned shapes in live Supabase
+- [x] Ensure geolocation denial, timeout, and unavailable states never blank Home
+- [x] Add regression tests for partial failures, both failures, empty arrays, location failures, and zero-engagement content
+- [x] Run full validation and deploy
+- [ ] Save a final checkpoint for the Home resilience fix

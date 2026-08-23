@@ -36,8 +36,24 @@ function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
+export function firstNonEmpty(...arrays) {
+  return arrays.find((value) => Array.isArray(value) && value.length > 0) || [];
+}
+
+function settledRpcResult(label, result) {
+  if (result.status === "fulfilled") {
+    if (result.value?.error) {
+      console.error(`Atizzy ${label} discovery RPC failed`, result.value.error);
+      return { data: null, error: result.value.error };
+    }
+    return { data: result.value?.data || null, error: null };
+  }
+  console.error(`Atizzy ${label} discovery RPC rejected`, result.reason);
+  return { data: null, error: result.reason };
+}
+
 export async function loadDiscoverySnapshot({ latitude = null, longitude = null, radiusKm = 25, limit = 24, offset = 0 } = {}) {
-  const [rankedResult, catalogueResult] = await Promise.all([
+  const results = await Promise.allSettled([
     supabase.rpc("get_discovery_snapshot", {
       p_latitude: latitude,
       p_longitude: longitude,
@@ -48,9 +64,24 @@ export async function loadDiscoverySnapshot({ latitude = null, longitude = null,
       p_offset: offset,
     }),
   ]);
-  if (rankedResult.error) throw rankedResult.error;
-  if (catalogueResult.error) throw catalogueResult.error;
-  return { ...emptySnapshot, ...(rankedResult.data || {}), ...(catalogueResult.data || {}), generatedAt: catalogueResult.data?.generatedAt || rankedResult.data?.generatedAt || null };
+  const rankedResult = settledRpcResult("ranked", results[0]);
+  const catalogueResult = settledRpcResult("cold-start catalogue", results[1]);
+  const rankedData = rankedResult.data || {};
+  const catalogueData = catalogueResult.data || {};
+  return {
+    ...emptySnapshot,
+    ...rankedData,
+    ...catalogueData,
+    generatedAt: catalogueData.generatedAt || rankedData.generatedAt || null,
+    discoveryStatus: {
+      ranked: rankedResult.error ? "error" : "success",
+      catalogue: catalogueResult.error ? "error" : "success",
+    },
+    discoveryErrors: {
+      ranked: rankedResult.error || null,
+      catalogue: catalogueResult.error || null,
+    },
+  };
 }
 
 export async function loadDiscoveryCatalogue({ limit = 24, offset = 0 } = {}) {

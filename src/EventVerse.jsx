@@ -11,7 +11,7 @@ import CheckInScreen from "./components/CheckInScreen";
 import { loadCurrentUser, loadFavoriteState, toggleEventFavorite, toggleArtistFollow, toggleMusicFavorite, loadMusicFavorites, recordPlay, loadPlaylists, createPlaylist, submitBooking, loadRoleDashboard, loadArtistWorkspace, loadArtistCreatorContent, createArtistSong, setArtistSongStatus, archiveArtistSong, deleteArtistSong, createArtistAlbum, updateArtistAlbum, setArtistAlbumStatus, createArtistMusicVideo, updateArtistMusicVideo, setArtistMusicVideoStatus, updateArtistProfile, updateArtistSong, artistUpdateBookingStatus, issueTicketQrToken, updateProfile, loadArtistOnboarding, initializeArtistFeePayment, loadArtistFeeTransaction, loadArtistAdminOverview, updateArtistFee, loadOrganizerApplication, applyAsOrganizer, loadOrganizerEvents, createOrganizerEvent, updateOrganizerEvent, addOrganizerTicketType, discoverPrivateTicket, linkOrganizerArtist, publishOrganizerEvent, cancelOrganizerEvent, loadOrganizerEventDashboard, loadVenueManagerWorkspace, applyAsVenueManager, createOwnedVenue, updateOwnedVenue, archiveOwnedVenue, deleteOwnedVenue, requestVenueBooking, respondVenueBooking, setVenueAvailability, initializeVenueBookingPayment, loadAvailableVenues, searchOrganizerArtists, searchEventStaffUsers, assignEventStaff, loadEventStaffForOrganizer, updateEventStaffShift, revokeEventStaffAssignment, loadEventStaffWorkspace, respondEventStaffAssignment, acknowledgeEventStaffTask, loadSuperAdminAnalytics, loadAdminDashboardSnapshot, adminListUsers, adminSuspendUser, adminReviewEvent, loadAdminPaymentSupport, loadAdminAuditLogs, loadUserExperienceSnapshot, loadUserCollections, recordUserSearch, clearUserSearchHistory, updateUserPreferences, markUserNotificationRead, markAllUserNotificationsRead, createSupportRequest, uploadMediaFile, loadMyPosts, createPost, updatePost, setPostStatus, deletePost, removeMediaAsset, loadPolicySettings, updatePolicySetting, loadRoleCapabilityMatrix, loadAdminPermissionGrants, setAdminPermission, loadRoleGovernanceSnapshot, loadOnboardingConfig, loadPublicRoleOnboardingConfig, saveOnboardingQuestion, submitRoleApplication, loadRoleApplication, initializeRoleApplicationPayment, reviewRoleApplication, creditWalletForCancelledOrder, loadPublicContentAnalytics, createContentComment, setContentRating, setContentLike, setRoleFeePolicy, setPlatformFeePolicy, adminSetEventStatus, loadGovernanceEvents, loadContentEngagement, superAdminSetRole, superAdminSetRolePermission, loadRoleAssignmentHistory } from "./services/user";
 import QRCode from "qrcode";
 import { ATIZZY_TOKENS, EMPTY_CATALOG, normalizeCatalog, resourceState } from "./ui/designSystem";
-import { loadDiscoverySnapshot, recordDiscoveryEvent } from "./services/discovery";
+import { firstNonEmpty, loadDiscoverySnapshot, recordDiscoveryEvent } from "./services/discovery";
 import SuperAdminModuleRegistry from "./components/SuperAdminModuleRegistry";
 import AdvancedGovernancePanels from "./components/AdvancedGovernancePanels";
 
@@ -716,11 +716,9 @@ function Verify({ nav, data }) {
 /* ============================== HOME ============================== */
 function AttendeeHome({ nav, player, catalog, account, loading, error }) {
   const [cat, setCat] = useState("All");
-  const rankedEvents = catalog?.events || [];
-  const latestEvents = catalog?.latestEvents || [];
-  const events = rankedEvents.length ? rankedEvents : (latestEvents.length ? latestEvents : catalog?.allEvents || []);
-  const artists = catalog?.popularArtists?.length ? catalog.popularArtists : (catalog?.latestArtists || catalog?.allArtists || []);
-  const songs = catalog?.popularSongs?.length ? catalog.popularSongs : (catalog?.latestSongs || catalog?.allSongs || []);
+  const events = firstNonEmpty(catalog?.events, catalog?.latestEvents, catalog?.allEvents);
+  const artists = firstNonEmpty(catalog?.popularArtists, catalog?.latestArtists, catalog?.allArtists);
+  const songs = firstNonEmpty(catalog?.popularSongs, catalog?.latestSongs, catalog?.allSongs);
   const categories = [{ name: "All" }, ...(catalog?.categories || [])];
   const displayName = account?.profile?.full_name || account?.user?.user_metadata?.full_name || account?.user?.email?.split("@")[0] || "there";
   const hour = new Date().getHours();
@@ -1959,10 +1957,8 @@ function ArtistProfile({ nav, data, account, catalog }) {
 
 /* ============================== MUSIC HOME ============================== */
 function MusicHome({ nav, player, catalog, account }) {
-  const rankedSongs = catalog?.popularSongs || [];
-  const latestSongs = catalog?.latestSongs || [];
-  const songs = rankedSongs.length ? rankedSongs : (latestSongs.length ? latestSongs : catalog?.allSongs || []);
-  const artists = catalog?.popularArtists?.length ? catalog.popularArtists : (catalog?.latestArtists || catalog?.allArtists || []);
+  const songs = firstNonEmpty(catalog?.popularSongs, catalog?.latestSongs, catalog?.allSongs);
+  const artists = firstNonEmpty(catalog?.popularArtists, catalog?.latestArtists, catalog?.allArtists);
   const recentlyPlayed = catalog?.recentlyPlayed || [];
   const popularAlbums = catalog?.popularAlbums || [];
   const [favorites, setFavorites] = useState([]);
@@ -2326,38 +2322,38 @@ export default function EventVerseApp() {
         const merged = discovery ? {
           ...liveCatalog,
           discovery,
-          events: discovery.events.length ? discovery.events : liveCatalog.events,
-          artists: discovery.popularArtists.length ? discovery.popularArtists : liveCatalog.artists,
-          songs: discovery.popularSongs.length ? discovery.popularSongs : liveCatalog.songs,
-          venues: discovery.popularVenues.length ? discovery.popularVenues : liveCatalog.venues,
-          upcomingEvents: discovery.upcomingEvents,
-          popularArtists: discovery.popularArtists,
-          trendingEvents: discovery.trendingEvents,
-          nearbyEvents: discovery.nearbyEvents,
-          popularVenues: discovery.popularVenues,
-          recentlyPlayed: discovery.recentlyPlayed,
-          personalMostPlayed: discovery.personalMostPlayed,
-          platformMostPlayed: discovery.platformMostPlayed,
-          popularSongs: discovery.popularSongs,
-          popularAlbums: discovery.popularAlbums,
-          mostLikedSongs: discovery.mostLikedSongs,
-          mostLikedArtists: discovery.mostLikedArtists,
-          mostWatchedMusicVideos: discovery.mostWatchedMusicVideos,
-          privatePlaylists: discovery.privatePlaylists,
-          publicPlaylists: discovery.publicPlaylists,
-          latestSongs: discovery.latestSongs,
-          allSongs: discovery.allSongs,
-          latestArtists: discovery.latestArtists,
-          allArtists: discovery.allArtists,
-          latestAlbums: discovery.latestAlbums,
-          allAlbums: discovery.allAlbums,
-          newVenues: discovery.newVenues,
-          allVenues: discovery.allVenues,
-          latestEvents: discovery.latestEvents,
-          allEvents: discovery.allEvents,
-          latestMusicVideos: discovery.latestMusicVideos,
-          allMusicVideos: discovery.allMusicVideos,
-          latestPublicPlaylists: discovery.latestPublicPlaylists,
+          events: firstNonEmpty(discovery.events, discovery.latestEvents, discovery.allEvents, liveCatalog.events),
+          artists: firstNonEmpty(discovery.popularArtists, discovery.latestArtists, discovery.allArtists, liveCatalog.artists),
+          songs: firstNonEmpty(discovery.popularSongs, discovery.latestSongs, discovery.allSongs, liveCatalog.songs),
+          venues: firstNonEmpty(discovery.popularVenues, discovery.newVenues, discovery.allVenues, liveCatalog.venues),
+          upcomingEvents: firstNonEmpty(discovery.upcomingEvents, discovery.latestEvents, discovery.allEvents, liveCatalog.upcomingEvents),
+          popularArtists: firstNonEmpty(discovery.popularArtists, liveCatalog.popularArtists),
+          trendingEvents: firstNonEmpty(discovery.trendingEvents, discovery.events, liveCatalog.trendingEvents),
+          nearbyEvents: firstNonEmpty(discovery.nearbyEvents, discovery.upcomingEvents, liveCatalog.nearbyEvents),
+          popularVenues: firstNonEmpty(discovery.popularVenues, discovery.newVenues, liveCatalog.popularVenues),
+          recentlyPlayed: firstNonEmpty(discovery.recentlyPlayed, liveCatalog.recentlyPlayed),
+          personalMostPlayed: firstNonEmpty(discovery.personalMostPlayed, liveCatalog.personalMostPlayed),
+          platformMostPlayed: firstNonEmpty(discovery.platformMostPlayed, discovery.popularSongs, liveCatalog.platformMostPlayed),
+          popularSongs: firstNonEmpty(discovery.popularSongs, discovery.latestSongs, discovery.allSongs, liveCatalog.popularSongs),
+          popularAlbums: firstNonEmpty(discovery.popularAlbums, discovery.latestAlbums, discovery.allAlbums, liveCatalog.popularAlbums),
+          mostLikedSongs: firstNonEmpty(discovery.mostLikedSongs, discovery.popularSongs, liveCatalog.mostLikedSongs),
+          mostLikedArtists: firstNonEmpty(discovery.mostLikedArtists, discovery.popularArtists, liveCatalog.mostLikedArtists),
+          mostWatchedMusicVideos: firstNonEmpty(discovery.mostWatchedMusicVideos, discovery.latestMusicVideos, discovery.allMusicVideos, liveCatalog.mostWatchedMusicVideos),
+          privatePlaylists: firstNonEmpty(discovery.privatePlaylists, liveCatalog.privatePlaylists),
+          publicPlaylists: firstNonEmpty(discovery.publicPlaylists, discovery.latestPublicPlaylists, liveCatalog.publicPlaylists),
+          latestSongs: firstNonEmpty(discovery.latestSongs, discovery.allSongs, liveCatalog.latestSongs, liveCatalog.songs),
+          allSongs: firstNonEmpty(discovery.allSongs, discovery.latestSongs, liveCatalog.allSongs, liveCatalog.songs),
+          latestArtists: firstNonEmpty(discovery.latestArtists, discovery.allArtists, liveCatalog.latestArtists, liveCatalog.artists),
+          allArtists: firstNonEmpty(discovery.allArtists, discovery.latestArtists, liveCatalog.allArtists, liveCatalog.artists),
+          latestAlbums: firstNonEmpty(discovery.latestAlbums, discovery.allAlbums, liveCatalog.latestAlbums, liveCatalog.popularAlbums),
+          allAlbums: firstNonEmpty(discovery.allAlbums, discovery.latestAlbums, liveCatalog.allAlbums, liveCatalog.popularAlbums),
+          newVenues: firstNonEmpty(discovery.newVenues, discovery.allVenues, liveCatalog.newVenues, liveCatalog.venues),
+          allVenues: firstNonEmpty(discovery.allVenues, discovery.newVenues, liveCatalog.allVenues, liveCatalog.venues),
+          latestEvents: firstNonEmpty(discovery.latestEvents, discovery.allEvents, liveCatalog.latestEvents, liveCatalog.events),
+          allEvents: firstNonEmpty(discovery.allEvents, discovery.latestEvents, liveCatalog.allEvents, liveCatalog.events),
+          latestMusicVideos: firstNonEmpty(discovery.latestMusicVideos, discovery.allMusicVideos, liveCatalog.latestMusicVideos, liveCatalog.mostWatchedMusicVideos),
+          allMusicVideos: firstNonEmpty(discovery.allMusicVideos, discovery.latestMusicVideos, liveCatalog.allMusicVideos, liveCatalog.mostWatchedMusicVideos),
+          latestPublicPlaylists: firstNonEmpty(discovery.latestPublicPlaylists, discovery.publicPlaylists, liveCatalog.latestPublicPlaylists, liveCatalog.publicPlaylists),
         } : liveCatalog;
         if (mounted) setCatalog(normalizeCatalog(merged));
       } catch (error) {
