@@ -32,9 +32,15 @@ describe("Super Admin grouped information architecture", () => {
     for (const token of ["snapshot?.user_counts", "snapshot?.application_counts", "snapshot?.event_lifecycle", "snapshot?.wallet_totals", "userCounts.total", "applicationCounts.pending", "eventLifecycle.past", "walletTotals.balance"]) {
       expect(registry).toContain(token);
     }
+    for (const token of ["const userCounts = snapshot?.user_counts || {}", "const applicationCounts = snapshot?.application_counts || {}", "const walletTotals = snapshot?.wallet_totals || {}", "Number(userCounts.total ?? 0)", "Number(applicationCounts.pending ?? 0)", "money(Number(walletTotals.balance ?? 0))"]) {
+      expect(eventVerse).toContain(token);
+    }
     expect(registry).not.toContain('value={users.length}');
     expect(registry).not.toContain('value={pending.length}');
     expect(registry).not.toContain('value={events.length}');
+    expect(eventVerse).not.toContain('["Authenticated users", snapshot?.users?.length || 0]');
+    expect(eventVerse).not.toContain('["Pending applications", applications.filter');
+    expect(eventVerse).not.toContain('["Wallet credits", money(snapshot?.wallets?.reduce');
   });
 
   it("documents compatibility preservation and existing route coverage", () => {
