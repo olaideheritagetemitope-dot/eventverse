@@ -6,6 +6,8 @@ const root = process.cwd();
 const screen = fs.readFileSync(path.join(root, "src/components/CheckInScreen.jsx"), "utf8");
 const service = fs.readFileSync(path.join(root, "src/services/user.js"), "utf8");
 const migration = fs.readFileSync(path.join(root, "supabase/0046_ticket_qr_validation_result_states.sql"), "utf8");
+const qrFix = fs.readFileSync(path.join(root, "supabase/0080_ticket_qr_scannability_root_fix.sql"), "utf8");
+const ticketUi = fs.readFileSync(path.join(root, "src/EventVerse.jsx"), "utf8");
 
 describe("Atizzy QR scanner directive contracts", () => {
   it("supports camera and picture-library decoding without URL upload fallbacks", () => {
@@ -28,6 +30,26 @@ describe("Atizzy QR scanner directive contracts", () => {
     for (const code of ["SUCCESS", "ALREADY_USED", "INVALID_QR", "EXPIRED", "CANCELLED", "REFUNDED", "REVOKED", "WRONG_EVENT", "UNAUTHORIZED", "REJECTED", "NETWORK_ERROR", "SERVER_ERROR"]) {
       expect(screen).toContain(code);
     }
+  });
+
+  it("uses one qualified pgcrypto hash contract across ticket display and scanner paths", () => {
+    for (const functionName of ["issue_ticket_qr_token", "event_staff_entry_decision", "check_in_ticket_with_token", "validate_ticket_qr"]) {
+      expect(qrFix).toContain(`function public.${functionName}`);
+    }
+    expect(qrFix).toContain("extensions.digest(qr_token, 'sha256'::text)");
+    expect(qrFix).toContain("extensions.digest(trim(p_qr_token), 'sha256'::text)");
+    expect(qrFix).not.toMatch(/(?<!extensions\.)\bdigest\s*\(/);
+    expect(qrFix).toContain("'qr_format', 'ATIZZY_TICKET_V1'");
+  });
+
+  it("renders a high-contrast QR with a quiet zone and high error correction", () => {
+    expect(ticketUi).toContain("width: 512");
+    expect(ticketUi).toContain("margin: 4");
+    expect(ticketUi).toContain('errorCorrectionLevel: "H"');
+    expect(ticketUi).toContain('dark: "#0B0A08"');
+    expect(ticketUi).toContain('light: "#F3EEE3"');
+    expect(ticketUi).toContain('alt="Secure ticket QR code"');
+    expect(ticketUi).toContain('imageRendering: "pixelated"');
   });
 
   it("keeps authorization and atomic check-in server authoritative", () => {

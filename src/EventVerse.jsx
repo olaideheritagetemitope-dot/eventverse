@@ -1312,9 +1312,17 @@ function DigitalTicket({ nav, data }) {
     let mounted = true;
     if (!ticket?.id || !["ISSUED", "ACTIVE", "CHECKED_IN"].includes(ticket.status)) return undefined;
     issueTicketQrToken(ticket.id)
-      .then((payload) => QRCode.toDataURL(payload.qr_token, { margin: 1, width: 240, errorCorrectionLevel: "M" }).then((url) => {
-        if (mounted) setQrImage(url);
-      }))
+      .then((payload) => {
+        const qrToken = String(payload?.qr_token || "").trim();
+        if (!qrToken) throw new Error("The secure ticket QR payload was empty.");
+        return QRCode.toDataURL(qrToken, {
+          width: 512,
+          margin: 4,
+          errorCorrectionLevel: "H",
+          color: { dark: "#0B0A08", light: "#F3EEE3" },
+        });
+      })
+      .then((url) => { if (mounted) setQrImage(url); })
       .catch((error) => { if (mounted) setQrError(error.message || "Unable to prepare the secure ticket QR."); });
     return () => { mounted = false; };
   }, [ticket?.id, ticket?.status]);
@@ -1325,7 +1333,7 @@ function DigitalTicket({ nav, data }) {
       <div className="flex-1 flex items-center justify-center px-6">
         <div className="w-full rounded-3xl overflow-hidden" style={{ background: `linear-gradient(160deg, ${C.wood}, ${C.card2})`, border: `1px solid ${C.gold}44` }}>
           <div className="p-5 pb-4" style={{ background: "#00000030" }}><div className="flex justify-between items-start mb-1"><span className="text-[11px] font-semibold px-2 py-1 rounded-full" style={{ background: C.gold, color: "#1A1408" }}>{typeName}</span><QrCode size={16} color={C.goldSoft} /></div><p className="ev-display text-[17px] mt-2" style={{ color: C.ivory }}>{event.title || "Atizzy ticket"}</p><p className="text-[11.5px]" style={{ color: C.muted }}>Issued by Atizzy · {ticket?.status || "PENDING"}</p></div>
-          <div className="flex items-center justify-center py-6" style={{ borderTop: `1px dashed ${C.gold}55`, borderBottom: `1px dashed ${C.gold}55` }}><div className="w-36 h-36 rounded-xl flex items-center justify-center p-2" style={{ background: "#F3EEE3" }}>{qrImage ? <img src={qrImage} alt="Secure ticket QR code" className="h-full w-full object-contain" /> : <div className="flex flex-col items-center gap-2 text-center px-3" style={{ color: C.bg }}><QrCode size={72} strokeWidth={1.2} /><span className="text-[9px] font-semibold tracking-widest">{qrError ? "QR UNAVAILABLE" : "PREPARING QR"}</span></div>}</div></div>
+          <div className="flex items-center justify-center py-6" style={{ borderTop: `1px dashed ${C.gold}55`, borderBottom: `1px dashed ${C.gold}55` }}><div className="w-64 h-64 rounded-xl flex items-center justify-center p-4" style={{ background: "#F3EEE3" }}>{qrImage ? <img src={qrImage} alt="Secure ticket QR code" width="512" height="512" className="h-full w-full object-contain" style={{ imageRendering: "pixelated" }} /> : <div className="flex flex-col items-center gap-2 text-center px-3" style={{ color: C.bg }}><QrCode size={96} strokeWidth={1.2} /><span className="text-[9px] font-semibold tracking-widest">{qrError ? "QR UNAVAILABLE" : "PREPARING QR"}</span></div>}</div></div>
           <div className="p-5 grid grid-cols-2 gap-4"><Ticket2 label="Ticket ID" value={ticketId} /><Ticket2 label="Order ID" value={ticket?.order_id || "Pending"} /><Ticket2 label="Date" value={start ? start.toLocaleDateString("en-NG", { dateStyle: "medium" }) : "Pending"} /><Ticket2 label="Time" value={start ? start.toLocaleTimeString("en-NG", { timeStyle: "short" }) : "Pending"} /><Ticket2 label="Venue" value={event.venues?.name || event.city || "Pending"} /><Ticket2 label="Entry" value={ticket?.checked_in_at ? "Checked in" : "Valid"} /><Ticket2 label="Order status" value={ticket?.orders?.status || "Pending"} /><Ticket2 label="Paid" value={ticket?.orders?.total != null ? `${ticket.orders.currency || "NGN"} ${Number(ticket.orders.total).toLocaleString("en-NG")}` : "Pending"} /></div>
           <div className="px-5 pb-5"><p className="text-[11px]" style={{ color: C.muted }}>{qrError || "This QR is issued for the ticket owner and validated server-side at entry."}</p></div>
         </div>

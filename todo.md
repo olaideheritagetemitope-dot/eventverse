@@ -1589,12 +1589,18 @@
 - [ ] Authenticated Paystack payment verification with a real paid order remains pending
 
 # Paid Payment Missing Ticket Reconciliation — 2026-08-23
-- [ ] Inspect application logs and live payment/order/ticket records for the user’s successful transaction
-- [ ] Reconcile the existing successful payment without charging the user again
-- [ ] Identify the exact issuance failure, including any webhook, RPC, RLS, or account-loader error
-- [ ] Harden the payment finalization path so verified payments issue tickets exactly once
-- [ ] Ensure issued tickets are visible in the buyer account, history, QR view, and notifications
-- [ ] Add regression coverage for successful payment reconciliation and duplicate prevention
-- [ ] Run focused tests, full Vitest suite, TypeScript, and production build
+- [x] Inspect application logs and live payment/order/ticket records for the user’s successful transaction
+- [x] Reconcile the existing successful payment without charging the user again
+- [x] Identify the exact issuance failure: the QR hash used unqualified `digest(...)`, but pgcrypto was outside the function search path
+- [x] Harden the payment finalization path so verified payments issue tickets exactly once
+- [x] Ensure the reconciled ticket is present under the buyer’s order and visible to the account loader, history, QR view, and notifications
+- [x] Add regression coverage for successful payment reconciliation and duplicate prevention
+- [x] Run focused tests, full Vitest suite: 55 files, 192 passed, 2 skipped, TypeScript, and production build
 - [ ] Save a checkpoint for the reconciliation and root fix
-- [ ] Real-account verification remains pending if the transaction cannot be identified safely
+- [x] Real-account reconciliation completed safely; no second charge was created
+
+- [x] Audit the live ticket QR generation, hash, payload, rendering, and scanner-verification contracts
+- [x] Repair the database QR issuance path and regenerate the existing sample ticket without charging again
+- [x] Ensure all future tickets receive a high-contrast, standards-compliant scannable QR code
+- [x] Verify QR rendering and scanner validation across ticket detail, ticket list, and future ticket flows
+- [ ] Run focused and full regression validation, production build, and save a QR repair checkpoint
