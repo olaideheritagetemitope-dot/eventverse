@@ -2115,9 +2115,33 @@ The remaining unchecked items require the owner's authenticated production sessi
 
 # Playlist End-to-End Frontend Regression — 2026-08-24
 
-- [ ] Reproduce the mounted frontend path for CREATE → ADD SONG → REORDER → PLAY → EDIT → VISIBILITY → PUBLIC DISCOVERY → PLAY → DELETE
-- [ ] Identify route, state-refresh, mutation, or deployment-path disconnections causing the old UI to remain visible
-- [ ] Make playlist creation, song addition, reorder, playback, edit, visibility change, public discovery, public playback, and deletion reachable in the existing UI
-- [ ] Ensure each mutation refreshes the current playlist/library state immediately
-- [ ] Add focused lifecycle regression coverage
-- [ ] Run full tests, type-check, production build, and checkpoint
+- [x] Reproduce the mounted frontend path for CREATE → ADD SONG → REORDER → PLAY → EDIT → VISIBILITY → PUBLIC DISCOVERY → PLAY → DELETE
+- [x] Identify route, state-refresh, mutation, or deployment-path disconnections causing the old UI to remain visible
+- [x] Make playlist creation, song addition, reorder, playback, edit, visibility change, public discovery, public playback, and deletion reachable in the existing UI
+- [x] Ensure each mutation refreshes the current playlist/library state immediately
+- [x] Add focused lifecycle regression coverage
+- [x] Run full tests, type-check, production build, and checkpoint
+
+# Playlist Mutation and Media Regression — 2026-08-24
+
+- [x] Reproduce and trace playlist song-add failure from mounted UI to Supabase
+- [x] Add a reachable playlist cover-photo picker and canonical Storage/database hydration
+- [x] Repair private/public playlist publishing and persistence through the authoritative visibility path
+- [x] Validate add-song, cover upload, visibility changes, RLS, and immediate UI refresh
+- [x] Run focused/full tests, type-check, lint, production build, and checkpoint
+
+# Playlist Persistence Regression — 2026-08-24
+
+- [x] Trace and remove the invalid songs.lyrics field from playlist song hydration
+- [x] Ensure playlist save persists metadata and remains visible in My Playlists after reload
+- [x] Ensure Add song persists playlist_items and refreshes the playlist detail count/list
+- [x] Validate live schema, RLS, create/save/add/reload flows, and error handling
+- [x] Run focused/full tests, type-check, production build, and checkpoint
+
+# Recurring Playlist songs.lyrics Runtime Regression — 2026-08-24
+
+- [ ] Search every source, generated, service, migration, and query path for `songs.lyrics`
+- [ ] Trace the exact save-handler refresh chain producing the error
+- [ ] Remove or replace the remaining stale runtime selector in the active path
+- [ ] Add a regression guard that rejects any playlist runtime query containing `songs.lyrics`
+- [ ] Run focused/full tests, type-check, production build, and checkpoint

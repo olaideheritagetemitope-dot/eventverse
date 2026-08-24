@@ -6,6 +6,7 @@ const root = path.resolve(process.cwd());
 const app = fs.readFileSync(path.join(root, "src/EventVerse.jsx"), "utf8");
 const service = fs.readFileSync(path.join(root, "src/services/user.js"), "utf8");
 const migration = fs.readFileSync(path.join(root, "supabase/0113_playlist_system_complete.sql"), "utf8");
+const coverMigration = fs.readFileSync(path.join(root, "supabase/0114_playlist_cover_and_mutation_contract.sql"), "utf8");
 
 describe("playlist system", () => {
   it("mounts the live library and reachable detail route in the existing app shell", () => {
@@ -16,7 +17,11 @@ describe("playlist system", () => {
     expect(app).toContain("Shuffle");
     expect(app).toContain("Discover Public Playlists");
     expect(app).toContain("Create → add songs → reorder → play → edit visibility → discover public playlists.");
-    expect(app).toContain('onClick={save}');
+    expect(app).toContain('onClick={() => save(visibility)}');
+    expect(app).toContain("Upload cover photo");
+    expect(app).toContain('accept="image/jpeg,image/png,image/webp,image/gif"');
+    expect(app).toContain("Publish playlist");
+    expect(app).toContain("Save privately");
     expect(app).toContain('onClick={destroy}');
     expect(app).toContain('onClick={() => { const song = playlistSongForPlayer(item);');
   });
@@ -30,6 +35,8 @@ describe("playlist system", () => {
     expect(service).toContain("reorderPlaylistItems");
     expect(service).toContain('const PLAYLIST_ITEM_COLUMNS = "id,playlist_id,song_id,position,added_at,added_by"');
     expect(service).toContain('supabase.from("songs").select(SONG_COLUMNS)');
+    expect(service).toContain('lyrics_text');
+    expect(service).toContain('sourceSong.lyrics_text');
     expect(service).toContain("hydratePlaylists");
     expect(service).toContain('eq("visibility", "PUBLIC")');
     expect(service).toContain('eq("user_id", userId)');
@@ -43,6 +50,15 @@ describe("playlist system", () => {
     expect(migration).toContain("public can view public playlists");
     expect(migration).toContain("public can view public playlist items");
     expect(migration).toContain("position");
+  });
+
+  it("uses the managed media pipeline and canonical visibility mutation for covers", () => {
+    expect(service).toContain('"PLAYLIST_COVER"');
+    expect(app).toContain('uploadMediaFile(account.user.id, file, "PLAYLIST_COVER", "PLAYLIST", playlist.id)');
+    expect(service).toContain('eq("user_id", userId).select(PLAYLIST_COLUMNS).maybeSingle()');
+    expect(coverMigration).toContain("'PLAYLIST_COVER'");
+    expect(coverMigration).toContain("media_assets_playlist_cover_idx");
+    expect(coverMigration).toContain("playlist cover");
   });
 
   it("maps playlist songs into the existing audio player contract", () => {

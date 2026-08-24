@@ -3,8 +3,8 @@ import { supabase } from "../lib/supabase";
 const MEDIA_BUCKET = "atizzy-media";
 const MEDIA_LIMIT_BYTES = 50 * 1024 * 1024;
 const MEDIA_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "audio/mpeg", "audio/mp4", "audio/wav", "audio/ogg", "audio/x-m4a", "video/mp4", "video/webm"]);
-const MEDIA_KIND_ALIASES = { SONG: "MUSIC_COVER", MUSIC: "MUSIC_COVER", ALBUM: "ALBUM_COVER", VIDEO: "MUSIC_VIDEO", ARTWORK: "ARTIST_ARTWORK", VENUE: "VENUE_PHOTO", VENUE_IMAGE: "VENUE_PHOTO" };
-const MEDIA_KINDS = new Set(["AVATAR", "ARTIST_AVATAR", "ARTIST_ARTWORK", "EVENT_POSTER", "VENUE_PHOTO", "AUDIO", "MUSIC_COVER", "ALBUM_COVER", "MUSIC_VIDEO_THUMBNAIL", "MUSIC_VIDEO", "POST_IMAGE"]);
+const MEDIA_KIND_ALIASES = { SONG: "MUSIC_COVER", MUSIC: "MUSIC_COVER", ALBUM: "ALBUM_COVER", PLAYLIST: "PLAYLIST_COVER", PLAYLIST_COVER: "PLAYLIST_COVER", VIDEO: "MUSIC_VIDEO", ARTWORK: "ARTIST_ARTWORK", VENUE: "VENUE_PHOTO", VENUE_IMAGE: "VENUE_PHOTO" };
+const MEDIA_KINDS = new Set(["AVATAR", "ARTIST_AVATAR", "ARTIST_ARTWORK", "EVENT_POSTER", "VENUE_PHOTO", "AUDIO", "MUSIC_COVER", "ALBUM_COVER", "PLAYLIST_COVER", "MUSIC_VIDEO_THUMBNAIL", "MUSIC_VIDEO", "POST_IMAGE"]);
 const normalizeMediaKind = (value) => {
   const kind = String(value || "").trim().toUpperCase();
   const normalized = MEDIA_KIND_ALIASES[kind] || kind;
@@ -141,7 +141,7 @@ export async function recordPlay(userId, songId, secondsPlayed = 0) {
 
 const PLAYLIST_COLUMNS = "id,user_id,name,description,cover_url,visibility,created_at,updated_at";
 const PLAYLIST_ITEM_COLUMNS = "id,playlist_id,song_id,position,added_at,added_by";
-const SONG_COLUMNS = "id,title,artist_id,audio_url,cover_url,duration_seconds,play_count,lyrics";
+const SONG_COLUMNS = "id,title,artist_id,audio_url,cover_url,duration_seconds,play_count,lyrics_text";
 
 const normalizePlaylist = (playlist, items = []) => ({
   ...playlist,
@@ -165,7 +165,8 @@ async function hydratePlaylists(playlists) {
   const songsById = new Map(songs.map((song) => [song.id, song]));
   const itemsByPlaylist = new Map();
   for (const item of items) {
-    const next = { ...item, song: songsById.get(item.song_id) || null };
+    const sourceSong = songsById.get(item.song_id) || null;
+    const next = { ...item, song: sourceSong ? { ...sourceSong, lyrics: sourceSong.lyrics || sourceSong.lyrics_text || "" } : null };
     const list = itemsByPlaylist.get(item.playlist_id) || [];
     list.push(next);
     itemsByPlaylist.set(item.playlist_id, list);
@@ -221,8 +222,10 @@ export async function updatePlaylist(userId, playlistId, changes = {}) {
     if (!["PRIVATE", "PUBLIC"].includes(visibility)) throw new Error("Choose Private or Public visibility.");
     payload.visibility = visibility;
   }
-  const { data, error } = await supabase.from("playlists").update(payload).eq("id", playlistId).eq("user_id", userId).select(PLAYLIST_COLUMNS).single();
+  if (!Object.keys(payload).length) throw new Error("Make a change before saving the playlist.");
+  const { data, error } = await supabase.from("playlists").update(payload).eq("id", playlistId).eq("user_id", userId).select(PLAYLIST_COLUMNS).maybeSingle();
   if (error) throw error;
+  if (!data) throw new Error("Playlist update was not saved. Confirm you own this playlist and try again.");
   const [hydrated] = await hydratePlaylists([data]);
   return hydrated;
 }
@@ -236,16 +239,24 @@ export async function deletePlaylist(userId, playlistId) {
 
 export async function addSongToPlaylist(userId, playlistId, songId) {
   if (!userId || !playlistId || !songId) throw new Error("Choose a valid song and playlist.");
-  const { data: existing, error: existingError } = await supabase.from("playlist_items").select("id").eq("playlist_id", playlistId).eq("song_id", songId).maybeSingle();
+  const { data: ownedPlaylist, error: playlistError } = await supabase.from("playlists").select("id,user_id").eq("id", playlistId).eq("user_id", userId).maybeSingle();
+  if (playlistError) throw playlistError;
+  if (!ownedPlaylist) throw new Error("You can only add songs to a playlist you own.");
+  const { data: existing, error: existingError } = await supabase.from("playlist_items").select("id,playlist_id,song_id,position,added_at,added_by").eq("playlist_id", playlistId).eq("song_id", songId).maybeSingle();
   if (existingError) throw existingError;
   if (existing) return existing;
   const { data: last, error: lastError } = await supabase.from("playlist_items").select("position").eq("playlist_id", playlistId).order("position", { ascending: false }).limit(1).maybeSingle();
   if (lastError) throw lastError;
-  const { data, error } = await supabase.from("playlist_items").insert({ playlist_id: playlistId, song_id: songId, position: Number(last?.position || -1) + 1, added_by: userId }).select("id,playlist_id,song_id,position,added_at,added_by").single();
+  const { data, error } = await supabase.from("playlist_items").insert({ playlist_id: playlistId, song_id: songId, position: Math.max(0, Number(last?.position ?? -1) + 1), added_by: userId }).select("id,playlist_id,song_id,position,added_at,added_by").maybeSingle();
   if (error) {
-    if (error.code === "23505") return (await supabase.from("playlist_items").select("id,playlist_id,song_id,position,added_at,added_by").eq("playlist_id", playlistId).eq("song_id", songId).single()).data;
+    if (error.code === "23505") {
+      const { data: duplicate, error: duplicateError } = await supabase.from("playlist_items").select("id,playlist_id,song_id,position,added_at,added_by").eq("playlist_id", playlistId).eq("song_id", songId).single();
+      if (duplicateError) throw duplicateError;
+      return duplicate;
+    }
     throw error;
   }
+  if (!data) throw new Error("Song was not added to the playlist. Please try again.");
   return data;
 }
 
