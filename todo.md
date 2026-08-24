@@ -2321,4 +2321,18 @@ The remaining unchecked items require the owner's authenticated production sessi
 - [x] Measure production bundle, style, and tile request timing
 - [x] Fix the actual loading bottleneck while preserving map behavior and Atizzy design
 - [x] Add bounded timeout/error handling so slow provider requests fail usefully
-- [ ] Redeploy and verify improved production map-load behavior
+- [x] Redeploy and verify improved production map-load behavior
+
+# TomTom Fullscreen Loading Hang Regression — 2026-08-24
+
+- [ ] Trace why TomTom SDK initialization never transitions from loading on the mobile fullscreen surface
+- [ ] Add deterministic SDK readiness timeout and expose the underlying error state
+- [ ] Prevent `0.000000, 0.000000` from being treated as a valid venue coordinate
+- [ ] Initialize the map from a real searched or existing venue coordinate, with a safe Nigeria fallback only when no point exists
+- [ ] Redeploy and verify fullscreen map initialization, selection, and confirmation behavior
+
+# Shared Inline and Fullscreen TomTom Map Regression — 2026-08-24
+
+- [ ] Verify and fix the shared map surface in both inline and fullscreen modes, not only the fullscreen overlay
+- [ ] Ensure both render modes receive a valid initial coordinate and the same SDK readiness/error handling
+- [ ] Verify both inline and fullscreen TomTom tiles and interactions after redeployment

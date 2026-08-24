@@ -1898,11 +1898,11 @@ function TomTomMapSurface({ point, mapKey, onPointSelected, onMapError, fullscre
     setMessage("");
     let map;
     try {
-      // The Orbis Maps SDK reads authentication from the global TomTomConfig.
-      // Passing a key only to the map constructor does not authenticate the
-      // style.json request, which otherwise fails with HTTP 401.
+      // Configure shared SDK defaults and pass the key explicitly to this map.
+      // The Orbis SDK gives per-map parameters precedence for style authentication.
       TomTomConfig.instance.put({ apiKey: mapKey, language: "en-GB" });
       map = new TomTomMap({
+        key: mapKey,
         language: "en-GB",
         style: "standardLight",
         mapLibre: {
