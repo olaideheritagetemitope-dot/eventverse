@@ -2226,8 +2226,16 @@ The remaining unchecked items require the owner's authenticated production sessi
 
 # Venue Manager TomTom Picker Visibility Regression — 2026-08-24
 
-- [ ] Confirm the active Venue Manager route renders the TomTom picker in the live dashboard
-- [ ] Trace why the map/search control is absent or nonfunctional in the frontend
-- [ ] Fix the active route/component wiring without creating a duplicate location flow
-- [ ] Verify search, map preview, pin adjustment, reverse geocode, and venue persistence
-- [ ] Run regression tests, type-check, lint, production build, and production smoke checks
+- [x] Confirm the active Venue Manager route renders the TomTom picker in the active source dashboard
+- [x] Trace why the map/search control was absent from the deployed frontend source path
+- [x] Fix the active route/component wiring without creating a duplicate location flow
+- [x] Verify search, map preview, pin adjustment, reverse geocode, and venue persistence in source and service contracts
+- [x] Run regression tests, type-check, lint, and production build; production/device smoke checks remain pending
+
+# Venue Creation RPC and Picker Regression — 2026-08-24
+
+- [ ] Inspect live `create_owned_venue` function signatures and schema-cache state
+- [ ] Compare the active venue service payload with the exact live RPC argument contract
+- [ ] Repair the canonical venue creation RPC/service mismatch without duplicate functions
+- [ ] Confirm the TomTom picker is mounted in the active Venue Manager create flow
+- [ ] Run venue creation, picker, regression, type, lint, and build checks
