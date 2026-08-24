@@ -1932,8 +1932,10 @@ function PremiumPanel({ account }) {
   const subscription = snapshot.subscription;
   const entitlement = snapshot.entitlement;
   const artistEntitlement = snapshot.artistEntitlement;
-  const accountRoles = [...(account?.effectiveRoles || []), ...(account?.roles || []).map((role) => typeof role === "string" ? role : role.code)].map((role) => String(role || "").toUpperCase());
-  const roleCodes = Array.from(new Set([...accountRoles, ...(snapshot.isArtist ? ["ARTIST"] : [])]));
+  // Premium eligibility is security-sensitive: only active roles returned by the
+  // authoritative role-context RPC may expose role-specific plans. Do not merge
+  // raw historical user_roles rows or infer Artist access from a profile.
+  const roleCodes = Array.from(new Set((Array.isArray(account?.effectiveRoles) ? account.effectiveRoles : []).map((role) => String(role || "").toUpperCase())));
   const isArtist = roleCodes.includes("ARTIST");
   const artistPremiumActive = Boolean(snapshot.hasArtistPremium || artistEntitlement);
   const visiblePlans = Array.from(new Map((snapshot.plans || [])

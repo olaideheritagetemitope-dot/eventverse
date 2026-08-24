@@ -18,8 +18,12 @@ describe("Premium Artist exposure product", () => {
   it("maps plan families to attendee, Artist, Organizer, and multi-role accounts", () => {
     expect(app).toContain('if (code === "PREMIUM_MONTHLY") return true;');
     expect(app).toContain('if (code === "ORGANIZER_PREMIUM") return roleCodes.includes("ORGANIZER");');
-    expect(app).toContain("const roleCodes = Array.from(new Set([...accountRoles");
+    expect(app).toContain("const roleCodes = Array.from(new Set((Array.isArray(account?.effectiveRoles) ? account.effectiveRoles : [])");
     expect(app).toContain("new Map((snapshot.plans || [])");
+    expect(app).toContain("only active roles returned by the");
+    expect(app).toContain("Array.isArray(account?.effectiveRoles) ? account.effectiveRoles : []");
+    expect(app).not.toContain("...(account?.roles || []).map");
+    expect(app).not.toContain("snapshot.isArtist ? [\"ARTIST\"]");
   });
 
   it("uses the canonical live plan catalog and does not route through onboarding", () => {

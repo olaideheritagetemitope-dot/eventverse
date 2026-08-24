@@ -2095,11 +2095,11 @@ The remaining unchecked items require the owner's authenticated production sessi
 
 # Premium Visibility Production Regression — 2026-08-24
 
-- [ ] Reproduce the production attendee screen showing Organizer Premium and Premium Artist
-- [ ] Trace whether the deployed bundle is stale or the mounted PremiumPanel receives incomplete role state
-- [ ] Fix the authoritative production-visible filtering path
-- [ ] Verify attendee sees only attendee Premium
-- [ ] Verify Artist sees attendee and Artist Premium
-- [ ] Verify Organizer sees attendee and Organizer Premium
-- [ ] Verify multi-role users see all matching plans without duplicates
-- [ ] Run regression tests, type-check, production build, and checkpoint
+- [x] Reproduce the production attendee screen showing Organizer Premium and Premium Artist
+- [x] Trace whether the deployed bundle is stale or the mounted PremiumPanel receives incomplete role state
+- [x] Fix the authoritative production-visible filtering path
+- [x] Verify attendee sees only attendee Premium
+- [x] Verify Artist sees attendee and Artist Premium
+- [x] Verify Organizer sees attendee and Organizer Premium
+- [x] Verify multi-role users see all matching plans without duplicates
+- [x] Run regression tests, type-check, production build, and checkpoint
