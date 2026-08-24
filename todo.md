@@ -2356,3 +2356,5 @@ The remaining unchecked items require the owner's authenticated production sessi
 - [ ] Mobile TomTom basemap still renders white while marker/address work: trace asset/tile request authentication, style paint, and mobile WebGL/CSS path; fix root cause.
 - [ ] Venue location search submits the surrounding form and redirects to Home: trace form/button event propagation and route reset; make search stay in the picker and render live results.
 - [ ] Device location shows timed out and nearby discovery falls back: trace permission request, timeout/watch lifecycle, platform API support, and state persistence; fix reliable location resolution plus graceful fallback.
+
+- [x] Venue-location search reload regression: root cause was an invalid nested search form inside the outer venue-create form; replaced it with a non-submitting search region, local Enter handling, and an explicit button, preserving the TomTom map flow. Focused tests, TypeScript, lint, and production build passed.

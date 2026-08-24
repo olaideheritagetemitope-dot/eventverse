@@ -31,4 +31,11 @@ describe("TomTom blank-map rendering guard", () => {
     expect(source).toContain("if (disposed || rendered) return;");
     expect(source).toContain("TomTom map could not initialize a renderable MapLibre canvas and style.");
   });
+
+  it("keeps venue search outside the parent create form and handles Enter locally", () => {
+    expect(source).toContain('<div role="search" className="flex gap-2">');
+    expect(source).toContain('onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void search(); } }}');
+    expect(source).toContain('<button type="button" onClick={() => void search()}');
+    expect(source).not.toContain('<form role="search"');
+  });
 });
