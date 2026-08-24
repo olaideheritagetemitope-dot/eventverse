@@ -3087,7 +3087,7 @@ export default function EventVerseApp() {
         }
         if (mounted && data.session) {
           window.localStorage.setItem("eventverse:onboarding-complete", "1");
-          setStack([{ screen: pendingArtistPayment ? "artistProcessing" : (pendingPremiumPayment ? "premiumProcessing" : (pendingPayment ? "processing" : (sharedEventId ? "eventDetail" : (sharedArtistId ? "artist" : "home")))), data: pendingArtistPayment || pendingPremiumPayment || (sharedEventId ? { id: sharedEventId } : (sharedArtistId ? { id: sharedArtistId } : null)) }]);
+          setStack([{ screen: pendingArtistPayment ? "artistProcessing" : (pendingPremiumPayment ? "premiumProcessing" : (pendingPayment ? "processing" : (sharedEventId ? "eventDetail" : (sharedArtistId ? "artist" : "home")))), data: pendingPayment || pendingArtistPayment || pendingPremiumPayment || (sharedEventId ? { id: sharedEventId } : (sharedArtistId ? { id: sharedArtistId } : null)) }]);
           void hydrateAccount(data.session.user);
         } else if (mounted) {
           void hydrateAccount(null);

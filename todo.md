@@ -2364,3 +2364,86 @@ The remaining unchecked items require the owner's authenticated production sessi
 - [x] Completed the attached web-production readiness audit and documented evidence in notes/release-readiness-report.md; Android native packaging remains a separate release gate.
 - [x] Verified the frozen dependency installation: pnpm install --frozen-lockfile --ignore-scripts passed; no lockfile blocker remains in the current checkout.
 - [x] Determined the repository is Vite/web-only with no Android/Expo/React Native/Capacitor/Gradle packaging; a signed AAB cannot be honestly produced until an approved native packaging architecture is added.
+
+# Google Play Production Setup — Attached Directive
+
+- [ ] Audit and implement Android application identity, release versioning, signing, API 36+ target, permissions, and AAB packaging where supported by the actual repository architecture.
+- [ ] Audit production environment, HTTPS, client/server secret separation, Supabase RLS/auth/storage/RPC security, Paystack verification, Premium enforcement, uploads, and user-generated content.
+- [ ] Audit Privacy Policy, Terms, Data Safety, account deletion, reviewer access, Play Console declarations, and required store assets; mark user/legal/account actions as REQUIRED USER INPUT.
+- [ ] Run functional/mobile regression coverage for TomTom, geolocation, search, discovery, artists, venues, events, music, videos, lyrics, favorites, playlists, tickets, Premium, Paystack, dashboards, and uploads.
+- [ ] Repair the current CI blocker: frozen pnpm install reports pnpm-lock.yaml out of sync with package.json.
+- [ ] Run typecheck, lint, tests, production build, dependency/security checks, backend/RLS/API checks, and any feasible Android/AAB validation.
+- [ ] Produce a final Play Store readiness report with exact blockers, AAB path if generated, and manual actions required.
+
+# Google Play Release Gate — 2026-08-24
+
+- [x] Add server-authoritative account deletion endpoint with bearer-session verification and service-role deletion.
+- [x] Add visible Profile → Security → Delete my account flow with confirmation and failure feedback.
+- [x] Restore Eventverse branding in the document title and public manifest.
+- [x] Add Capacitor Android packaging configuration with stable application ID.
+- [x] Add API 36 compile/target configuration and release version metadata.
+- [x] Add environment-driven Android release signing configuration without committing credentials.
+- [x] Validate web build, typecheck, lint, tests, and Android bundle generation.
+- [ ] Confirm production Supabase service-role configuration and account-deletion cascade behavior.
+- [ ] Replace generated/local signing key with the user's durable Play App Signing upload-key process before publication.
+
+# Organizer Venue Attachment Workflow — 2026-08-24
+
+- [ ] Audit current organizer event form, venue services, event-location fields, RLS/RPCs, TomTom picker, and discovery proximity flow.
+- [ ] Replace raw organizer latitude/longitude/address inputs with searchable existing-venue selection.
+- [ ] Add event-specific custom TomTom location selection without creating a global venue.
+- [ ] Persist venue ID or custom event coordinates/address with correct edit/switch behavior.
+- [ ] Ensure event display and Events Near You use canonical attached/custom coordinates.
+- [ ] Preserve Venue Manager venue creation, approval, publishing, and authorization behavior.
+- [ ] Add regression coverage for organizer venue selection, custom location, editing, publishing, and discovery.
+- [ ] Run typecheck, lint, tests, production build, and final workflow verification.
+
+# Organizer Venue Attachment Directive — 2026-08-24
+
+- [x] Audit the event form, live venue service, location schema, and existing TomTom picker.
+- [x] Replace raw latitude/longitude inputs and the misleading venue-request placeholder with Existing venue and Custom location modes.
+- [x] Search and attach live venues from Supabase without creating duplicate venue records.
+- [x] Reuse TomTom search, draggable map pin, reverse geocoding, and confirmation for standalone event locations.
+- [x] Persist canonical venue inheritance or confirmed custom event coordinates/address metadata through the existing event service/RPC contract.
+- [x] Hydrate organizer event edits with venue and canonical location fields.
+- [x] Pass TypeScript validation, lint, 273 tests with 2 skips, and production Vite build.
+- [ ] Complete authenticated production/device smoke testing for venue attachment and custom-location confirmation.
+
+# Stale Mobile Organizer Form Regression — 2026-08-24
+
+- [ ] Trace the screenshot to the actual deployed frontend route and project/build artifact.
+- [ ] Determine whether stale UI is caused by wrong deployment, stale bundle/cache, duplicate OrganizerEvents implementation, or route mismatch.
+- [ ] Make the corrected venue-attachment workflow render on the mobile organizer event form.
+- [ ] Validate the rendered route at mobile dimensions and confirm legacy raw coordinate/request controls are gone.
+
+# Stale Mobile Organizer Form Root Fix — 2026-08-24
+
+- [x] Confirm the screenshot was not generated by a second local OrganizerEvents component; the source has one mounted organizer route.
+- [x] Confirm production was serving commit `7d54bca`, which predated the organizer venue-attachment implementation.
+- [x] Commit the corrected organizer workflow as `7cb334a` and push it to GitHub `main`.
+- [x] Confirm Vercel production deployment `dpl_GU1RnxnjN7rWkYV9QmnvEoEqxfxo` built commit `7cb334a` and reached READY.
+- [ ] User reopens the canonical production URL or reloads the mobile web/PWA cache and confirms the new Existing venue / Custom location controls are visible.
+
+# Ticket Inventory Constraint Root Fix — 2026-08-24
+
+- [x] Trace the live `ticket_types_reserved_check` definition and the exact ticket-type insert/update path.
+- [x] Align ticket creation, reservation, release, and issuance values with the authoritative database contract.
+- [x] Add regression coverage for valid ticket-type creation and invalid reserved values.
+- [ ] Validate ticket purchase through payment initialization, verification, ticket issuance, and account history.
+
+# Payment Confirmation Incident — 2026-08-24
+
+- [ ] Identify the affected payment/order/reservation from the authenticated user’s latest transaction.
+- [ ] Trace Paystack initialization, provider reference, webhook delivery, callback verification, and ticket issuance state.
+- [ ] Reconcile the successful payment into the user’s tickets without duplicate charging or duplicate issuance.
+- [ ] Fix the root cause that prevented payment confirmation and harden retry/webhook handling.
+- [ ] Validate the repaired transaction and future payment-to-ticket flow.
+
+# Payment Confirmation Incident Resolution — 2026-08-24
+
+- [x] Verified Paystack reference `ATZ-TICKET-C429B0AA2087473585F59F02EBBA0C1E` as successful for NGN 10,500 on 2026-08-24.
+- [x] Reconciled payment `d2ea4dec-75f9-4dd0-8065-fffcd6b6a13b` through the authoritative issuance RPC; result `verified_and_issued` for order `692daca0-8f05-4354-a1ff-90018954f1b6`.
+- [x] Root-fixed the browser-return router dropping `pendingPayment` before mounting the Processing screen.
+- [x] Added regression coverage for the pending-payment payload handoff.
+- [ ] Deploy the callback fix and complete authenticated production callback smoke testing.
+- [ ] Resolve pre-existing repository-wide ESLint errors before treating lint as a release gate.

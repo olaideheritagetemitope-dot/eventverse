@@ -36,6 +36,7 @@ describe("Paystack checkout latency contract", () => {
     expect(verifyRoute).toContain("SUPABASE_SERVICE_ROLE_KEY");
     expect(appSource).toContain('fetch("/api/paystack/verify"');
     expect(appSource).toContain("callbackReference = url.searchParams.get(\"reference\") || url.searchParams.get(\"trxref\")");
+    expect(appSource).toContain("data: pendingPayment || pendingArtistPayment || pendingPremiumPayment");
   });
 
   it("keeps the provider-reference guard private and service-role executable", () => {
