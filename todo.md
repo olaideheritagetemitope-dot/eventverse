@@ -2447,3 +2447,38 @@ The remaining unchecked items require the owner's authenticated production sessi
 - [x] Added regression coverage for the pending-payment payload handoff.
 - [ ] Deploy the callback fix and complete authenticated production callback smoke testing.
 - [ ] Resolve pre-existing repository-wide ESLint errors before treating lint as a release gate.
+
+# Payment Confirmation Deployment Status — 2026-08-24
+
+- [x] Focused Paystack, provider-listener, and ticket idempotency tests pass: 12/12.
+- [x] TypeScript validation passes.
+- [x] Production Vite build passes.
+- [x] Callback fix committed and pushed as `a8cc112`.
+- [ ] Confirm Vercel READY status through the configured deployment scope; the current connector returned 403 because its token is not authorized for the Eventverse team scope.
+
+# Paystack Return Verification Stuck State — 2026-08-24
+
+- [ ] Capture the exact Paystack return reference and affected payment/order state.
+- [ ] Trace why `/api/paystack/verify` returns or leads to “Only the payment webhook service can verify payments”.
+- [ ] Fix the server-authoritative confirmation state machine without allowing browser-side forgery.
+- [ ] Add bounded retry/terminal failure handling so Processing cannot loop forever.
+- [ ] Reconcile any provider-successful affected payment exactly once and verify ticket issuance.
+- [ ] Validate success, failed, delayed-webhook, duplicate-return, and unauthorized cases.
+
+# Paystack Verification Root Fix — Deployment Evidence — 2026-08-24
+
+- [x] Confirm the stale “Only the payment webhook service can verify payments” message was from an older frontend bundle; current source no longer contains that message.
+- [x] Confirm the native Capacitor runtime previously sent `/api/paystack/verify` to `capacitor://localhost`, where no server route exists.
+- [x] Add native-safe API routing to the live Eventverse host while preserving relative browser routing.
+- [x] Pass the pending payment payload into Processing and invoke server-side Paystack verification after redirect.
+- [x] Commit and push as `c2fb74a`.
+- [x] Focused payment tests: 8/8 passed; TypeScript passed; production build passed.
+- [x] Live production HTML now serves a new hashed bundle containing the verifier route and `eventverse-eight.vercel.app` API base.
+- [ ] Confirm the user’s newly built native APK/AAB has been regenerated from `c2fb74a` and complete one real device payment return smoke test.
+
+# Persistent Paystack Verification Regression — 2026-08-24
+
+- [ ] Identify the exact runtime/build being tested and compare it with the latest corrected source and deployment.
+- [ ] Trace the Paystack return URL, pending-payment payload, API host, auth/session headers, and verifier response in that runtime.
+- [ ] Validate the corresponding payment/order/ticket database transition without charging or issuing duplicates.
+- [ ] Fix the actual remaining blocker, rebuild the native artifact if required, and verify success/failure terminal states.

@@ -13,9 +13,17 @@ describe("deletion root-fix acceptance", () => {
   it("keeps artist-song and venue deletion authoritative in Supabase and makes storage cleanup non-blocking", () => {
     expect(services).toContain('rpc("delete_artist_song"');
     expect(services).toContain('rpc("delete_owned_venue"');
-    expect(services).toContain('fetch("/api/media/cleanup"');
+    expect(services).toContain('apiUrl("/api/media/cleanup")');
     expect(services).not.toMatch(/deleteArtistSong[\s\S]*storage\.from\(MEDIA_BUCKET\)\.remove/);
     expect(services).not.toMatch(/deleteOwnedVenue[\s\S]*storage\.from\(MEDIA_BUCKET\)\.remove/);
+  });
+
+  it("keeps ticket issuance callable only by the trusted service role across JWT claim formats", () => {
+    const issuanceMigration = fs.readFileSync(path.join(root, "supabase/0119_fix_ticket_issuance_authority.sql"), "utf8");
+    expect(issuanceMigration).toContain("nullif(auth.role(), '')");
+    expect(issuanceMigration).toContain("request.jwt.claim.role");
+    expect(issuanceMigration).toContain("Only the payment webhook service can verify payments");
+    expect(issuanceMigration).toContain("grant execute on function public.verify_payment_and_issue_tickets");
   });
 
   it("allows trusted cleanup for Super Admin paths while restricting ordinary users to their own folder", () => {
