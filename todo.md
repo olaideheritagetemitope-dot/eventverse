@@ -2289,3 +2289,11 @@ The remaining unchecked items require the owner's authenticated production sessi
 - [ ] Reverse-geocode intentionally selected coordinates and keep address/coordinates fresh
 - [ ] Preserve confirmed location when closing fullscreen and through venue save/edit flows
 - [ ] Verify the complete flow on a real mobile viewport, including map tiles and touch behavior
+
+# TomTom Browser Key Production Regression — 2026-08-24
+
+- [ ] Trace the exact VITE_TOMTOM_MAP_API_KEY read path and Vercel build-time injection
+- [ ] Verify the browser-safe key is configured for the correct Vercel project and Production environment
+- [ ] Prevent the interactive map from silently losing its key after deployment
+- [ ] Redeploy and verify the built bundle contains the browser-safe key contract without exposing the server-only key
+- [ ] Recheck TomTom map authentication and tile rendering in the venue picker
