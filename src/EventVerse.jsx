@@ -1897,6 +1897,7 @@ function TomTomMapSurface({ point, mapKey, onPointSelected, onMapError, fullscre
     setStatus("loading");
     setMessage("");
     let map;
+    let resizeObserver;
     try {
       // Configure shared SDK defaults and pass the key explicitly to this map.
       // The Orbis SDK gives per-map parameters precedence for style authentication.
@@ -1929,11 +1930,14 @@ function TomTomMapSurface({ point, mapKey, onPointSelected, onMapError, fullscre
       const finishReady = () => {
         if (disposed || rendered) return;
         mapLibre.resize();
+        mapLibre.triggerRepaint?.();
         const canvas = mapLibre.getCanvas?.();
         const rect = containerRef.current?.getBoundingClientRect?.();
+        const style = mapLibre.getStyle?.();
         const hasViewport = Boolean(canvas && canvas.width > 0 && canvas.height > 0 && rect?.width > 0 && rect?.height > 0);
-        const hasStyle = Boolean(mapLibre.isStyleLoaded?.() || mapLibre.loaded?.());
-        if (!hasViewport || !hasStyle) return;
+        const hasWebGL = Boolean(canvas?.getContext?.("webgl") || canvas?.getContext?.("webgl2") || canvas?.getContext?.("experimental-webgl"));
+        const hasStyle = Boolean(mapLibre.isStyleLoaded?.() || mapLibre.loaded?.() || style?.layers?.length);
+        if (!hasViewport || !hasStyle || !hasWebGL) return;
         rendered = true;
         window.clearTimeout(timeoutId); window.clearInterval(renderCheckId);
         setStatus("ready");
@@ -1956,13 +1960,17 @@ function TomTomMapSurface({ point, mapKey, onPointSelected, onMapError, fullscre
       mapLibre.on("idle", finishReady);
       renderCheckId = window.setInterval(finishReady, 150);
       requestAnimationFrame(finishReady);
-      timeoutId = window.setTimeout(() => { if (!rendered) fail({ error: { message: "TomTom map did not render visible style or tile content. Check Map Display permissions, WebGL, and tile network access." } }); }, 15000);
+      const ResizeObserverCtor = typeof window !== "undefined" ? window.ResizeObserver : undefined;
+      resizeObserver = ResizeObserverCtor && containerRef.current ? new ResizeObserverCtor(() => { mapLibre.resize(); mapLibre.triggerRepaint?.(); finishReady(); }) : null;
+      resizeObserver?.observe(containerRef.current);
+      timeoutId = window.setTimeout(() => { if (!rendered) fail({ error: { message: "TomTom map could not initialize a renderable MapLibre canvas and style. Check Map Display permissions, WebGL, and tile network access." } }); }, 15000);
     } catch (err) {
       const reason = err?.message || "TomTom map initialization failed.";
       setStatus("error"); setMessage(reason); onMapError?.(reason);
     }
     return () => {
       disposed = true;
+      resizeObserver?.disconnect();
       markerRef.current?.remove(); markerRef.current = null;
       map?.remove?.(); mapRef.current = null;
     };

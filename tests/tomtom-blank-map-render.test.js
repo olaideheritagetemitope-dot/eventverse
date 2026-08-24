@@ -14,12 +14,15 @@ describe("TomTom blank-map rendering guard", () => {
 
   it("requires a non-zero canvas and container viewport before ready", () => {
     expect(source).toContain("canvas.width > 0 && canvas.height > 0");
+    expect(source).toContain('canvas?.getContext?.("webgl")');
     expect(source).toContain("rect?.width > 0 && rect?.height > 0");
+    expect(source).toContain("new ResizeObserver");
+    expect(source).toContain("mapLibre.triggerRepaint?.()");
     expect(source).toContain('style={{ width: "100%", height: "100%" }}');
   });
 
   it("does not suppress provider errors before the first rendered state", () => {
     expect(source).toContain("if (disposed || rendered) return;");
-    expect(source).toContain("TomTom map did not render visible style or tile content.");
+    expect(source).toContain("TomTom map could not initialize a renderable MapLibre canvas and style.");
   });
 });
