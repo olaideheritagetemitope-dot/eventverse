@@ -13,9 +13,7 @@ import QRCode from "qrcode";
 import { ATIZZY_TOKENS, EMPTY_CATALOG, normalizeCatalog, resourceState } from "./ui/designSystem";
 import { firstNonEmpty, loadDiscoverySnapshot, recordDiscoveryEvent } from "./services/discovery";
 import { searchTomTomPlaces, reverseGeocodeTomTom, tomTomStaticMapUrl } from "./services/tomtom";
-import { TomTomConfig } from "@tomtom-org/maps-sdk/core";
-import { TomTomMap } from "@tomtom-org/maps-sdk/map";
-import { Marker } from "maplibre-gl";
+import { Map as MapLibreMap, Marker } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import SuperAdminModuleRegistry from "./components/SuperAdminModuleRegistry";
 import AdvancedGovernancePanels from "./components/AdvancedGovernancePanels";
@@ -35,16 +33,28 @@ function requestBrowserLocation() {
   if (typeof navigator === "undefined" || !navigator.geolocation) {
     return Promise.resolve({ latitude: null, longitude: null, status: "unavailable" });
   }
-  return new Promise((resolve) => {
+  const normalize = (position) => ({ latitude: Number(position.coords.latitude), longitude: Number(position.coords.longitude), status: "granted" });
+  const failure = (positionError) => ({ latitude: null, longitude: null, status: positionError?.code === 1 ? "denied" : positionError?.code === 3 ? "timeout" : "unavailable" });
+  const readPosition = (options) => new Promise((resolve) => {
     try {
-      navigator.geolocation.getCurrentPosition(
-        (position) => resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude, status: "granted" }),
-        (positionError) => resolve({ latitude: null, longitude: null, status: positionError?.code === 1 ? "denied" : positionError?.code === 3 ? "timeout" : "unavailable" }),
-        { enableHighAccuracy: false, maximumAge: 300000, timeout: 8000 },
-      );
-    } catch {
-      resolve({ latitude: null, longitude: null, status: "unavailable" });
-    }
+      navigator.geolocation.getCurrentPosition((position) => resolve(normalize(position)), (positionError) => resolve(failure(positionError)), options);
+    } catch { resolve({ latitude: null, longitude: null, status: "unavailable" }); }
+  });
+  const watchForPosition = () => new Promise((resolve) => {
+    let settled = false;
+    let watchId;
+    const finish = (result) => { if (settled) return; settled = true; if (watchId !== undefined) navigator.geolocation.clearWatch?.(watchId); resolve(result); };
+    try {
+      watchId = navigator.geolocation.watchPosition((position) => finish(normalize(position)), (positionError) => finish(failure(positionError)), { enableHighAccuracy: true, maximumAge: 300000, timeout: 20000 });
+      window.setTimeout(() => finish({ latitude: null, longitude: null, status: "timeout" }), 22000);
+    } catch { finish({ latitude: null, longitude: null, status: "unavailable" }); }
+  });
+  return readPosition({ enableHighAccuracy: false, maximumAge: 300000, timeout: 8000 }).then((result) => {
+    if (result.status === "granted" || result.status === "denied") return result;
+    return readPosition({ enableHighAccuracy: true, maximumAge: 60000, timeout: 20000 }).then((accurate) => {
+      if (accurate.status === "granted" || accurate.status === "denied") return accurate;
+      return watchForPosition();
+    });
   });
 }
 
@@ -1899,9 +1909,18 @@ function TomTomMapSurface({ point, mapKey, onPointSelected, onMapError, fullscre
     let map;
     let resizeObserver;
     try {
-      // Configure shared SDK defaults and pass the key explicitly to this map.
-      // The Orbis SDK gives per-map parameters precedence for style authentication.
-      TomTomConfig.instance.put({ apiKey: mapKey, language: "en-GB" });
+      // Use MapLibre directly with TomTom's authenticated Orbis raster tiles.
+      // This avoids the SDK vector-style sprite/glyph dependency chain that can
+      // produce a white surface while markers and reverse geocoding still work.
+      const tomtomTileHosts = ["a.api.tomtom.com", "b.api.tomtom.com", "c.api.tomtom.com", "d.api.tomtom.com"];
+      const rasterTiles = tomtomTileHosts.map((host) => `https://${host}/maps/orbis/map-display/tile/{z}/{x}/{y}.png?apiVersion=1&style=street-light&tileSize=256&view=Unified&language=en-GB&key=${encodeURIComponent(mapKey)}`);
+      const rasterStyle = {
+        version: 8,
+        sources: {
+          tomtom: { type: "raster", tiles: rasterTiles, tileSize: 256, minzoom: 0, maxzoom: 22, attribution: "© TomTom" },
+        },
+        layers: [{ id: "tomtom-basemap", type: "raster", source: "tomtom", paint: { "raster-fade-duration": 0 } }],
+      };
       const normalizeTomTomRequest = (url) => {
         try {
           const parsed = new URL(url, window.location.origin);
@@ -1913,23 +1932,20 @@ function TomTomMapSurface({ point, mapKey, onPointSelected, onMapError, fullscre
           return { url };
         }
       };
-      map = new TomTomMap({
-        key: mapKey,
-        language: "en-GB",
-        style: "standardLight",
-          mapLibre: {
-          container: containerRef.current,
-          transformRequest: normalizeTomTomRequest,
-          center: [selectedPoint.longitude, selectedPoint.latitude],
-          zoom: fullscreen ? 16 : 14,
-          minZoom: 3,
-          maxZoom: 20,
-          attributionControl: true,
-          cooperativeGestures: false,
-        },
+      map = new MapLibreMap({
+        container: containerRef.current,
+        style: rasterStyle,
+        transformRequest: normalizeTomTomRequest,
+        center: [selectedPoint.longitude, selectedPoint.latitude],
+        zoom: fullscreen ? 16 : 14,
+        minZoom: 3,
+        maxZoom: 20,
+        attributionControl: true,
+        cooperativeGestures: false,
+        fadeDuration: 0,
       });
-      mapRef.current = map;
-      const mapLibre = map.mapLibreMap;
+      mapRef.current = { mapLibreMap: map };
+      const mapLibre = map;
       let rendered = false;
       let timeoutId;
       let renderCheckId;
@@ -2077,7 +2093,7 @@ function TomTomVenueLocationPicker({ value, onChange }) {
 
   return <div className="mb-4 rounded-2xl p-3" style={{ background: C.card2, border: `1px solid ${C.line}` }}>
     <p className="text-[12px] font-semibold mb-2" style={{ color: C.ivory }}>Search and confirm exact location</p>
-    <form onSubmit={search} className="flex gap-2"><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search venue or address" className="min-w-0 flex-1 rounded-xl px-3 py-3 text-[13px] outline-none" style={{ background: C.card, color: C.ivory, border: `1px solid ${C.line}` }} /><button type="submit" disabled={busy} className="rounded-xl px-3 text-[12px] font-semibold" style={{ background: C.gold, color: C.bg }}>{busy ? "..." : "Search"}</button></form>
+    <form role="search" onSubmit={(event) => { event.preventDefault(); void search(event); }} className="flex gap-2"><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search venue or address" className="min-w-0 flex-1 rounded-xl px-3 py-3 text-[13px] outline-none" style={{ background: C.card, color: C.ivory, border: `1px solid ${C.line}` }} /><button type="submit" disabled={busy} className="rounded-xl px-3 text-[12px] font-semibold" style={{ background: C.gold, color: C.bg }}>{busy ? "..." : "Search"}</button></form>
     {results.length > 0 && <div className="mt-2 rounded-xl overflow-hidden" style={{ border: `1px solid ${C.line}` }}>{results.map((place) => <button type="button" key={`${place.providerPlaceId || place.label}-${place.latitude}`} onClick={() => choose(place)} className="w-full text-left px-3 py-2.5" style={{ background: C.card, color: C.ivory, borderBottom: `1px solid ${C.line}` }}><span className="block text-[12px]">{place.name || place.label}</span><span className="block text-[10px] mt-1" style={{ color: C.muted }}>{place.address || place.label}</span></button>)}</div>}
     {!fullscreen && <div className="mt-3 relative rounded-xl overflow-hidden" style={{ height: 260, background: C.card }}>{renderMap()}<div className="absolute left-2 bottom-2 rounded-lg px-2 py-1 text-[10px] pointer-events-none" style={{ background: "#0B0A08CC", color: C.ivory }}>Tap map to select · Drag pin to refine</div><button type="button" onClick={() => setFullscreen(true)} className="absolute right-2 top-2 rounded-lg px-3 py-2 text-[11px] font-semibold" style={{ background: C.gold, color: C.bg }}>Expand Map</button></div>}
     <div className="flex items-center justify-between gap-2 mt-2"><span className="text-[10px]" style={{ color: C.muted }}>{hasPoint ? `${latitude.toFixed(6)}, ${longitude.toFixed(6)}` : (countryCode === "NG" ? "Saved coordinates are outside Nigeria; search again" : "Search to place the venue pin")}</span><button type="button" onClick={confirm} disabled={confirming || !hasPoint} className="rounded-xl px-3 py-2 text-[11px] font-semibold" style={{ background: confirming || !hasPoint ? C.line : C.gold, color: confirming || !hasPoint ? C.muted : C.bg }}>{confirming ? "Confirming..." : "Confirm location"}</button></div>
