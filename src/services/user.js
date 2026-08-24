@@ -628,7 +628,7 @@ export async function applyAsOrganizer(userId, displayName, reason) {
 
 export async function loadOrganizerEvents(userId) {
   if (!userId) return [];
-  const { data, error } = await supabase.from("events").select("id,organizer_id,venue_id,title,description,event_type,city,starts_at,ends_at,cover_url,status,created_at,updated_at,venues(name,address,capacity),ticket_types(id,name,price,capacity,sold,reserved,sales_start,sales_end,maximum_per_customer)").eq("organizer_id", userId).order("starts_at", { ascending: true }).limit(100);
+  const { data, error } = await supabase.from("events").select("id,organizer_id,venue_id,title,description,event_type,city,starts_at,ends_at,cover_url,status,latitude,longitude,formatted_address,state_region,country,provider_place_id,location_metadata,created_at,updated_at,venues(id,name,address,formatted_address,city,state_region,country,provider_place_id,latitude,longitude,image_urls,capacity),ticket_types(id,name,price,capacity,sold,reserved,sales_start,sales_end,maximum_per_customer)").eq("organizer_id", userId).order("starts_at", { ascending: true }).limit(100);
   if (error) throw error;
   return data || [];
 }
@@ -1406,6 +1406,20 @@ export async function updateOrganizerTicketReleasePolicy(ticketTypeId, values = 
 }
 
 
+export async function deleteMyAccount() {
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError) throw sessionError;
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) throw new Error("Please sign in again before deleting your account.");
+  const response = await fetch("/api/account/delete", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload.deleted) throw new Error(payload.error || "The account could not be deleted.");
+  await supabase.auth.signOut();
+  return true;
+}
 export async function loadPublishedLegalDocument(documentType) {
   if (!documentType) throw new Error("Legal document type is required.");
   const { data, error } = await supabase.rpc("list_published_legal_document", { p_document_type: documentType });

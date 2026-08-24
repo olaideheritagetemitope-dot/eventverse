@@ -65,12 +65,14 @@ describe("Venue Manager directive acceptance", () => {
     has(ui, "available");
   });
 
-  it("supports organizer venue discovery and booking requests", () => {
+  it("supports organizer venue discovery and direct event attachment", () => {
     has(services, "loadAvailableVenues");
     has(services, "requestVenueBooking");
     has(workflow, "request_venue_booking");
-    has(ui, "Available venue");
-    has(ui, "Save draft and request venue");
+    has(ui, "Existing venue");
+    has(ui, "Custom location");
+    has(ui, "selectVenue");
+    has(ui, "location_confirmed");
   });
 
   it("enforces capacity and overlapping-booking conflict protection", () => {
