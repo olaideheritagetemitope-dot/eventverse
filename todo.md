@@ -2297,3 +2297,11 @@ The remaining unchecked items require the owner's authenticated production sessi
 - [ ] Prevent the interactive map from silently losing its key after deployment
 - [ ] Redeploy and verify the built bundle contains the browser-safe key contract without exposing the server-only key
 - [ ] Recheck TomTom map authentication and tile rendering in the venue picker
+
+# TomTom Orbis Style Authentication 401 — 2026-08-24
+
+- [ ] Reproduce the 401 against the exact Orbis style.json URL with the browser key without printing the key
+- [ ] Determine whether the key lacks Orbis Maps SDK / style permissions or whether the SDK style configuration is incompatible
+- [ ] Correct the map style/API-version/authentication contract without replacing TomTom
+- [ ] Add a useful distinction between style-auth failure and tile/network failure
+- [ ] Redeploy and verify interactive style loading, tiles, marker, movement, and touch selection

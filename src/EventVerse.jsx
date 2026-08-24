@@ -13,6 +13,7 @@ import QRCode from "qrcode";
 import { ATIZZY_TOKENS, EMPTY_CATALOG, normalizeCatalog, resourceState } from "./ui/designSystem";
 import { firstNonEmpty, loadDiscoverySnapshot, recordDiscoveryEvent } from "./services/discovery";
 import { searchTomTomPlaces, reverseGeocodeTomTom, tomTomStaticMapUrl } from "./services/tomtom";
+import { TomTomConfig } from "@tomtom-org/maps-sdk/core";
 import { TomTomMap } from "@tomtom-org/maps-sdk/map";
 import { Marker } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -1897,8 +1898,11 @@ function TomTomMapSurface({ point, mapKey, onPointSelected, onMapError, fullscre
     setMessage("");
     let map;
     try {
+      // The Orbis Maps SDK reads authentication from the global TomTomConfig.
+      // Passing a key only to the map constructor does not authenticate the
+      // style.json request, which otherwise fails with HTTP 401.
+      TomTomConfig.instance.put({ apiKey: mapKey, language: "en-GB" });
       map = new TomTomMap({
-        key: mapKey,
         language: "en-GB",
         style: "standardLight",
         mapLibre: {
