@@ -2262,8 +2262,30 @@ The remaining unchecked items require the owner's authenticated production sessi
 
 # Vercel Production Secret Binding — 2026-08-24
 
-- [ ] Add TOMTOM_API_KEY to the linked eventverse Vercel Production environment using the available authenticated Vercel connection
-- [ ] Trigger or confirm a production redeployment with the Vercel-bound secret
-- [ ] Verify live TomTom search, reverse geocode, and static map responses
+- [x] Add TOMTOM_API_KEY to the linked eventverse Vercel Production environment using the available authenticated Vercel connection
+- [x] Trigger or confirm a production redeployment with the Vercel-bound secret
+- [x] Verify live TomTom search, reverse geocode, and static map responses
 
-- [ ] Fix static-map proxy sending unsupported TomTom language=NG parameter; use provider-supported language or omit it, then redeploy and verify image response
+- [x] Fix static-map proxy sending unsupported TomTom language=NG parameter; use provider-supported language or omit it, then redeploy and verify image response
+
+# TomTom Interactive Venue Map Root Fix — 2026-08-24
+
+- [ ] Trace the current Venue Manager map renderer and identify why a broken-image element is shown
+- [ ] Audit TomTom Search, reverse geocoding, static-map, SDK, style, tile, and authentication paths
+- [ ] Verify browser/network failures including 401, 403, 404, CORS, invalid-key, and tile-loading errors
+- [ ] Trace suspicious Nigerian venue coordinates and enforce longitude/latitude ordering end to end
+- [ ] Replace image-based map display with the correct interactive TomTom web map implementation
+- [ ] Preserve search, automatic map movement, marker, draggable-pin, coordinate display, reverse geocoding, and confirmation persistence
+- [ ] Add useful map failure UI instead of broken-image output
+- [ ] Validate the complete production venue-location flow and database persistence
+
+- [ ] Configure a browser-safe VITE_TOMTOM_MAP_API_KEY with TomTom Maps SDK and Map Display permissions; do not expose the server-only proxy key
+
+# TomTom Venue Map UX Extension — 2026-08-24
+
+- [ ] Add a safe-area-aware fullscreen TomTom map overlay with close/back and confirm controls
+- [ ] Support intentional map tap selection, double-tap reconfirmation, and draggable pin refinement
+- [ ] Keep ordinary map panning and pinch zoom from changing the selected venue coordinate
+- [ ] Reverse-geocode intentionally selected coordinates and keep address/coordinates fresh
+- [ ] Preserve confirmed location when closing fullscreen and through venue save/edit flows
+- [ ] Verify the complete flow on a real mobile viewport, including map tiles and touch behavior

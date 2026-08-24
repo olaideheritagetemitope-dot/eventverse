@@ -26,5 +26,5 @@ describe("TomTom secure location integration", () => {
     const payload = await response.json().catch(() => ({}));
     expect(response.ok, payload?.errorText || "TomTom geocoding request failed").toBe(true);
     expect(Array.isArray(payload?.results)).toBe(true);
-  });
+  }, 15000);
 });

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useImperativeHandle } from "react";
+import React, { useState, useRef, useEffect, useImperativeHandle, useMemo } from "react";
 import {
   Search, Bell, Menu, ChevronLeft, ChevronRight, Play, Pause,
   SkipBack, SkipForward, Heart, Share2, Star, MapPin, Calendar,
@@ -13,6 +13,9 @@ import QRCode from "qrcode";
 import { ATIZZY_TOKENS, EMPTY_CATALOG, normalizeCatalog, resourceState } from "./ui/designSystem";
 import { firstNonEmpty, loadDiscoverySnapshot, recordDiscoveryEvent } from "./services/discovery";
 import { searchTomTomPlaces, reverseGeocodeTomTom, tomTomStaticMapUrl } from "./services/tomtom";
+import { TomTomMap } from "@tomtom-org/maps-sdk/map";
+import { Marker } from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import SuperAdminModuleRegistry from "./components/SuperAdminModuleRegistry";
 import AdvancedGovernancePanels from "./components/AdvancedGovernancePanels";
 
@@ -1871,17 +1874,141 @@ function EventStaffTasks({ nav, data }) {
   const tasks = data?.tasks || []; return <Phone><TopBack title="Assigned tasks" onBack={nav.pop} /><div className="flex-1 overflow-y-auto px-5 pb-8"><p className="text-[12px] uppercase tracking-[0.16em] pt-2" style={{ color: C.gold }}>Event Staff</p><h1 className="ev-display text-[24px] mt-1" style={{ color: C.ivory }}>{data?.event_title || "Event tasks"}</h1>{!tasks.length ? <div className="mt-5"><EmptyResourceCard label="No tasks assigned" description="Your Organizer will add operational tasks here when needed." /></div> : <div className="mt-5">{tasks.map((task) => <div key={task.id} className="rounded-2xl p-4 mb-3" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[14px] font-semibold" style={{ color: C.ivory }}>{task.title}</p><p className="text-[11px] mt-2" style={{ color: C.muted }}>{task.description || "No additional instructions."}</p><p className="text-[10px] mt-3 uppercase" style={{ color: C.goldSoft }}>{task.status}</p></div>)}</div>}</div></Phone>;
 }
 
+function TomTomMapSurface({ point, mapKey, onPointSelected, onMapError, fullscreen = false }) {
+  const containerRef = useRef(null);
+  const mapRef = useRef(null);
+  const markerRef = useRef(null);
+  const selectedRef = useRef(point);
+  const [status, setStatus] = useState("loading");
+  const [message, setMessage] = useState("");
+  const selectedPoint = useMemo(() => ({ longitude: Number(point.longitude), latitude: Number(point.latitude) }), [point.longitude, point.latitude]);
+  selectedRef.current = selectedPoint;
+
+  useEffect(() => {
+    let disposed = false;
+    if (!containerRef.current || !mapKey) {
+      setStatus("error");
+      const reason = mapKey ? "TomTom map container is unavailable." : "TomTom Maps SDK key is missing from VITE_TOMTOM_MAP_API_KEY.";
+      setMessage(reason);
+      onMapError?.(reason);
+      return undefined;
+    }
+    setStatus("loading");
+    setMessage("");
+    let map;
+    try {
+      map = new TomTomMap({
+        key: mapKey,
+        language: "en-GB",
+        style: "standardLight",
+        mapLibre: {
+          container: containerRef.current,
+          center: [selectedPoint.longitude, selectedPoint.latitude],
+          zoom: fullscreen ? 16 : 14,
+          minZoom: 3,
+          maxZoom: 20,
+          attributionControl: true,
+          cooperativeGestures: false,
+        },
+      });
+      mapRef.current = map;
+      const mapLibre = map.mapLibreMap;
+      const fail = (event) => {
+        const reason = event?.error?.message || "TomTom map tiles failed to load.";
+        setStatus("error"); setMessage(reason); onMapError?.(reason);
+      };
+      const selectFromTap = (event) => {
+        const lng = Number(event?.lngLat?.lng); const lat = Number(event?.lngLat?.lat);
+        if (Number.isFinite(lng) && Number.isFinite(lat)) onPointSelected({ longitude: Number(lng.toFixed(6)), latitude: Number(lat.toFixed(6)), source: "map-tap" });
+      };
+      mapLibre.on("error", fail);
+      mapLibre.on("click", selectFromTap);
+      mapLibre.on("dblclick", selectFromTap);
+      mapLibre.on("load", () => {
+        if (disposed) return;
+        setStatus("ready");
+        mapLibre.resize();
+        markerRef.current = new Marker({ color: "#CDA349", draggable: true })
+          .setLngLat([selectedRef.current.longitude, selectedRef.current.latitude])
+          .addTo(mapLibre);
+        markerRef.current.on("dragend", () => {
+          const position = markerRef.current.getLngLat();
+          onPointSelected({ longitude: Number(position.lng.toFixed(6)), latitude: Number(position.lat.toFixed(6)), source: "marker-drag" });
+        });
+      });
+    } catch (err) {
+      const reason = err?.message || "TomTom map initialization failed.";
+      setStatus("error"); setMessage(reason); onMapError?.(reason);
+    }
+    return () => {
+      disposed = true;
+      markerRef.current?.remove(); markerRef.current = null;
+      map?.remove?.(); mapRef.current = null;
+    };
+  }, [mapKey, fullscreen]);
+
+  useEffect(() => {
+    const map = mapRef.current?.mapLibreMap;
+    if (!map || !Number.isFinite(selectedPoint.longitude) || !Number.isFinite(selectedPoint.latitude)) return;
+    markerRef.current?.setLngLat([selectedPoint.longitude, selectedPoint.latitude]);
+    const current = map.getCenter();
+    if (Math.abs(current.lng - selectedPoint.longitude) > 0.000001 || Math.abs(current.lat - selectedPoint.latitude) > 0.000001) {
+      map.flyTo({ center: [selectedPoint.longitude, selectedPoint.latitude], essential: true });
+    }
+  }, [selectedPoint.longitude, selectedPoint.latitude]);
+
+  useEffect(() => {
+    const map = mapRef.current?.mapLibreMap;
+    if (!map) return undefined;
+    const resize = () => map.resize();
+    const frame = requestAnimationFrame(resize);
+    window.addEventListener("resize", resize);
+    return () => { cancelAnimationFrame(frame); window.removeEventListener("resize", resize); };
+  }, [fullscreen]);
+
+  return <div className="relative h-full w-full" data-tomtom-map-status={status}>
+    <div ref={containerRef} className="absolute inset-0" aria-label="Interactive TomTom venue map" />
+    {status === "loading" && <div className="absolute inset-0 flex items-center justify-center text-[12px]" style={{ background: `${C.card}CC`, color: C.ivory }}>Loading TomTom map…</div>}
+    {status === "error" && <div className="absolute inset-0 flex items-center justify-center px-5 text-center text-[12px]" style={{ background: `${C.card}F2`, color: C.red }}>TomTom map unavailable. {message || "Check the browser-safe map key, Map Display permission, WebGL, and tile network requests."}</div>}
+  </div>;
+}
+
 function TomTomVenueLocationPicker({ value, onChange }) {
   const [query, setQuery] = useState(value?.formatted_address || value?.address || "");
   const [results, setResults] = useState([]);
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState("");
-  const [dragging, setDragging] = useState(false);
-  const mapRef = useRef(null);
+  const [fullscreen, setFullscreen] = useState(false);
+  const defaultPoint = { latitude: 6.5244, longitude: 3.3792 };
   const latitude = Number(value?.latitude);
   const longitude = Number(value?.longitude);
-  const mapUrl = tomTomStaticMapUrl(latitude, longitude);
+  const countryCode = String(value?.countryCode || value?.country_code || "").toUpperCase();
+  const hasGenericPoint = Number.isFinite(latitude) && Number.isFinite(longitude) && latitude >= -85 && latitude <= 85 && longitude >= -180 && longitude <= 180;
+  const hasPoint = hasGenericPoint && (countryCode !== "NG" || (latitude >= 4 && latitude <= 14 && longitude >= 2 && longitude <= 15));
+  const point = hasPoint ? { latitude, longitude } : defaultPoint;
+  const mapKey = import.meta.env.VITE_TOMTOM_MAP_API_KEY || "";
+
+  useEffect(() => {
+    if (!hasPoint || value?.location_confirmed) return undefined;
+    const selectedLatitude = latitude; const selectedLongitude = longitude;
+    const timer = window.setTimeout(async () => {
+      try {
+        const place = await reverseGeocodeTomTom(selectedLatitude, selectedLongitude);
+        if (Number(value?.latitude) !== selectedLatitude || Number(value?.longitude) !== selectedLongitude) return;
+        const address = place.formattedAddress || value.address || "";
+        onChange({ ...value, address, formatted_address: address, city: place.municipality || value.city || "", state_region: place.state || value.state_region || "", country: place.country || value.country || "", provider_place_id: place.providerPlaceId || value.provider_place_id || "", location_confirmed: false });
+        setQuery(address);
+      } catch (err) { setError(err.message || "Unable to reverse-geocode the selected point."); }
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [latitude, longitude, hasPoint, value?.location_confirmed]);
+
+  const updatePoint = ({ latitude: nextLatitude, longitude: nextLongitude }) => {
+    if (!Number.isFinite(nextLatitude) || !Number.isFinite(nextLongitude)) return;
+    setError("");
+    onChange({ ...value, latitude: nextLatitude, longitude: nextLongitude, location_confirmed: false });
+  };
   const search = async (event) => {
     event?.preventDefault();
     if (query.trim().length < 2) { setResults([]); return; }
@@ -1889,24 +2016,35 @@ function TomTomVenueLocationPicker({ value, onChange }) {
     try { setResults(await searchTomTomPlaces(query)); } catch (err) { setError(err.message || "Unable to search TomTom locations."); } finally { setBusy(false); }
   };
   const choose = (place) => {
+    const nextLatitude = Number(place.latitude); const nextLongitude = Number(place.longitude);
+    if (!Number.isFinite(nextLatitude) || !Number.isFinite(nextLongitude)) { setError("TomTom returned an invalid coordinate for that place."); return; }
     setQuery(place.label || ""); setResults([]); setError("");
-    onChange({ ...value, latitude: place.latitude, longitude: place.longitude, address: place.address || place.label || value.address || "", formatted_address: place.label || place.address || "", city: place.municipality || value.city || "", state_region: place.state || "", country: place.country || "", provider_place_id: place.providerPlaceId || "" });
-  };
-  const movePin = (event) => {
-    if (!mapRef.current || !Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
-    const rect = mapRef.current.getBoundingClientRect();
-    const x = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
-    const y = Math.max(0, Math.min(rect.height, event.clientY - rect.top));
-    const nextLatitude = latitude + (0.06 * (0.5 - y / rect.height));
-    const nextLongitude = longitude + (0.09 * (x / rect.width - 0.5));
-    onChange({ ...value, latitude: Number(nextLatitude.toFixed(6)), longitude: Number(nextLongitude.toFixed(6)) });
+    updatePoint({ latitude: nextLatitude, longitude: nextLongitude });
+    onChange({ ...value, latitude: nextLatitude, longitude: nextLongitude, address: place.address || place.label || value.address || "", formatted_address: place.label || place.address || "", city: place.municipality || value.city || "", state_region: place.state || "", country: place.country || value.country || "", provider_place_id: place.providerPlaceId || "", location_confirmed: false });
   };
   const confirm = async () => {
-    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) { setError("Search for the venue first so an exact map position can be confirmed."); return; }
+    if (!hasPoint) { setError("Search for the venue first so an exact map position can be confirmed."); return; }
     setConfirming(true); setError("");
-    try { const place = await reverseGeocodeTomTom(latitude, longitude); onChange({ ...value, latitude, longitude, address: place.formattedAddress || value.address || "", formatted_address: place.formattedAddress || value.formatted_address || "", city: place.municipality || value.city || "", state_region: place.state || value.state_region || "", country: place.country || value.country || "", provider_place_id: place.providerPlaceId || value.provider_place_id || "" }); setQuery(place.formattedAddress || query); } catch (err) { setError(err.message || "Unable to confirm this TomTom location."); } finally { setConfirming(false); }
+    try {
+      const place = await reverseGeocodeTomTom(latitude, longitude);
+      const address = place.formattedAddress || value.address || "";
+      onChange({ ...value, latitude, longitude, address, formatted_address: address, city: place.municipality || value.city || "", state_region: place.state || value.state_region || "", country: place.country || value.country || "", provider_place_id: place.providerPlaceId || value.provider_place_id || "", location_confirmed: true });
+      setQuery(address);
+    } catch (err) { setError(err.message || "Unable to confirm this TomTom location."); } finally { setConfirming(false); }
   };
-  return <div className="mb-4 rounded-2xl p-3" style={{ background: C.card2, border: `1px solid ${C.line}` }}><p className="text-[12px] font-semibold mb-2" style={{ color: C.ivory }}>Search and confirm exact location</p><form onSubmit={search} className="flex gap-2"><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search venue or address" className="min-w-0 flex-1 rounded-xl px-3 py-3 text-[13px] outline-none" style={{ background: C.card, color: C.ivory, border: `1px solid ${C.line}` }} /><button type="submit" disabled={busy} className="rounded-xl px-3 text-[12px] font-semibold" style={{ background: C.gold, color: C.bg }}>{busy ? "..." : "Search"}</button></form>{results.length > 0 && <div className="mt-2 rounded-xl overflow-hidden" style={{ border: `1px solid ${C.line}` }}>{results.map((place) => <button type="button" key={`${place.providerPlaceId || place.label}-${place.latitude}`} onClick={() => choose(place)} className="w-full text-left px-3 py-2.5" style={{ background: C.card, color: C.ivory, borderBottom: `1px solid ${C.line}` }}><span className="block text-[12px]">{place.name || place.label}</span><span className="block text-[10px] mt-1" style={{ color: C.muted }}>{place.address || place.label}</span></button>)}</div>}{mapUrl && <div className="mt-3"><div ref={mapRef} onPointerDown={(event) => { setDragging(true); event.currentTarget.setPointerCapture?.(event.pointerId); }} onPointerMove={(event) => { if (dragging) movePin(event); }} onPointerUp={() => setDragging(false)} onPointerCancel={() => setDragging(false)} className="relative overflow-hidden rounded-xl cursor-crosshair" style={{ height: 180, background: C.card }}><img src={mapUrl} alt="TomTom venue map" className="w-full h-full object-cover select-none pointer-events-none" /><div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full text-[22px]" aria-label="Venue pin">📍</div><div className="absolute left-2 bottom-2 rounded-lg px-2 py-1 text-[10px]" style={{ background: "#0B0A08CC", color: C.ivory }}>Drag map to adjust exact pin</div></div><div className="flex items-center justify-between gap-2 mt-2"><span className="text-[10px]" style={{ color: C.muted }}>{latitude.toFixed(6)}, {longitude.toFixed(6)}</span><button type="button" onClick={confirm} disabled={confirming} className="rounded-xl px-3 py-2 text-[11px] font-semibold" style={{ background: C.gold, color: C.bg }}>{confirming ? "Confirming..." : "Confirm location"}</button></div></div>}{error && <p className="text-[10px] mt-2" style={{ color: C.red }}>{error}</p>}<p className="text-[10px] mt-2" style={{ color: C.muted }}>TomTom search and reverse geocoding save the exact latitude, longitude, and address to this venue.</p></div>;
+  const renderMap = (expanded = false) => <TomTomMapSurface point={point} mapKey={mapKey} fullscreen={expanded} onPointSelected={updatePoint} onMapError={(message) => setError(message)} />;
+
+  return <div className="mb-4 rounded-2xl p-3" style={{ background: C.card2, border: `1px solid ${C.line}` }}>
+    <p className="text-[12px] font-semibold mb-2" style={{ color: C.ivory }}>Search and confirm exact location</p>
+    <form onSubmit={search} className="flex gap-2"><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search venue or address" className="min-w-0 flex-1 rounded-xl px-3 py-3 text-[13px] outline-none" style={{ background: C.card, color: C.ivory, border: `1px solid ${C.line}` }} /><button type="submit" disabled={busy} className="rounded-xl px-3 text-[12px] font-semibold" style={{ background: C.gold, color: C.bg }}>{busy ? "..." : "Search"}</button></form>
+    {results.length > 0 && <div className="mt-2 rounded-xl overflow-hidden" style={{ border: `1px solid ${C.line}` }}>{results.map((place) => <button type="button" key={`${place.providerPlaceId || place.label}-${place.latitude}`} onClick={() => choose(place)} className="w-full text-left px-3 py-2.5" style={{ background: C.card, color: C.ivory, borderBottom: `1px solid ${C.line}` }}><span className="block text-[12px]">{place.name || place.label}</span><span className="block text-[10px] mt-1" style={{ color: C.muted }}>{place.address || place.label}</span></button>)}</div>}
+    <div className="mt-3 relative rounded-xl overflow-hidden" style={{ height: 260, background: C.card }}>{renderMap()}<div className="absolute left-2 bottom-2 rounded-lg px-2 py-1 text-[10px] pointer-events-none" style={{ background: "#0B0A08CC", color: C.ivory }}>Tap map to select · Drag pin to refine</div><button type="button" onClick={() => setFullscreen(true)} className="absolute right-2 top-2 rounded-lg px-3 py-2 text-[11px] font-semibold" style={{ background: C.gold, color: C.bg }}>Expand Map</button></div>
+    <div className="flex items-center justify-between gap-2 mt-2"><span className="text-[10px]" style={{ color: C.muted }}>{hasPoint ? `${latitude.toFixed(6)}, ${longitude.toFixed(6)}` : (countryCode === "NG" ? "Saved coordinates are outside Nigeria; search again" : "Search to place the venue pin")}</span><button type="button" onClick={confirm} disabled={confirming || !hasPoint} className="rounded-xl px-3 py-2 text-[11px] font-semibold" style={{ background: confirming || !hasPoint ? C.line : C.gold, color: confirming || !hasPoint ? C.muted : C.bg }}>{confirming ? "Confirming..." : "Confirm location"}</button></div>
+    {value?.location_confirmed && <p className="text-[10px] mt-2" style={{ color: C.green }}>Location confirmed and ready to save.</p>}
+    {error && <p className="text-[10px] mt-2" style={{ color: C.red }}>{error}</p>}
+    <p className="text-[10px] mt-2" style={{ color: C.muted }}>TomTom search and reverse geocoding save the exact longitude, latitude, and address to this venue.</p>
+    {fullscreen && <div className="fixed inset-0 z-[100] flex flex-col" style={{ background: C.bg, paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}><div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${C.line}` }}><button type="button" onClick={() => setFullscreen(false)} className="rounded-lg px-3 py-2 text-[12px]" style={{ background: C.card, color: C.ivory }}>Close</button><span className="text-[13px] font-semibold" style={{ color: C.ivory }}>Precise venue location</span><button type="button" onClick={confirm} disabled={confirming || !hasPoint} className="rounded-lg px-3 py-2 text-[12px] font-semibold" style={{ background: confirming || !hasPoint ? C.line : C.gold, color: confirming || !hasPoint ? C.muted : C.bg }}>{confirming ? "..." : "Confirm Location"}</button></div><div className="relative flex-1 min-h-0">{renderMap(true)}<div className="absolute left-1/2 bottom-6 -translate-x-1/2 rounded-lg px-3 py-2 text-[11px] pointer-events-none" style={{ background: "#0B0A08DD", color: C.ivory }}>Tap to select · Drag pin to refine · Pinch to zoom</div></div><div className="px-4 py-3" style={{ borderTop: `1px solid ${C.line}`, background: C.card }}><p className="text-[11px]" style={{ color: C.ivory }}>{hasPoint ? `Selected: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}` : "No valid location selected"}</p><p className="text-[10px] mt-1" style={{ color: C.muted }}>{value?.formatted_address || value?.address || "Select a point, then confirm to reverse-geocode it."}</p></div></div>}
+  </div>;
 }
 function VenueManagerOnboarding({ nav, account }) { return <RoleOnboarding nav={nav} account={account} roleCode="VENUE_MANAGER" title="Become a Venue Manager" eyebrow="Venue operations" heading="Manage spaces that bring events to life" description="Complete the live questionnaire first. Approval is server-controlled and requires the configured fee and admin review." workspaceRoute="venueManager" />; }
 function VenueManagerWorkspace({ nav, account }) {
