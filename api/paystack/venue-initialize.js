@@ -1,5 +1,5 @@
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = process.env.VITE_SUPABASE_ANON_KEY;
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 function json(res, status, body) { res.status(status).json(body); }
 async function supabaseRpc(name, args, authorization) {
   const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, { method: "POST", headers: { apikey: SUPABASE_PUBLISHABLE_KEY, Authorization: authorization, "Content-Type": "application/json" }, body: JSON.stringify(args) });

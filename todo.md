@@ -2353,8 +2353,14 @@ The remaining unchecked items require the owner's authenticated production sessi
 
 - [x] Solid-white TomTom basemap with working marker and reverse-geocoded coordinates: root cause was duplicate `key` query parameters on SDK-generated sprite/glyph/tile URLs; normalize every TomTom MapLibre request to one browser key while preserving location selection and confirmation. Provider probe confirmed style 200 and normalized vector-tile credentials 200; focused tests, TypeScript, lint, and build passed.
 
-- [ ] Mobile TomTom basemap still renders white while marker/address work: trace asset/tile request authentication, style paint, and mobile WebGL/CSS path; fix root cause.
-- [ ] Venue location search submits the surrounding form and redirects to Home: trace form/button event propagation and route reset; make search stay in the picker and render live results.
-- [ ] Device location shows timed out and nearby discovery falls back: trace permission request, timeout/watch lifecycle, platform API support, and state persistence; fix reliable location resolution plus graceful fallback.
+- [x] Mobile TomTom basemap still renders white while marker/address work: duplicate key query parameters caused dependent asset 401s; normalized TomTom MapLibre requests to one browser key and passed provider probes/tests.
+- [x] Venue location search submits the surrounding form and redirects to Home: invalid nested form was replaced with an explicit non-submitting search region and local Enter handling; regression tests passed.
+- [x] Device location timeout path: added cached, low-accuracy, high-accuracy, and watch-position attempts with graceful general-discovery fallback; validation passed.
 
 - [x] Venue-location search reload regression: root cause was an invalid nested search form inside the outer venue-create form; replaced it with a non-submitting search region, local Enter handling, and an explicit button, preserving the TomTom map flow. Focused tests, TypeScript, lint, and production build passed.
+
+# EventVerse Production + Google Play Readiness Audit — 2026-08-24
+
+- [x] Completed the attached web-production readiness audit and documented evidence in notes/release-readiness-report.md; Android native packaging remains a separate release gate.
+- [x] Verified the frozen dependency installation: pnpm install --frozen-lockfile --ignore-scripts passed; no lockfile blocker remains in the current checkout.
+- [x] Determined the repository is Vite/web-only with no Android/Expo/React Native/Capacitor/Gradle packaging; a signed AAB cannot be honestly produced until an approved native packaging architecture is added.
