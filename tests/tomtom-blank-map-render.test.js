@@ -5,9 +5,10 @@ const source = readFileSync(new URL("../src/EventVerse.jsx", import.meta.url), "
 
 describe("TomTom blank-map rendering guard", () => {
   it("waits for MapLibre load/idle and does not finish on style.load alone", () => {
-    expect(source).toContain('mapLibre.once("style.load", () => { styleLoaded = true; });');
-    expect(source).toContain('mapLibre.once("load", () => { styleLoaded = true; finishReady(); });');
+    expect(source).toContain('mapLibre.once("load", finishReady);');
     expect(source).toContain('mapLibre.on("idle", finishReady);');
+    expect(source).toContain('requestAnimationFrame(finishReady);');
+    expect(source).not.toContain("!styleLoaded");
     expect(source).not.toContain('mapLibre.once("style.load", () => { styleLoaded = true; finishReady(); });');
   });
 

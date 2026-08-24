@@ -1918,7 +1918,6 @@ function TomTomMapSurface({ point, mapKey, onPointSelected, onMapError, fullscre
       mapRef.current = map;
       const mapLibre = map.mapLibreMap;
       let rendered = false;
-      let styleLoaded = false;
       let timeoutId;
       let renderCheckId;
       const fail = (event) => {
@@ -1928,7 +1927,7 @@ function TomTomMapSurface({ point, mapKey, onPointSelected, onMapError, fullscre
         setStatus("error"); setMessage(reason); onMapError?.(reason);
       };
       const finishReady = () => {
-        if (disposed || rendered || !styleLoaded) return;
+        if (disposed || rendered) return;
         mapLibre.resize();
         const canvas = mapLibre.getCanvas?.();
         const rect = containerRef.current?.getBoundingClientRect?.();
@@ -1953,10 +1952,10 @@ function TomTomMapSurface({ point, mapKey, onPointSelected, onMapError, fullscre
       mapLibre.on("error", fail);
       mapLibre.on("click", selectFromTap);
       mapLibre.on("dblclick", selectFromTap);
-      mapLibre.once("style.load", () => { styleLoaded = true; });
-      mapLibre.once("load", () => { styleLoaded = true; finishReady(); });
+      mapLibre.once("load", finishReady);
       mapLibre.on("idle", finishReady);
       renderCheckId = window.setInterval(finishReady, 150);
+      requestAnimationFrame(finishReady);
       timeoutId = window.setTimeout(() => { if (!rendered) fail({ error: { message: "TomTom map did not render visible style or tile content. Check Map Display permissions, WebGL, and tile network access." } }); }, 15000);
     } catch (err) {
       const reason = err?.message || "TomTom map initialization failed.";

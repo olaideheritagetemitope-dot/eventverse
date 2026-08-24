@@ -2345,3 +2345,5 @@ The remaining unchecked items require the owner's authenticated production sessi
 - [ ] Add regression coverage for error transition and coordinate normalization
 
 - [x] Blank TomTom basemap after successful SDK initialization: root cause was premature readiness on MapLibre style/load state combined with suppressed pre-render tile errors and implicit container sizing; wait for load/idle, require non-zero canvas and viewport, preserve actionable provider errors, and enforce explicit map dimensions in inline/fullscreen modes. Added regression tests and passed live TomTom endpoint checks.
+
+- [x] Mobile TomTom map opens but is rejected as "did not render visible style or tile content": root cause was a missed one-shot style-load gate during SDK construction; readiness now uses MapLibre load/idle plus a first-frame check and preserves tile errors; fix inline/fullscreen and verify.
