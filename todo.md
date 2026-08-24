@@ -2041,3 +2041,65 @@ The remaining unchecked items require the owner's authenticated production sessi
 - [x] Preserve the existing Artist pending fallback only for genuinely missing identities
 - [x] Add regression coverage for all affected card collections
 - [x] Run full tests, type-check, production build, and checkpoint the fix
+
+
+# Canonical Discovery Definitions and Organizer Premium — 2026-08-23
+
+- [x] Audit Trending, Near You, Upcoming, Featured, and Popular Venue calculations across database, RPCs, services, and UI consumers
+- [x] Implement Trending as events with start_time <= now <= end_time, respecting valid existing end-time rules
+- [x] Implement Near You from actual user coordinates and geographic distance, with graceful location-denied behavior
+- [x] Implement Upcoming as future events sorted by start time, excluding currently-running events
+- [x] Implement Featured from most-liked events OR active Organizer Premium entitlement, separate from verification
+- [x] Implement Popular Venues from valid venue likes/favorites only
+- [x] Create or consolidate one configurable Organizer Premium product with availability, price, duration, renewal, and feature settings
+- [x] Expose Organizer Premium configuration to Super Admin without hard-coded frontend pricing
+- [x] Preserve normal organizer verification as a separate workflow
+- [x] Add real-data ranking and premium-expiration regression scenarios
+- [x] Run full tests, type-check, production build, live database verification, and checkpoint
+
+
+# Premium Artist Exposure Product — 2026-08-24
+
+- [x] Separate Premium Artist from Artist-role verification, onboarding questions, and verification fees
+- [x] Require an existing Artist role/profile before Premium Artist checkout is available
+- [x] Add one canonical configurable Premium Artist plan in Super Admin
+- [x] Implement provider-authoritative Premium Artist payment and idempotent entitlement activation
+- [x] Promote active Premium Artists through live discovery exposure without fabricating engagement data
+- [x] Expose Premium Artist status and purchase state in the existing Artist workspace/profile UI
+- [x] Ensure expired, failed, refunded, or inactive entitlements remove premium exposure
+- [x] Add regression coverage for onboarding bypass, payment states, entitlement expiry, and discovery ranking
+- [x] Run full tests, type-check, production build, live database verification, and checkpoint
+
+# Premium Artist Exposure Verification — 2026-08-24
+
+- [x] Verify Artist-role gating and onboarding bypass in the mounted PremiumPanel
+- [x] Seed and publish the separate live ARTIST_PREMIUM plan in the canonical premium_plans catalog
+- [x] Make Premium Artist explicit in the existing Super Admin plan selector
+- [x] Make the user-facing Artist Premium CTA explicit without changing the Atizzy design system
+- [x] Verify the separate Artist Premium entitlement migration and discovery-promotion contract
+- [x] Add focused Premium Artist acceptance coverage
+- [x] Run the full Vitest suite, TypeScript validation, and production build
+- [ ] Complete authenticated production purchase smoke test with a real Artist-role user
+- [ ] Verify active Artist Premium promotion in Featured discovery with a real entitlement
+
+# Role-aware Premium Visibility — 2026-08-24
+
+- [x] Map attendee, Artist, Organizer, and multi-role accounts to the correct Premium plan families
+- [x] Ensure normal attendees see only attendee Premium
+- [x] Ensure Artists see attendee Premium and Artist Premium
+- [x] Ensure Organizers see attendee Premium and Organizer Premium
+- [x] Ensure multi-role users see all corresponding Premium plans without duplicate cards
+- [x] Preserve active-subscription filtering and existing PremiumPanel design
+- [x] Add regression coverage for role-aware visibility combinations
+- [x] Run full tests, type-check, production build, and checkpoint
+
+# Premium Visibility Production Regression — 2026-08-24
+
+- [ ] Reproduce the production attendee screen showing Organizer Premium and Premium Artist
+- [ ] Trace whether the deployed bundle is stale or the mounted PremiumPanel receives incomplete role state
+- [ ] Fix the authoritative production-visible filtering path
+- [ ] Verify attendee sees only attendee Premium
+- [ ] Verify Artist sees attendee and Artist Premium
+- [ ] Verify Organizer sees attendee and Organizer Premium
+- [ ] Verify multi-role users see all matching plans without duplicates
+- [ ] Run regression tests, type-check, production build, and checkpoint

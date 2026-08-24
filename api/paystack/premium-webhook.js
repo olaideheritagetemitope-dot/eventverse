@@ -8,6 +8,14 @@ async function supabaseFetch(path, options = {}) {
   const payload = await response.json().catch(() => null);
   return { response, payload };
 }
+async function paystackVerify(reference) {
+  const response = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
+    headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || payload?.status !== true) throw new Error(payload?.message || "Paystack live verification failed");
+  return payload.data || {};
+}
 async function activate(payment, providerReference, paidAmount, paidCurrency) {
   const { response, payload } = await supabaseFetch("/rest/v1/rpc/activate_premium_payment", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ p_payment_id: payment.id, p_provider_reference: providerReference, p_paid_amount: Number(paidAmount) / 100, p_paid_currency: paidCurrency || payment.currency }) });
   if (!response.ok) throw new Error(payload?.message || payload?.hint || "Unable to activate Premium entitlement");
@@ -30,8 +38,12 @@ export default async function handler(req, res) {
     if (!paymentResult.response.ok || !paymentResult.payload?.[0]) return json(res, 202, { accepted: true, ignored: true });
     const payment = paymentResult.payload[0];
     if (payment.status === "SUCCESS") return json(res, 200, { processed: true, replayed: true });
-    if (Number(data.amount) !== Math.round(Number(payment.amount) * 100)) return json(res, 409, { error: "Webhook amount does not match Premium payment" });
-    const activation = await activate(payment, reference, data.amount, data.currency);
+    const verified = await paystackVerify(reference);
+    const verifiedReference = String(verified.reference || reference).trim();
+    if (verifiedReference !== reference || verified.status !== "success") return json(res, 402, { error: `Paystack transaction status is ${verified.status || "not successful"}` });
+    if (Number(verified.amount) !== Math.round(Number(payment.amount) * 100)) return json(res, 409, { error: "Verified Paystack amount does not match Premium payment" });
+    if (String(verified.currency || "").toUpperCase() !== String(payment.currency || "").toUpperCase()) return json(res, 409, { error: "Verified Paystack currency does not match Premium payment" });
+    const activation = await activate(payment, verifiedReference, verified.amount, verified.currency);
     return json(res, 200, { processed: true, activation });
   } catch (error) {
     console.error("Premium Paystack webhook error", error);

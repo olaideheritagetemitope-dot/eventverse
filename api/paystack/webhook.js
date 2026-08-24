@@ -102,6 +102,15 @@ function verifySignature(rawBody, signature) {
   return expected.length === received.length && crypto.timingSafeEqual(expected, received);
 }
 
+async function verifyPaystackTransaction(reference) {
+  const response = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
+    headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` },
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || payload?.status !== true) throw new Error(payload?.message || "Paystack live verification failed");
+  return payload.data || {};
+}
+
 function logWebhook(level, payload) {
   const safe = {
     event: payload.event || null,
@@ -133,6 +142,16 @@ export default async function handler(req, res) {
     const event = JSON.parse(rawBody);
     const reference = event?.data?.reference;
     if (!reference) return json(res, 200, { received: true, ignored: true });
+
+    if (event.event === "charge.success") {
+      const verified = await verifyPaystackTransaction(reference);
+      const verifiedReference = String(verified.reference || "").trim();
+      if (verifiedReference !== reference || verified.status !== "success") {
+        logWebhook("warn", { event: event.event, reference, failure_category: "live_provider_status_not_success" });
+        return json(res, 402, { error: `Paystack transaction status is ${verified.status || "not successful"}` });
+      }
+      event.data = { ...event.data, ...verified };
+    }
 
     const artistTransaction = await findArtistTransactionByReference(reference);
     if (artistTransaction) {

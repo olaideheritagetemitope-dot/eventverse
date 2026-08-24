@@ -236,7 +236,7 @@ export const toSong = (song) => ({
   ...song,
   id: song.id,
   title: song.title,
-  artist: song.artists?.name || "Artist pending",
+  artist: song.artists?.name || song.artist || song.artist_name || song.artistName || song.artist_profile_name || "Artist pending",
   artistId: song.artist_id,
   duration: `${Math.floor(Number(song.duration_seconds || 0) / 60)}:${String(Number(song.duration_seconds || 0) % 60).padStart(2, "0")}`,
   plays: formatFollowers(song.play_count),

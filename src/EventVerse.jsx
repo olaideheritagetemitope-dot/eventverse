@@ -73,6 +73,22 @@ const effectiveRoleCodes = (account) => (Array.isArray(account?.effectiveRoles) 
 const hasAssignedRole = (account, role) => assignedRoleCodes(account).includes(role);
 const hasEffectiveRole = (account, role) => effectiveRoleCodes(account).includes(role);
 
+const premiumPlanRoleAllowed = (plan, roleCodes) => {
+  const code = String(plan?.code || "").toUpperCase();
+  if (code === "PREMIUM_MONTHLY") return true;
+  if (code === "ARTIST_PREMIUM") return roleCodes.includes("ARTIST");
+  if (code === "ORGANIZER_PREMIUM") return roleCodes.includes("ORGANIZER");
+  return false;
+};
+
+const premiumPlanAlreadyActive = (plan, snapshot) => {
+  const code = String(plan?.code || "").toUpperCase();
+  if (code === "PREMIUM_MONTHLY") return Boolean(snapshot?.hasPremium);
+  if (code === "ARTIST_PREMIUM") return Boolean(snapshot?.hasArtistPremium || snapshot?.artistEntitlement);
+  if (code === "ORGANIZER_PREMIUM") return Boolean(snapshot?.hasOrganizerPremium || snapshot?.organizerEntitlement);
+  return false;
+};
+
 /* ============================== SHARED UI ============================== */
 function Phone({ children }) {
   return (
@@ -794,9 +810,11 @@ function PremiumDiscoveryFilters({ premium, categories, onResults }) {
 /* ============================== HOME ============================== */
 function AttendeeHome({ nav, player, catalog, account, loading, error, catalogNotice, premium, locationState = "unavailable", onRetryLocation }) {
   const [cat, setCat] = useState("All");
-  const events = firstNonEmpty(catalog?.events, catalog?.latestEvents, catalog?.allEvents);
+  const featuredEvents = firstNonEmpty(catalog?.featuredEvents, catalog?.events, catalog?.latestEvents, catalog?.allEvents);
+  const upcomingEvents = firstNonEmpty(catalog?.upcomingEvents, catalog?.latestEvents, catalog?.allEvents);
   const artists = firstNonEmpty(catalog?.popularArtists, catalog?.latestArtists, catalog?.allArtists);
   const songs = firstNonEmpty(catalog?.popularSongs, catalog?.latestSongs, catalog?.allSongs);
+  const events = featuredEvents;
   const categories = [{ name: "All" }, ...(catalog?.categories || [])];
   const displayName = account?.profile?.full_name || account?.user?.user_metadata?.full_name || account?.user?.email?.split("@")[0] || "there";
   const hour = new Date().getHours();
@@ -836,7 +854,7 @@ function AttendeeHome({ nav, player, catalog, account, loading, error, catalogNo
         <div className="px-5 mb-6">
           {eventsState.loading && <p className="text-[13px] py-3 text-center" style={{ color: C.muted }}>Loading live events...</p>}
           {eventsState.status === "error" && <AuthMessage error={eventsState.error} />}
-          {events[0] ? <EventCard ev={events[0]} wide onClick={() => nav.push("eventDetail", events[0])} /> : <EmptyEventCard wide />}
+          {featuredEvents[0] ? <EventCard ev={featuredEvents[0]} wide onClick={() => nav.push("eventDetail", featuredEvents[0])} /> : <EmptyEventCard wide />}
           {eventsState.status === "success" && eventsState.isEmpty && <p className="text-[11px] mt-2 text-center" style={{ color: C.muted }}>Featured event content will appear here when published.</p>}
         </div>
 
@@ -846,9 +864,9 @@ function AttendeeHome({ nav, player, catalog, account, loading, error, catalogNo
             <button onClick={() => nav.push("explore")} className="text-[12px]" style={{ color: C.gold }}>See all</button>
           </div>
           <div className="flex gap-3 px-5 overflow-x-auto no-scrollbar">
-            {(events.length ? events.slice(1, 5) : []).map((ev) => <EventCard key={ev.id} ev={ev} onClick={() => nav.push("eventDetail", ev)} />)}
-            {!events.length && [0, 1, 2].map((slot) => <EmptyEventCard key={`upcoming-empty-${slot}`} />)}
-            {events.length > 0 && events.length < 4 && Array.from({ length: 4 - events.length }).map((_, index) => <EmptyEventCard key={`upcoming-empty-${index}`} />)}
+            {upcomingEvents.slice(0, 4).map((ev) => <EventCard key={ev.id} ev={ev} onClick={() => nav.push("eventDetail", ev)} />)}
+            {!upcomingEvents.length && [0, 1, 2].map((slot) => <EmptyEventCard key={`upcoming-empty-${slot}`} />)}
+            {upcomingEvents.length > 0 && upcomingEvents.length < 4 && Array.from({ length: 4 - upcomingEvents.length }).map((_, index) => <EmptyEventCard key={`upcoming-empty-${index}`} />)}
           </div>
         </div>
 
@@ -898,6 +916,8 @@ function Explore({ nav, player, catalog, catalogNotice, premium }) {
   const events = rankedEvents.length ? rankedEvents : (latestEvents.length ? latestEvents : catalog?.allEvents || []);
   const trendingEvents = catalog?.trendingEvents || [];
   const nearbyEvents = catalog?.nearbyEvents || [];
+  const featuredEvents = catalog?.featuredEvents || [];
+  const upcomingEvents = catalog?.upcomingEvents || [];
   const categories = [{ name: "All" }, ...(catalog?.categories || [])];
   const rankedVenues = catalog?.popularVenues || [];
   const venues = rankedVenues.length ? rankedVenues : (catalog?.newVenues || catalog?.allVenues || []);
@@ -929,6 +949,14 @@ function Explore({ nav, player, catalog, catalogNotice, premium }) {
         <Section title="Events Near You" nav={nav}>
             {nearbyEvents.map((ev) => <EventCard key={ev.id} ev={ev} onClick={() => nav.push("eventDetail", ev)} />)}
             {!nearbyEvents.length && [0, 1, 2].map((slot) => <EmptyEventCard key={`nearby-empty-${slot}`} />)}
+        </Section>
+        <Section title="Upcoming Events" nav={nav}>
+            {upcomingEvents.slice(0, 6).map((ev) => <EventCard key={ev.id} ev={ev} onClick={() => nav.push("eventDetail", ev)} />)}
+            {!upcomingEvents.length && [0, 1, 2].map((slot) => <EmptyEventCard key={`upcoming-explore-empty-${slot}`} />)}
+        </Section>
+        <Section title="Featured Events" nav={nav}>
+            {featuredEvents.slice(0, 6).map((ev) => <EventCard key={ev.id} ev={ev} onClick={() => nav.push("eventDetail", ev)} />)}
+            {!featuredEvents.length && [0, 1, 2].map((slot) => <EmptyEventCard key={`featured-empty-${slot}`} />)}
         </Section>
         <Section title="Popular Artists" nav={nav}>
           {artists.slice(0, 12).map((artist) => (
@@ -1903,7 +1931,15 @@ function PremiumPanel({ account }) {
   const cancel = async (atPeriodEnd) => { setBusy(true); setMessage(""); try { await cancelPremiumSubscription(atPeriodEnd); await refresh(); setMessage(atPeriodEnd ? "Premium will end at the current period boundary." : "Premium access has been cancelled."); } catch (error) { setMessage(error.message || "Unable to update Premium cancellation."); } finally { setBusy(false); } };
   const subscription = snapshot.subscription;
   const entitlement = snapshot.entitlement;
-  return <div className="space-y-3"><div className="rounded-2xl p-4" style={{ background: C.card, border: `1px solid ${C.line}` }}><div className="flex items-start justify-between gap-3"><div><p className="text-[14px] font-semibold" style={{ color: C.ivory }}>Premium access</p><p className="text-[11px] mt-1" style={{ color: C.muted }}>{loading ? "Checking your live subscription status..." : snapshot.hasPremium ? `Active until ${new Date(entitlement?.ends_at || subscription?.current_period_end).toLocaleDateString()}` : "Free plan · keep your existing account and data"}</p></div><span className="text-[10px] uppercase" style={{ color: snapshot.hasPremium ? C.gold : C.muted }}>{snapshot.hasPremium ? "Active" : "Free"}</span></div>{subscription?.cancel_at_period_end && <p className="text-[11px] mt-3" style={{ color: C.goldSoft }}>Cancellation is scheduled for the end of this billing period.</p>}{snapshot.hasPremium && <div className="flex gap-2 mt-4"><button type="button" disabled={busy} onClick={() => cancel(true)} className="flex-1 py-2 rounded-xl text-[11px]" style={{ background: C.card2, color: C.ivory }}>Cancel at period end</button><button type="button" disabled={busy} onClick={() => cancel(false)} className="py-2 px-3 rounded-xl text-[11px]" style={{ color: C.red }}>End now</button></div>}</div>{!loading && !snapshot.hasPremium && (snapshot.plans || []).map((plan) => <div key={plan.id} className="rounded-2xl p-4" style={{ background: C.card, border: `1px solid ${C.line}` }}><div className="flex items-center justify-between"><div><p className="text-[14px] font-semibold" style={{ color: C.ivory }}>{plan.name}</p><p className="text-[11px] mt-1" style={{ color: C.muted }}>{plan.description || "Premium attendee access"}</p></div><p className="text-[14px] font-semibold" style={{ color: C.gold }}>{plan.currency} {Number(plan.amount).toLocaleString()} / {String(plan.interval || "MONTH").toLowerCase()}</p></div><button type="button" disabled={busy} onClick={() => checkout(plan)} className="w-full mt-4 py-2.5 rounded-xl text-[12px] font-semibold disabled:opacity-50" style={{ background: C.gold, color: C.bg }}>{busy ? "Opening checkout..." : "Upgrade with Paystack"}</button></div>)}{!loading && !snapshot.hasPremium && !(snapshot.plans || []).length && <EmptyResourceCard label="Premium is not configured yet" description="A Super Admin must activate a Premium plan before checkout becomes available." />}{message && <p className="text-[11px]" style={{ color: message.includes("Unable") ? C.red : C.green }}>{message}</p>}</div>;
+  const artistEntitlement = snapshot.artistEntitlement;
+  const accountRoles = [...(account?.effectiveRoles || []), ...(account?.roles || []).map((role) => typeof role === "string" ? role : role.code)].map((role) => String(role || "").toUpperCase());
+  const roleCodes = Array.from(new Set([...accountRoles, ...(snapshot.isArtist ? ["ARTIST"] : [])]));
+  const isArtist = roleCodes.includes("ARTIST");
+  const artistPremiumActive = Boolean(snapshot.hasArtistPremium || artistEntitlement);
+  const visiblePlans = Array.from(new Map((snapshot.plans || [])
+    .filter((plan) => premiumPlanRoleAllowed(plan, roleCodes) && !premiumPlanAlreadyActive(plan, snapshot))
+    .map((plan) => [String(plan.code || plan.id || "").toUpperCase(), plan])).values());
+  return <div className="space-y-3"><div className="rounded-2xl p-4" style={{ background: C.card, border: `1px solid ${C.line}` }}><div className="flex items-start justify-between gap-3"><div><p className="text-[14px] font-semibold" style={{ color: C.ivory }}>Premium access</p><p className="text-[11px] mt-1" style={{ color: C.muted }}>{loading ? "Checking your live subscription status..." : snapshot.hasPremium ? `Active until ${new Date(entitlement?.ends_at || subscription?.current_period_end).toLocaleDateString()}` : "Free plan · keep your existing account and data"}</p></div><span className="text-[10px] uppercase" style={{ color: snapshot.hasPremium ? C.gold : C.muted }}>{snapshot.hasPremium ? "Active" : "Free"}</span></div>{subscription?.cancel_at_period_end && <p className="text-[11px] mt-3" style={{ color: C.goldSoft }}>Cancellation is scheduled for the end of this billing period.</p>}{snapshot.hasPremium && <div className="flex gap-2 mt-4"><button type="button" disabled={busy} onClick={() => cancel(true)} className="flex-1 py-2 rounded-xl text-[11px]" style={{ background: C.card2, color: C.ivory }}>Cancel at period end</button><button type="button" disabled={busy} onClick={() => cancel(false)} className="py-2 px-3 rounded-xl text-[11px]" style={{ color: C.red }}>End now</button></div>}</div>{isArtist && <div className="rounded-2xl p-4" style={{ background: C.card, border: `1px solid ${C.line}` }}><div className="flex items-start justify-between gap-3"><div><p className="text-[14px] font-semibold" style={{ color: C.ivory }}>Premium Artist exposure</p><p className="text-[11px] mt-1" style={{ color: C.muted }}>{artistPremiumActive ? `Active until ${new Date(artistEntitlement?.ends_at || Date.now()).toLocaleDateString()}` : "Separate from Artist verification and available after your Artist role is active."}</p></div><span className="text-[10px] uppercase" style={{ color: artistPremiumActive ? C.gold : C.muted }}>{artistPremiumActive ? "Active" : "Available"}</span></div></div>}{!loading && visiblePlans.map((plan) => <div key={plan.id} className="rounded-2xl p-4" style={{ background: C.card, border: `1px solid ${C.line}` }}><div className="flex items-center justify-between"><div><p className="text-[14px] font-semibold" style={{ color: C.ivory }}>{plan.name}</p><p className="text-[11px] mt-1" style={{ color: C.muted }}>{plan.description || (String(plan.code || "").toUpperCase() === "ARTIST_PREMIUM" ? "Premium Artist exposure and discovery promotion" : "Premium attendee access")}</p></div><p className="text-[14px] font-semibold" style={{ color: C.gold }}>{plan.currency} {Number(plan.amount).toLocaleString()} / {String(plan.interval || "MONTH").toLowerCase()}</p></div><button type="button" disabled={busy} onClick={() => checkout(plan)} className="w-full mt-4 py-2.5 rounded-xl text-[12px] font-semibold disabled:opacity-50" style={{ background: C.gold, color: C.bg }}>{busy ? "Opening checkout..." : String(plan.code || "").toUpperCase() === "ARTIST_PREMIUM" ? "Boost artist exposure" : "Upgrade with Paystack"}</button></div>)}{!loading && !visiblePlans.length && <EmptyResourceCard label={isArtist ? "Premium Artist is not configured yet" : "Premium is not configured yet"} description={isArtist ? "A Super Admin must activate the Premium Artist plan before exposure checkout becomes available." : "A Super Admin must activate a Premium plan before checkout becomes available."} />}{message && <p className="text-[11px]" style={{ color: message.includes("Unable") ? C.red : C.green }}>{message}</p>}</div>;
 }
 function PremiumProcessing({ nav, data }) {
   const [status, setStatus] = useState("PROCESSING");
@@ -2644,11 +2680,12 @@ export default function EventVerseApp() {
           artists: firstNonEmpty(liveCatalog.artists, discovery.popularArtists, discovery.latestArtists, discovery.allArtists),
           songs: firstNonEmpty(discovery.popularSongs, discovery.latestSongs, discovery.allSongs, liveCatalog.songs),
           venues: firstNonEmpty(discovery.popularVenues, discovery.newVenues, discovery.allVenues, liveCatalog.venues),
-          upcomingEvents: firstNonEmpty(discovery.upcomingEvents, discovery.latestEvents, discovery.allEvents, liveCatalog.upcomingEvents),
           popularArtists: firstNonEmpty(liveCatalog.popularArtists, liveCatalog.artists, discovery.popularArtists),
-          trendingEvents: firstNonEmpty(discovery.trendingEvents, discovery.events, liveCatalog.trendingEvents),
-          nearbyEvents: firstNonEmpty(discovery.nearbyEvents, discovery.upcomingEvents, liveCatalog.nearbyEvents),
-          popularVenues: firstNonEmpty(discovery.popularVenues, discovery.newVenues, liveCatalog.popularVenues),
+          trendingEvents: firstNonEmpty(discovery.trendingEvents, liveCatalog.trendingEvents),
+          nearbyEvents: firstNonEmpty(discovery.nearbyEvents, liveCatalog.nearbyEvents),
+          upcomingEvents: firstNonEmpty(discovery.upcomingEvents, liveCatalog.upcomingEvents),
+          featuredEvents: firstNonEmpty(discovery.featuredEvents, liveCatalog.featuredEvents),
+          popularVenues: firstNonEmpty(discovery.popularVenues, liveCatalog.popularVenues),
           recentlyPlayed: firstNonEmpty(discovery.recentlyPlayed, liveCatalog.recentlyPlayed),
           personalMostPlayed: firstNonEmpty(discovery.personalMostPlayed, liveCatalog.personalMostPlayed),
           platformMostPlayed: firstNonEmpty(discovery.platformMostPlayed, discovery.popularSongs, liveCatalog.platformMostPlayed),

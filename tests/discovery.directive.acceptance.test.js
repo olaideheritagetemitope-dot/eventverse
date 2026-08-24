@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
 
 const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }));
 vi.mock("../src/lib/supabase", () => ({ supabase: { rpc } }));
@@ -95,6 +97,20 @@ describe("Atizzy canonical discovery directive contracts", () => {
     expect(event.venue).toBe("Lagos");
     expect(event.img).toBeNull();
     expect(() => event.date.split(" ")).not.toThrow();
+  });
+
+  it("preserves the canonical discovery category contract and separate Organizer Premium configuration", () => {
+    const discoverySql = fs.readFileSync(path.resolve(process.cwd(), "supabase/0109_canonical_discovery_categories.sql"), "utf8");
+    const premiumSql = fs.readFileSync(path.resolve(process.cwd(), "supabase/0110_organizer_premium_plan_seed.sql"), "utf8");
+    expect(discoverySql).toContain("e.starts_at <= now()");
+    expect(discoverySql).toContain("now() <= e.ends_at");
+    expect(discoverySql).toContain("e.starts_at > now()");
+    expect(discoverySql).toContain("p_latitude");
+    expect(discoverySql).toContain("pp.code='ORGANIZER_PREMIUM'");
+    expect(discoverySql).toContain("having count(distinct cl.user_id) > 0");
+    expect(premiumSql).toContain("'ORGANIZER_PREMIUM'");
+    expect(premiumSql).toContain("is_active");
+    expect(premiumSql).toContain("separate from role verification");
   });
 
   it("records qualified events through the single canonical RPC contract", async () => {
