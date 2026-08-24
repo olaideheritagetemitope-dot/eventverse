@@ -2257,3 +2257,5 @@ The remaining unchecked items require the owner's authenticated production sessi
 - [ ] Verify the new production deployment is READY and run authenticated Venue Manager smoke flow
 - [ ] Verify production TomTom proxy responses and confirm venue creation persists coordinates
 - [ ] Verify live Nearby Events proximity discovery with location denial fallback
+
+- [x] Configure production TOMTOM_API_KEY through the secure environment workflow; trigger a fresh Git-linked production build so the serverless proxy receives it
