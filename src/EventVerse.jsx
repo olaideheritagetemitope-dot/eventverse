@@ -1902,12 +1902,24 @@ function TomTomMapSurface({ point, mapKey, onPointSelected, onMapError, fullscre
       // Configure shared SDK defaults and pass the key explicitly to this map.
       // The Orbis SDK gives per-map parameters precedence for style authentication.
       TomTomConfig.instance.put({ apiKey: mapKey, language: "en-GB" });
+      const normalizeTomTomRequest = (url) => {
+        try {
+          const parsed = new URL(url, window.location.origin);
+          if (!/tomtom\.com$/i.test(parsed.hostname)) return { url };
+          parsed.searchParams.delete("key");
+          parsed.searchParams.set("key", mapKey);
+          return { url: parsed.toString() };
+        } catch {
+          return { url };
+        }
+      };
       map = new TomTomMap({
         key: mapKey,
         language: "en-GB",
         style: "standardLight",
-        mapLibre: {
+          mapLibre: {
           container: containerRef.current,
+          transformRequest: normalizeTomTomRequest,
           center: [selectedPoint.longitude, selectedPoint.latitude],
           zoom: fullscreen ? 16 : 14,
           minZoom: 3,

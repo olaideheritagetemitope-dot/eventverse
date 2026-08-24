@@ -2350,3 +2350,5 @@ The remaining unchecked items require the owner's authenticated production sessi
 
 - [x] Deep TomTom root-cause audit: determined the provider style endpoint is authorized (Orbis 200), while the app’s readiness contract was too strict and could miss mobile rendering; audited MapLibre lifecycle/events, canvas/layout, coordinate state, and overlay logic.
 - [x] Fix and verify all confirmed causes in production, including search-to-pin-to-confirm behavior: added style-graph/WebGL readiness, responsive resize/repaint observer, safe cleanup, mobile-safe diagnostics, regression tests, and passed production build validation.
+
+- [x] Solid-white TomTom basemap with working marker and reverse-geocoded coordinates: root cause was duplicate `key` query parameters on SDK-generated sprite/glyph/tile URLs; normalize every TomTom MapLibre request to one browser key while preserving location selection and confirmation. Provider probe confirmed style 200 and normalized vector-tile credentials 200; focused tests, TypeScript, lint, and build passed.

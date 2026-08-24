@@ -21,6 +21,12 @@ describe("TomTom blank-map rendering guard", () => {
     expect(source).toContain('style={{ width: "100%", height: "100%" }}');
   });
 
+  it("normalizes TomTom asset and tile requests to one browser key", () => {
+    expect(source).toContain('parsed.searchParams.delete("key");');
+    expect(source).toContain('parsed.searchParams.set("key", mapKey);');
+    expect(source).toContain("transformRequest: normalizeTomTomRequest");
+  });
+
   it("does not suppress provider errors before the first rendered state", () => {
     expect(source).toContain("if (disposed || rendered) return;");
     expect(source).toContain("TomTom map could not initialize a renderable MapLibre canvas and style.");
