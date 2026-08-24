@@ -1949,7 +1949,7 @@ function TomTomMapSurface({ point, mapKey, onPointSelected, onMapError, fullscre
       markerRef.current?.remove(); markerRef.current = null;
       map?.remove?.(); mapRef.current = null;
     };
-  }, [mapKey, fullscreen]);
+  }, [mapKey]);
 
   useEffect(() => {
     const map = mapRef.current?.mapLibreMap;
@@ -2042,7 +2042,7 @@ function TomTomVenueLocationPicker({ value, onChange }) {
     <p className="text-[12px] font-semibold mb-2" style={{ color: C.ivory }}>Search and confirm exact location</p>
     <form onSubmit={search} className="flex gap-2"><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search venue or address" className="min-w-0 flex-1 rounded-xl px-3 py-3 text-[13px] outline-none" style={{ background: C.card, color: C.ivory, border: `1px solid ${C.line}` }} /><button type="submit" disabled={busy} className="rounded-xl px-3 text-[12px] font-semibold" style={{ background: C.gold, color: C.bg }}>{busy ? "..." : "Search"}</button></form>
     {results.length > 0 && <div className="mt-2 rounded-xl overflow-hidden" style={{ border: `1px solid ${C.line}` }}>{results.map((place) => <button type="button" key={`${place.providerPlaceId || place.label}-${place.latitude}`} onClick={() => choose(place)} className="w-full text-left px-3 py-2.5" style={{ background: C.card, color: C.ivory, borderBottom: `1px solid ${C.line}` }}><span className="block text-[12px]">{place.name || place.label}</span><span className="block text-[10px] mt-1" style={{ color: C.muted }}>{place.address || place.label}</span></button>)}</div>}
-    <div className="mt-3 relative rounded-xl overflow-hidden" style={{ height: 260, background: C.card }}>{renderMap()}<div className="absolute left-2 bottom-2 rounded-lg px-2 py-1 text-[10px] pointer-events-none" style={{ background: "#0B0A08CC", color: C.ivory }}>Tap map to select · Drag pin to refine</div><button type="button" onClick={() => setFullscreen(true)} className="absolute right-2 top-2 rounded-lg px-3 py-2 text-[11px] font-semibold" style={{ background: C.gold, color: C.bg }}>Expand Map</button></div>
+    {!fullscreen && <div className="mt-3 relative rounded-xl overflow-hidden" style={{ height: 260, background: C.card }}>{renderMap()}<div className="absolute left-2 bottom-2 rounded-lg px-2 py-1 text-[10px] pointer-events-none" style={{ background: "#0B0A08CC", color: C.ivory }}>Tap map to select · Drag pin to refine</div><button type="button" onClick={() => setFullscreen(true)} className="absolute right-2 top-2 rounded-lg px-3 py-2 text-[11px] font-semibold" style={{ background: C.gold, color: C.bg }}>Expand Map</button></div>}
     <div className="flex items-center justify-between gap-2 mt-2"><span className="text-[10px]" style={{ color: C.muted }}>{hasPoint ? `${latitude.toFixed(6)}, ${longitude.toFixed(6)}` : (countryCode === "NG" ? "Saved coordinates are outside Nigeria; search again" : "Search to place the venue pin")}</span><button type="button" onClick={confirm} disabled={confirming || !hasPoint} className="rounded-xl px-3 py-2 text-[11px] font-semibold" style={{ background: confirming || !hasPoint ? C.line : C.gold, color: confirming || !hasPoint ? C.muted : C.bg }}>{confirming ? "Confirming..." : "Confirm location"}</button></div>
     {value?.location_confirmed && <p className="text-[10px] mt-2" style={{ color: C.green }}>Location confirmed and ready to save.</p>}
     {error && <p className="text-[10px] mt-2" style={{ color: C.red }}>{error}</p>}

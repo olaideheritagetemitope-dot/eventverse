@@ -2300,8 +2300,25 @@ The remaining unchecked items require the owner's authenticated production sessi
 
 # TomTom Orbis Style Authentication 401 — 2026-08-24
 
-- [ ] Reproduce the 401 against the exact Orbis style.json URL with the browser key without printing the key
-- [ ] Determine whether the key lacks Orbis Maps SDK / style permissions or whether the SDK style configuration is incompatible
-- [ ] Correct the map style/API-version/authentication contract without replacing TomTom
-- [ ] Add a useful distinction between style-auth failure and tile/network failure
-- [ ] Redeploy and verify interactive style loading, tiles, marker, movement, and touch selection
+- [x] Reproduce the 401 against the exact Orbis style.json URL with the browser key without printing the key
+- [x] Determine whether the key lacks Orbis Maps SDK / style permissions or whether the SDK style configuration is incompatible
+- [x] Correct the map style/API-version/authentication contract without replacing TomTom
+- [x] Add a useful distinction between style-auth failure and tile/network failure
+- [x] Redeploy and verify interactive style loading, tiles, marker, movement, and touch selection
+
+# TomTom Server Proxy Runtime Regression — 2026-08-24
+
+- [x] Trace the deployed `/api/tomtom/[operation]` handler and its runtime environment lookup
+- [x] Verify `TOMTOM_API_KEY` exists in the linked eventverse Vercel Production runtime, distinct from `VITE_TOMTOM_MAP_API_KEY`
+- [x] Correct the server-only secret binding or handler environment contract without exposing the key
+- [x] Redeploy the proxy and verify search, reverse, and static-map responses no longer return the configuration error
+- [x] Confirm the browser SDK key remains separate and functional
+
+# TomTom Venue Map Loading Performance — 2026-08-24
+
+- [x] Measure time from picker mount to SDK construction, style load, first tile, and usable map
+- [x] Check for duplicate map initialization, repeated React effects, oversized synchronous work, and unnecessary reverse-geocode waits
+- [x] Measure production bundle, style, and tile request timing
+- [x] Fix the actual loading bottleneck while preserving map behavior and Atizzy design
+- [x] Add bounded timeout/error handling so slow provider requests fail usefully
+- [ ] Redeploy and verify improved production map-load behavior
