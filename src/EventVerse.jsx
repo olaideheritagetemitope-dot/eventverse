@@ -1917,20 +1917,27 @@ function TomTomMapSurface({ point, mapKey, onPointSelected, onMapError, fullscre
       });
       mapRef.current = map;
       const mapLibre = map.mapLibreMap;
-      let ready = false;
+      let rendered = false;
+      let styleLoaded = false;
       let timeoutId;
-      let pollId;
+      let renderCheckId;
       const fail = (event) => {
-        if (disposed || ready) return;
+        if (disposed || rendered) return;
         const reason = event?.error?.message || "TomTom map style or tiles failed to load.";
+        window.clearTimeout(timeoutId); window.clearInterval(renderCheckId);
         setStatus("error"); setMessage(reason); onMapError?.(reason);
       };
       const finishReady = () => {
-        if (disposed || ready) return;
-        ready = true;
-        window.clearTimeout(timeoutId); window.clearInterval(pollId);
-        setStatus("ready");
+        if (disposed || rendered || !styleLoaded) return;
         mapLibre.resize();
+        const canvas = mapLibre.getCanvas?.();
+        const rect = containerRef.current?.getBoundingClientRect?.();
+        const hasViewport = Boolean(canvas && canvas.width > 0 && canvas.height > 0 && rect?.width > 0 && rect?.height > 0);
+        const hasStyle = Boolean(mapLibre.isStyleLoaded?.() || mapLibre.loaded?.());
+        if (!hasViewport || !hasStyle) return;
+        rendered = true;
+        window.clearTimeout(timeoutId); window.clearInterval(renderCheckId);
+        setStatus("ready");
         markerRef.current = new Marker({ color: "#CDA349", draggable: true })
           .setLngLat([selectedRef.current.longitude, selectedRef.current.latitude])
           .addTo(mapLibre);
@@ -1946,9 +1953,11 @@ function TomTomMapSurface({ point, mapKey, onPointSelected, onMapError, fullscre
       mapLibre.on("error", fail);
       mapLibre.on("click", selectFromTap);
       mapLibre.on("dblclick", selectFromTap);
-      mapLibre.once("load", finishReady);
-      pollId = window.setInterval(() => { if (map.mapReady || mapLibre.loaded?.()) finishReady(); }, 100);
-      timeoutId = window.setTimeout(() => { if (!ready) fail({ error: { message: "TomTom map timed out while loading its style or tiles. Check Map Display permissions and network access." } }); }, 15000);
+      mapLibre.once("style.load", () => { styleLoaded = true; });
+      mapLibre.once("load", () => { styleLoaded = true; finishReady(); });
+      mapLibre.on("idle", finishReady);
+      renderCheckId = window.setInterval(finishReady, 150);
+      timeoutId = window.setTimeout(() => { if (!rendered) fail({ error: { message: "TomTom map did not render visible style or tile content. Check Map Display permissions, WebGL, and tile network access." } }); }, 15000);
     } catch (err) {
       const reason = err?.message || "TomTom map initialization failed.";
       setStatus("error"); setMessage(reason); onMapError?.(reason);
@@ -1979,8 +1988,8 @@ function TomTomMapSurface({ point, mapKey, onPointSelected, onMapError, fullscre
     return () => { cancelAnimationFrame(frame); window.removeEventListener("resize", resize); };
   }, [fullscreen]);
 
-  return <div className="relative h-full w-full" data-tomtom-map-status={status}>
-    <div ref={containerRef} className="absolute inset-0" aria-label="Interactive TomTom venue map" />
+  return <div className="relative h-full w-full" style={{ minHeight: fullscreen ? 1 : 260 }} data-tomtom-map-status={status}>
+    <div ref={containerRef} className="absolute inset-0" style={{ width: "100%", height: "100%" }} aria-label="Interactive TomTom venue map" />
     {status === "loading" && <div className="absolute inset-0 flex items-center justify-center text-[12px]" style={{ background: `${C.card}CC`, color: C.ivory }}>Loading TomTom map…</div>}
     {status === "error" && <div className="absolute inset-0 flex items-center justify-center px-5 text-center text-[12px]" style={{ background: `${C.card}F2`, color: C.red }}>TomTom map unavailable. {message || "Check the browser-safe map key, Map Display permission, WebGL, and tile network requests."}</div>}
   </div>;

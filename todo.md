@@ -2343,3 +2343,5 @@ The remaining unchecked items require the owner's authenticated production sessi
 - [ ] Treat null, empty, and non-numeric coordinates as missing rather than coercing them to 0.000000
 - [ ] Resize the shared map after inline/fullscreen layout measurement and verify non-zero dimensions
 - [ ] Add regression coverage for error transition and coordinate normalization
+
+- [x] Blank TomTom basemap after successful SDK initialization: root cause was premature readiness on MapLibre style/load state combined with suppressed pre-render tile errors and implicit container sizing; wait for load/idle, require non-zero canvas and viewport, preserve actionable provider errors, and enforce explicit map dimensions in inline/fullscreen modes. Added regression tests and passed live TomTom endpoint checks.
