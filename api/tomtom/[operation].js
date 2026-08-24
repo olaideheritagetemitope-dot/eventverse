@@ -38,7 +38,7 @@ async function staticMap(req, res) {
   const zoomValue = Number(req.query?.zoom || 15);
   const zoom = Math.min(18, Math.max(4, Number.isFinite(zoomValue) ? zoomValue : 15));
   if (!point) return json(res, 400, { error: "Valid latitude and longitude are required." });
-  const params = new URLSearchParams({ key: TOMTOM_KEY, zoom: String(zoom), format: "png", view: "Unified", language: "NG" });
+  const params = new URLSearchParams({ key: TOMTOM_KEY, zoom: String(zoom), format: "png", view: "Unified", language: "en-GB" });
   const response = await fetch(`https://api.tomtom.com/map/1/staticimage?center=${point.lon},${point.lat}&width=900&height=420&${params}`);
   if (!response.ok) {
     const detail = await response.text().catch(() => "");

@@ -2259,3 +2259,11 @@ The remaining unchecked items require the owner's authenticated production sessi
 - [ ] Verify live Nearby Events proximity discovery with location denial fallback
 
 - [x] Configure production TOMTOM_API_KEY through the secure environment workflow; trigger a fresh Git-linked production build so the serverless proxy receives it
+
+# Vercel Production Secret Binding — 2026-08-24
+
+- [ ] Add TOMTOM_API_KEY to the linked eventverse Vercel Production environment using the available authenticated Vercel connection
+- [ ] Trigger or confirm a production redeployment with the Vercel-bound secret
+- [ ] Verify live TomTom search, reverse geocode, and static map responses
+
+- [ ] Fix static-map proxy sending unsupported TomTom language=NG parameter; use provider-supported language or omit it, then redeploy and verify image response
