@@ -1882,7 +1882,7 @@ function TomTomMapSurface({ point, mapKey, onPointSelected, onMapError, fullscre
   const selectedRef = useRef(point);
   const [status, setStatus] = useState("loading");
   const [message, setMessage] = useState("");
-  const selectedPoint = useMemo(() => ({ longitude: Number(point.longitude), latitude: Number(point.latitude) }), [point.longitude, point.latitude]);
+  const selectedPoint = useMemo(() => { const longitude = Number(point?.longitude); const latitude = Number(point?.latitude); return { longitude: Number.isFinite(longitude) ? longitude : 3.3792, latitude: Number.isFinite(latitude) ? latitude : 6.5244 }; }, [point?.longitude, point?.latitude]);
   selectedRef.current = selectedPoint;
 
   useEffect(() => {
@@ -1917,19 +1917,18 @@ function TomTomMapSurface({ point, mapKey, onPointSelected, onMapError, fullscre
       });
       mapRef.current = map;
       const mapLibre = map.mapLibreMap;
+      let ready = false;
+      let timeoutId;
+      let pollId;
       const fail = (event) => {
-        const reason = event?.error?.message || "TomTom map tiles failed to load.";
+        if (disposed || ready) return;
+        const reason = event?.error?.message || "TomTom map style or tiles failed to load.";
         setStatus("error"); setMessage(reason); onMapError?.(reason);
       };
-      const selectFromTap = (event) => {
-        const lng = Number(event?.lngLat?.lng); const lat = Number(event?.lngLat?.lat);
-        if (Number.isFinite(lng) && Number.isFinite(lat)) onPointSelected({ longitude: Number(lng.toFixed(6)), latitude: Number(lat.toFixed(6)), source: "map-tap" });
-      };
-      mapLibre.on("error", fail);
-      mapLibre.on("click", selectFromTap);
-      mapLibre.on("dblclick", selectFromTap);
-      mapLibre.on("load", () => {
-        if (disposed) return;
+      const finishReady = () => {
+        if (disposed || ready) return;
+        ready = true;
+        window.clearTimeout(timeoutId); window.clearInterval(pollId);
         setStatus("ready");
         mapLibre.resize();
         markerRef.current = new Marker({ color: "#CDA349", draggable: true })
@@ -1939,7 +1938,17 @@ function TomTomMapSurface({ point, mapKey, onPointSelected, onMapError, fullscre
           const position = markerRef.current.getLngLat();
           onPointSelected({ longitude: Number(position.lng.toFixed(6)), latitude: Number(position.lat.toFixed(6)), source: "marker-drag" });
         });
-      });
+      };
+      const selectFromTap = (event) => {
+        const lng = Number(event?.lngLat?.lng); const lat = Number(event?.lngLat?.lat);
+        if (Number.isFinite(lng) && Number.isFinite(lat)) onPointSelected({ longitude: Number(lng.toFixed(6)), latitude: Number(lat.toFixed(6)), source: "map-tap" });
+      };
+      mapLibre.on("error", fail);
+      mapLibre.on("click", selectFromTap);
+      mapLibre.on("dblclick", selectFromTap);
+      mapLibre.once("load", finishReady);
+      pollId = window.setInterval(() => { if (map.mapReady || mapLibre.loaded?.()) finishReady(); }, 100);
+      timeoutId = window.setTimeout(() => { if (!ready) fail({ error: { message: "TomTom map timed out while loading its style or tiles. Check Map Display permissions and network access." } }); }, 15000);
     } catch (err) {
       const reason = err?.message || "TomTom map initialization failed.";
       setStatus("error"); setMessage(reason); onMapError?.(reason);
@@ -1988,7 +1997,7 @@ function TomTomVenueLocationPicker({ value, onChange }) {
   const latitude = Number(value?.latitude);
   const longitude = Number(value?.longitude);
   const countryCode = String(value?.countryCode || value?.country_code || "").toUpperCase();
-  const hasGenericPoint = Number.isFinite(latitude) && Number.isFinite(longitude) && latitude >= -85 && latitude <= 85 && longitude >= -180 && longitude <= 180;
+  const hasGenericPoint = Number.isFinite(latitude) && Number.isFinite(longitude) && !(latitude === 0 && longitude === 0) && latitude >= -85 && latitude <= 85 && longitude >= -180 && longitude <= 180;
   const hasPoint = hasGenericPoint && (countryCode !== "NG" || (latitude >= 4 && latitude <= 14 && longitude >= 2 && longitude <= 15));
   const point = hasPoint ? { latitude, longitude } : defaultPoint;
   const mapKey = import.meta.env.VITE_TOMTOM_MAP_API_KEY || "";

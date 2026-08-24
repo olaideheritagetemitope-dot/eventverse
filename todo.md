@@ -2336,3 +2336,10 @@ The remaining unchecked items require the owner's authenticated production sessi
 - [ ] Verify and fix the shared map surface in both inline and fullscreen modes, not only the fullscreen overlay
 - [ ] Ensure both render modes receive a valid initial coordinate and the same SDK readiness/error handling
 - [ ] Verify both inline and fullscreen TomTom tiles and interactions after redeployment
+
+# TomTom Runtime Hang Root Fix — 2026-08-24
+
+- [ ] Harden MapLibre error handling so every style/tile failure exits loading and exposes a diagnostic
+- [ ] Treat null, empty, and non-numeric coordinates as missing rather than coercing them to 0.000000
+- [ ] Resize the shared map after inline/fullscreen layout measurement and verify non-zero dimensions
+- [ ] Add regression coverage for error transition and coordinate normalization
