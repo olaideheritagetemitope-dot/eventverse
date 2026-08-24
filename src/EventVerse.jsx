@@ -8,7 +8,7 @@ import {
 import { supabase } from "./lib/supabase";
 import { loadCatalog, loadArtistDetail, loadEventDetail, loadVenueDetail, searchCatalog, formatFollowers, toEvent, toSong, toMusicVideo, loadMusicVideoDetail, loadMusicVideoForSong, loadRelatedStandaloneMusicVideo } from "./services/catalog";
 import CheckInScreen from "./components/CheckInScreen";
-import { loadCurrentUser, loadFavoriteState, toggleEventFavorite, toggleArtistFollow, toggleMusicFavorite, toggleMusicVideoFavorite, loadMusicFavorites, recordPlay, loadPlaylists, createPlaylist, submitBooking, loadRoleDashboard, loadArtistWorkspace, loadArtistCreatorContent, createArtistSong, setArtistSongStatus, archiveArtistSong, deleteArtistSong, createArtistAlbum, updateArtistAlbum, setArtistAlbumStatus, createArtistMusicVideo, updateArtistMusicVideo, setArtistMusicVideoStatus, updateArtistProfile, updateArtistSong, artistUpdateBookingStatus, issueTicketQrToken, updateProfile, loadArtistOnboarding, initializeArtistFeePayment, loadArtistFeeTransaction, loadArtistAdminOverview, updateArtistFee, loadOrganizerApplication, applyAsOrganizer, loadOrganizerEvents, createOrganizerEvent, updateOrganizerEvent, addOrganizerTicketType, discoverPrivateTicket, linkOrganizerArtist, publishOrganizerEvent, cancelOrganizerEvent, loadOrganizerEventDashboard, loadVenueManagerWorkspace, applyAsVenueManager, createOwnedVenue, updateOwnedVenue, archiveOwnedVenue, deleteOwnedVenue, requestVenueBooking, respondVenueBooking, setVenueAvailability, initializeVenueBookingPayment, loadAvailableVenues, searchOrganizerArtists, searchEventStaffUsers, assignEventStaff, loadEventStaffForOrganizer, updateEventStaffShift, revokeEventStaffAssignment, loadEventStaffWorkspace, respondEventStaffAssignment, acknowledgeEventStaffTask, loadSuperAdminAnalytics, loadAdminDashboardSnapshot, adminListUsers, adminListUsersPage, adminSuspendUser, adminReviewEvent, loadAdminPaymentSupport, loadAdminAuditLogs, loadUserExperienceSnapshot, loadUserCollections, recordUserSearch, clearUserSearchHistory, updateUserPreferences, markUserNotificationRead, markAllUserNotificationsRead, createSupportRequest, uploadMediaFile, loadMyPosts, createPost, updatePost, setPostStatus, deletePost, removeMediaAsset, loadPolicySettings, updatePolicySetting, loadRoleCapabilityMatrix, loadAdminPermissionGrants, setAdminPermission, loadRoleGovernanceSnapshot, loadOnboardingConfig, loadPublicRoleOnboardingConfig, saveOnboardingQuestion, submitRoleApplication, loadRoleApplication, initializeRoleApplicationPayment, reviewRoleApplication, creditWalletForCancelledOrder, loadPublicContentAnalytics, createContentComment, setContentRating, setContentLike, setRoleFeePolicy, setPlatformFeePolicy, adminSetEventStatus, loadGovernanceEvents, loadContentEngagement, superAdminSetRole, superAdminSetRolePermission, loadRoleAssignmentHistory, loadPremiumSnapshot, loadPremiumAttendeeSnapshot, loadPremiumEventDiscovery, initializePremiumPayment, cancelPremiumSubscription, setPremiumPlan, updateOrganizerTicketReleasePolicy, loadPublishedLegalDocument, loadAdminLegalDocuments, saveAdminLegalDocument, publishAdminLegalDocument, unpublishAdminLegalDocument, restoreAdminLegalDocument, acceptPublishedLegalDocument } from "./services/user";
+import { loadCurrentUser, loadFavoriteState, toggleEventFavorite, toggleArtistFollow, toggleMusicFavorite, toggleMusicVideoFavorite, loadMusicFavorites, recordPlay, loadPlaylists, createPlaylist, submitBooking, loadRoleDashboard, loadArtistWorkspace, loadArtistCreatorContent, createArtistSong, setArtistSongStatus, archiveArtistSong, deleteArtistSong, createArtistAlbum, updateArtistAlbum, setArtistAlbumStatus, createArtistMusicVideo, updateArtistMusicVideo, setArtistMusicVideoStatus, updateArtistProfile, updateArtistSong, artistUpdateBookingStatus, issueTicketQrToken, updateProfile, loadArtistOnboarding, initializeArtistFeePayment, loadArtistFeeTransaction, loadArtistAdminOverview, updateArtistFee, loadOrganizerApplication, applyAsOrganizer, loadOrganizerEvents, createOrganizerEvent, updateOrganizerEvent, addOrganizerTicketType, discoverPrivateTicket, linkOrganizerArtist, publishOrganizerEvent, cancelOrganizerEvent, loadOrganizerEventDashboard, loadVenueManagerWorkspace, applyAsVenueManager, createOwnedVenue, updateOwnedVenue, archiveOwnedVenue, deleteOwnedVenue, requestVenueBooking, respondVenueBooking, setVenueAvailability, initializeVenueBookingPayment, loadAvailableVenues, searchOrganizerArtists, searchEventStaffUsers, assignEventStaff, loadEventStaffForOrganizer, updateEventStaffShift, revokeEventStaffAssignment, loadEventStaffWorkspace, respondEventStaffAssignment, acknowledgeEventStaffTask, loadSuperAdminAnalytics, loadAdminDashboardSnapshot, adminListUsers, adminListUsersPage, adminSuspendUser, adminReviewEvent, loadAdminPaymentSupport, loadAdminAuditLogs, loadUserExperienceSnapshot, loadUserCollections, recordUserSearch, clearUserSearchHistory, updateUserPreferences, markUserNotificationRead, markAllUserNotificationsRead, createSupportRequest, uploadMediaFile, loadMyPosts, createPost, updatePost, setPostStatus, deletePost, removeMediaAsset, loadPolicySettings, updatePolicySetting, loadRoleCapabilityMatrix, loadAdminPermissionGrants, setAdminPermission, loadRoleGovernanceSnapshot, loadOnboardingConfig, loadPublicRoleOnboardingConfig, saveOnboardingQuestion, submitRoleApplication, loadRoleApplication, initializeRoleApplicationPayment, reviewRoleApplication, creditWalletForCancelledOrder, loadPublicContentAnalytics, createContentComment, setContentRating, setContentLike, setRoleFeePolicy, setPlatformFeePolicy, adminSetEventStatus, loadGovernanceEvents, loadContentEngagement, superAdminSetRole, superAdminSetRolePermission, loadRoleAssignmentHistory, loadPremiumSnapshot, loadPremiumAttendeeSnapshot, loadPremiumEventDiscovery, initializePremiumPayment, cancelPremiumSubscription, setPremiumPlan, loadPublicPlaylists, loadPlaylist, updatePlaylist, deletePlaylist, addSongToPlaylist, removeSongFromPlaylist, reorderPlaylistItems, updateOrganizerTicketReleasePolicy, loadPublishedLegalDocument, loadAdminLegalDocuments, saveAdminLegalDocument, publishAdminLegalDocument, unpublishAdminLegalDocument, restoreAdminLegalDocument, acceptPublishedLegalDocument } from "./services/user";
 import QRCode from "qrcode";
 import { ATIZZY_TOKENS, EMPTY_CATALOG, normalizeCatalog, resourceState } from "./ui/designSystem";
 import { firstNonEmpty, loadDiscoverySnapshot, recordDiscoveryEvent } from "./services/discovery";
@@ -2181,23 +2181,19 @@ function MusicHome({ nav, player, catalog, account }) {
   const recentlyPlayed = catalog?.recentlyPlayed || [];
   const popularAlbums = catalog?.popularAlbums || [];
   const [favorites, setFavorites] = useState([]);
-  const [playlistName, setPlaylistName] = useState("");
   const [playlistMessage, setPlaylistMessage] = useState("");
   useEffect(() => { if (account?.user?.id) loadMusicFavorites(account.user.id).then(setFavorites).catch(() => {}); }, [account?.user?.id]);
   const toggleSongFavorite = async (songId) => {
     try { const next = !favorites.includes(songId); await toggleMusicFavorite(account?.user?.id, songId, next); setFavorites((current) => next ? [...current, songId] : current.filter((id) => id !== songId)); } catch (error) { setPlaylistMessage(error.message || "Sign in to save music."); }
   };
-  const makePlaylist = async () => {
-    try { const playlist = await createPlaylist(account?.user?.id, playlistName); setPlaylistName(""); setPlaylistMessage(`Playlist “${playlist.name}” created.`); } catch (error) { setPlaylistMessage(error.message || "Unable to create playlist."); }
-  };
   return (
     <Phone>
       <div className="px-5 pt-1 pb-3">
         <h1 className="ev-display text-[22px]" style={{ color: C.ivory }}>{greeting()}</h1>
-        <div className="flex gap-2 mt-3"><input value={playlistName} onChange={(event) => setPlaylistName(event.target.value)} placeholder="New playlist name" className="flex-1 rounded-xl px-3 py-2 text-[12px] outline-none" style={{ background: C.card, color: C.ivory, border: `1px solid ${C.line}` }} /><button disabled={!playlistName.trim()} onClick={makePlaylist} className="rounded-xl px-3 text-[12px] disabled:opacity-40" style={{ background: C.gold, color: "#1A1408" }}>Create</button></div>
         {playlistMessage && <p className="text-[11px] mt-2" style={{ color: C.muted }}>{playlistMessage}</p>}
       </div>
       <div className="flex-1 overflow-y-auto">
+        <PlaylistLibrary nav={nav} account={account} player={player} catalog={catalog} />
         <Section title="Recently Played" nav={nav}>
           {recentlyPlayed.slice(0, 3).map((s) => (
             <button key={s.id} onClick={() => player.play(s)} className="flex-shrink-0 w-28 text-left">
@@ -2214,14 +2210,15 @@ function MusicHome({ nav, player, catalog, account }) {
           </div>
           <div className="px-5">
             {songs.map((s) => (
-              <button key={s.id} onClick={() => player.play(s)} className="w-full flex items-center gap-3 py-2">
-                <div className="w-10 h-10 rounded-lg flex-shrink-0" style={imageStyle(s.coverUrl, `linear-gradient(135deg, ${C.wood}, ${C.green})`)} />
-                <div className="flex-1 text-left">
-                  <p className="text-[13px] font-semibold" style={{ color: C.ivory }}>{s.title}</p>
-                  <p className="text-[11px]" style={{ color: C.muted }}>{s.artist}</p>
-                </div>
-                <span className="text-[11px]" style={{ color: C.muted }}>{s.duration}</span><span onClick={(event) => { event.stopPropagation(); toggleSongFavorite(s.id); }} className="px-1"><Heart size={15} color={favorites.includes(s.id) ? C.gold : C.muted} fill={favorites.includes(s.id) ? C.gold : "none"} /></span>
-              </button>
+              <div key={s.id} className="w-full flex items-center gap-3 py-2">
+                <button type="button" onClick={() => player.play(s)} className="min-w-0 flex-1 flex items-center gap-3 text-left">
+                  <div className="w-10 h-10 rounded-lg flex-shrink-0" style={imageStyle(s.coverUrl, `linear-gradient(135deg, ${C.wood}, ${C.green})`)} />
+                  <div className="min-w-0 flex-1"><p className="text-[13px] font-semibold truncate" style={{ color: C.ivory }}>{s.title}</p><p className="text-[11px] truncate" style={{ color: C.muted }}>{s.artist}</p></div>
+                  <span className="text-[11px]" style={{ color: C.muted }}>{s.duration}</span>
+                </button>
+                <button type="button" onClick={() => toggleSongFavorite(s.id)} aria-label={`Like ${s.title}`} className="px-1"><Heart size={15} color={favorites.includes(s.id) ? C.gold : C.muted} fill={favorites.includes(s.id) ? C.gold : "none"} /></button>
+                <AddToPlaylistButton account={account} song={s} onMessage={setPlaylistMessage} />
+              </div>
             ))}
             {!songs.length && [0, 1, 2].map((slot) => <EmptySongRow key={`popular-song-empty-${slot}`} />)}
           </div>
@@ -2249,6 +2246,92 @@ function MusicHome({ nav, player, catalog, account }) {
       <BottomNav current="music" go={nav.tab} />
     </Phone>
   );
+}
+
+function playlistSongForPlayer(item) {
+  const song = item?.song || item?.songs || item;
+  if (!song?.id || !song?.audio_url) return null;
+  return { ...song, id: song.id, title: song.title || "Untitled song", artist: song.artist || song.artists?.name || "Artist pending", audioUrl: song.audioUrl || song.audio_url, coverUrl: song.coverUrl || song.cover_url || "", durationSeconds: Number(song.durationSeconds || song.duration_seconds || 0), lyrics: song.lyrics || "" };
+}
+
+function AddToPlaylistButton({ account, song, onMessage }) {
+  const [open, setOpen] = useState(false);
+  const [playlists, setPlaylists] = useState([]);
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const openMenu = async (event) => {
+    event.stopPropagation();
+    if (!account?.user?.id) { onMessage?.("Sign in to save this song to a playlist."); return; }
+    setBusy(true);
+    try { setPlaylists(await loadPlaylists(account.user.id)); setOpen(true); } catch (error) { onMessage?.(error.message || "Unable to load your playlists."); } finally { setBusy(false); }
+  };
+  const add = async (playlistId) => {
+    setBusy(true);
+    try { await addSongToPlaylist(account.user.id, playlistId, song.id); onMessage?.("Song added to playlist."); setOpen(false); } catch (error) { onMessage?.(error.message || "Unable to add this song."); } finally { setBusy(false); }
+  };
+  const createAndAdd = async () => {
+    if (!name.trim()) return;
+    setBusy(true);
+    try { const playlist = await createPlaylist(account.user.id, name); await addSongToPlaylist(account.user.id, playlist.id, song.id); onMessage?.(`Created “${playlist.name}” and added the song.`); setName(""); setOpen(false); } catch (error) { onMessage?.(error.message || "Unable to create a playlist."); } finally { setBusy(false); }
+  };
+  return <div className="relative" onClick={(event) => event.stopPropagation()}>
+    <button type="button" aria-label={`Add ${song.title || "song"} to playlist`} onClick={openMenu} disabled={busy} className="px-1 text-[11px]" style={{ color: C.goldSoft }}><ListMusic size={15} /></button>
+    {open && <div className="absolute right-0 top-7 z-20 w-56 rounded-xl p-3" style={{ background: C.panel, border: `1px solid ${C.line}`, boxShadow: "0 12px 30px #0008" }}>
+      <p className="text-[11px] font-semibold mb-2" style={{ color: C.ivory }}>Add to Playlist</p>
+      <div className="max-h-32 overflow-y-auto">{playlists.map((playlist) => <button type="button" key={playlist.id} onClick={() => add(playlist.id)} className="w-full text-left py-2 text-[11px]" style={{ color: C.ivory, borderBottom: `1px solid ${C.line}` }}>{playlist.name}</button>)}{!playlists.length && <p className="text-[10px] py-2" style={{ color: C.muted }}>No playlists yet.</p>}</div>
+      <div className="flex gap-1 mt-2"><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Create new playlist" className="min-w-0 flex-1 rounded-lg px-2 py-1.5 text-[10px]" style={{ background: C.card, color: C.ivory, border: `1px solid ${C.line}` }} /><button type="button" onClick={createAndAdd} disabled={!name.trim() || busy} className="rounded-lg px-2 text-[10px]" style={{ background: C.gold, color: "#1A1408" }}>Create</button></div>
+      <button type="button" onClick={() => setOpen(false)} className="w-full text-left mt-2 text-[10px]" style={{ color: C.muted }}>Close</button>
+    </div>}
+  </div>;
+}
+
+function PlaylistLibrary({ nav, account, player, catalog }) {
+  const [playlists, setPlaylists] = useState([]);
+  const [publicPlaylists, setPublicPlaylists] = useState([]);
+  const [name, setName] = useState("");
+  const [visibility, setVisibility] = useState("PRIVATE");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(true);
+  const refresh = async () => {
+    setLoading(true);
+    try { const [mine, publicItems] = await Promise.all([loadPlaylists(account?.user?.id), loadPublicPlaylists()]); setPlaylists(mine); setPublicPlaylists(publicItems); } catch (error) { setMessage(error.message || "Unable to load playlists."); } finally { setLoading(false); }
+  };
+  useEffect(() => { void refresh(); }, [account?.user?.id]);
+  const create = async () => {
+    if (!name.trim()) return;
+    try { const playlist = await createPlaylist(account?.user?.id, { name, visibility }); setName(""); setVisibility("PRIVATE"); setMessage("Playlist created."); nav.push("playlistDetail", { id: playlist.id }); await refresh(); } catch (error) { setMessage(error.message || "Unable to create playlist."); }
+  };
+  const playAll = (playlist, shuffle = false) => { const songs = playlist.items.map(playlistSongForPlayer).filter(Boolean); if (!songs.length) { setMessage("This playlist is empty."); return; } const queue = shuffle ? songs.slice().sort(() => Math.random() - 0.5) : songs; player.play(queue[0], queue); };
+  return <div className="mb-6 px-5">
+    <div className="flex items-center justify-between mb-3"><span className="text-[14px] font-semibold" style={{ color: C.ivory }}>Your Playlists</span><button type="button" onClick={refresh} className="text-[10px]" style={{ color: C.goldSoft }}>Refresh</button></div>
+    <div className="rounded-2xl p-3 mb-3" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[11px] mb-2" style={{ color: C.muted }}>Create → add songs → reorder → play → edit visibility → discover public playlists.</p><div className="flex gap-2"><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Playlist name" className="min-w-0 flex-1 rounded-xl px-3 py-2 text-[11px]" style={{ background: C.panel, color: C.ivory, border: `1px solid ${C.line}` }} /><select value={visibility} onChange={(event) => setVisibility(event.target.value)} className="rounded-xl px-2 text-[10px]" style={{ background: C.panel, color: C.ivory, border: `1px solid ${C.line}` }}><option value="PRIVATE">Private</option><option value="PUBLIC">Public</option></select><button type="button" onClick={create} disabled={!name.trim()} className="rounded-xl px-3 text-[11px] disabled:opacity-40" style={{ background: C.gold, color: "#1A1408" }}>Create</button></div></div>
+    {loading && <p className="text-[11px]" style={{ color: C.muted }}>Loading playlists…</p>}
+    {!loading && playlists.map((playlist) => <div key={playlist.id} className="flex items-center gap-3 py-3" style={{ borderBottom: `1px solid ${C.line}` }}><div className="w-11 h-11 rounded-xl flex-shrink-0" style={imageStyle(playlist.cover_url, `linear-gradient(135deg, ${C.wood}, ${C.green})`)} /><button type="button" onClick={() => nav.push("playlistDetail", { id: playlist.id })} className="min-w-0 flex-1 text-left"><p className="text-[12px] font-semibold truncate" style={{ color: C.ivory }}>{playlist.name}</p><p className="text-[10px]" style={{ color: C.muted }}>{playlist.visibility === "PUBLIC" ? "Public" : "Private"} · {playlist.items.length} songs</p></button><button type="button" aria-label={`Play ${playlist.name}`} onClick={() => playAll(playlist)} className="p-2"><Play size={16} color={C.gold} /></button><button type="button" aria-label={`Shuffle ${playlist.name}`} onClick={() => playAll(playlist, true)} className="p-2"><Shuffle size={15} color={C.muted} /></button></div>)}
+    {!loading && !playlists.length && <p className="text-[11px] py-2" style={{ color: C.muted }}>Create a playlist to collect songs without needing to add one immediately.</p>}
+    <div className="mt-6"><div className="flex items-center justify-between mb-2"><span className="text-[14px] font-semibold" style={{ color: C.ivory }}>Discover Public Playlists</span><span className="text-[10px]" style={{ color: C.muted }}>Live</span></div>{publicPlaylists.filter((item) => !playlists.some((mine) => mine.id === item.id)).slice(0, 6).map((playlist) => <button type="button" key={playlist.id} onClick={() => nav.push("playlistDetail", { id: playlist.id })} className="w-full flex items-center gap-3 py-2 text-left" style={{ borderBottom: `1px solid ${C.line}` }}><div className="w-9 h-9 rounded-lg" style={imageStyle(playlist.cover_url, `linear-gradient(135deg, ${C.wood}, ${C.green})`)} /><div className="min-w-0 flex-1"><p className="text-[12px] truncate" style={{ color: C.ivory }}>{playlist.name}</p><p className="text-[10px]" style={{ color: C.muted }}>{playlist.items.length} songs · Public</p></div><ChevronRight size={14} color={C.muted} /></button>)}{!publicPlaylists.filter((item) => !playlists.some((mine) => mine.id === item.id)).length && <p className="text-[11px] py-2" style={{ color: C.muted }}>No public playlists available yet.</p>}</div>
+    {message && <p className="text-[11px] mt-2" style={{ color: C.muted }}>{message}</p>}
+  </div>;
+}
+
+function PlaylistDetail({ nav, account, player, catalog, data }) {
+  const [playlist, setPlaylist] = useState(null);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [visibility, setVisibility] = useState("PRIVATE");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(true);
+  const owner = Boolean(account?.user?.id && playlist?.user_id === account.user.id);
+  const refresh = async () => { setLoading(true); try { const result = await loadPlaylist(data?.id); setPlaylist(result); setName(result.name); setDescription(result.description || ""); setVisibility(result.visibility || "PRIVATE"); } catch (error) { setMessage(error.message || "Unable to load this playlist."); } finally { setLoading(false); } };
+  useEffect(() => { void refresh(); }, [data?.id]);
+  const save = async () => { try { const updated = await updatePlaylist(account.user.id, playlist.id, { name, description, visibility }); setPlaylist(updated); setMessage("Playlist updated."); } catch (error) { setMessage(error.message || "Unable to update playlist."); } };
+  const remove = async (songId) => { try { await removeSongFromPlaylist(account.user.id, playlist.id, songId); await refresh(); } catch (error) { setMessage(error.message || "Unable to remove song."); } };
+  const reorder = async (index, delta) => { const next = playlist.items.slice(); const target = index + delta; if (target < 0 || target >= next.length) return; [next[index], next[target]] = [next[target], next[index]]; setPlaylist({ ...playlist, items: next }); try { await reorderPlaylistItems(account.user.id, playlist.id, next.map((item) => item.id)); } catch (error) { setMessage(error.message || "Unable to reorder playlist."); await refresh(); } };
+  const availableSongs = firstNonEmpty(catalog?.popularSongs, catalog?.latestSongs, catalog?.allSongs).filter((song) => song?.audioUrl && !playlist?.items?.some((item) => item.song_id === song.id));
+  const add = async (song) => { try { await addSongToPlaylist(account.user.id, playlist.id, song.id); await refresh(); setMessage("Song added."); } catch (error) { setMessage(error.message || "Unable to add song."); } };
+  const playAll = (shuffle = false) => { const songs = (playlist?.items || []).map(playlistSongForPlayer).filter(Boolean); if (!songs.length) { setMessage("This playlist is empty."); return; } const queue = shuffle ? songs.slice().sort(() => Math.random() - 0.5) : songs; player.play(queue[0], queue); };
+  const destroy = async () => { if (!window.confirm("Delete this playlist? Songs will remain in Atizzy.")) return; try { await deletePlaylist(account.user.id, playlist.id); nav.pop(); } catch (error) { setMessage(error.message || "Unable to delete playlist."); } };
+  if (loading) return <Phone><div className="p-5" style={{ color: C.muted }}>Loading playlist…</div></Phone>;
+  return <Phone><div className="flex-1 overflow-y-auto"><div className="px-5 pt-4 pb-4"><button type="button" onClick={nav.pop} className="mb-4"><ChevronLeft size={20} color={C.ivory} /></button><div className="w-full h-36 rounded-2xl mb-4" style={imageStyle(playlist?.cover_url, `linear-gradient(135deg, ${C.wood}, ${C.green})`)} /><h1 className="ev-display text-[24px]" style={{ color: C.ivory }}>{playlist?.name}</h1><p className="text-[11px] mt-1" style={{ color: C.muted }}>{playlist?.visibility === "PUBLIC" ? "Public playlist" : "Private playlist"} · {playlist?.items?.length || 0} songs</p>{playlist?.description && <p className="text-[12px] mt-2" style={{ color: C.muted }}>{playlist.description}</p>}<div className="flex gap-2 mt-4"><button type="button" onClick={() => playAll(false)} disabled={!playlist?.items?.length} className="rounded-xl px-4 py-2 text-[11px] disabled:opacity-40" style={{ background: C.gold, color: "#1A1408" }}>Play All</button><button type="button" onClick={() => playAll(true)} disabled={!playlist?.items?.length} className="rounded-xl px-4 py-2 text-[11px] disabled:opacity-40" style={{ background: C.card, color: C.ivory, border: `1px solid ${C.line}` }}>Shuffle</button></div></div>{owner && <div className="mx-5 mb-5 rounded-2xl p-3" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[12px] font-semibold mb-2" style={{ color: C.ivory }}>Playlist settings</p><input value={name} onChange={(event) => setName(event.target.value)} className="w-full rounded-lg px-2 py-2 text-[11px] mb-2" style={{ background: C.panel, color: C.ivory, border: `1px solid ${C.line}` }} /><textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Description (optional)" className="w-full rounded-lg px-2 py-2 text-[11px] mb-2" style={{ background: C.panel, color: C.ivory, border: `1px solid ${C.line}` }} /><div className="flex gap-2"><select value={visibility} onChange={(event) => setVisibility(event.target.value)} className="rounded-lg px-2 text-[10px]" style={{ background: C.panel, color: C.ivory, border: `1px solid ${C.line}` }}><option value="PRIVATE">Private</option><option value="PUBLIC">Public</option></select><button type="button" onClick={save} className="rounded-lg px-3 text-[10px]" style={{ background: C.gold, color: "#1A1408" }}>Save</button><button type="button" onClick={destroy} className="rounded-lg px-3 text-[10px]" style={{ background: C.red, color: C.ivory }}>Delete</button></div></div>}<div className="px-5 mb-5"><p className="text-[14px] font-semibold mb-2" style={{ color: C.ivory }}>Songs</p>{playlist?.items?.map((item, index) => <div key={item.id || item.song_id} className="flex items-center gap-2 py-2" style={{ borderBottom: `1px solid ${C.line}` }}><button type="button" onClick={() => { const song = playlistSongForPlayer(item); if (song) player.play(song, playlist.items.map(playlistSongForPlayer).filter(Boolean)); }} className="flex-1 min-w-0 text-left"><p className="text-[12px] truncate" style={{ color: C.ivory }}>{item.song?.title || "Unavailable song"}</p><p className="text-[10px] truncate" style={{ color: C.muted }}>{item.song?.artists?.name || item.song?.artist || "Artist pending"}</p></button>{owner && <><button type="button" aria-label="Move song up" onClick={() => reorder(index, -1)} className="p-1"><ChevronDown size={14} color={index ? C.muted : C.line} style={{ transform: "rotate(180deg)" }} /></button><button type="button" aria-label="Move song down" onClick={() => reorder(index, 1)} className="p-1"><ChevronDown size={14} color={index < playlist.items.length - 1 ? C.muted : C.line} /></button><button type="button" aria-label="Remove song" onClick={() => remove(item.song_id)} className="p-1"><X size={14} color={C.red} /></button></>}</div>)}{!playlist?.items?.length && <p className="text-[11px] py-3" style={{ color: C.muted }}>This playlist is empty. Add songs from the Music library.</p>}</div>{owner && <div className="px-5 pb-6"><p className="text-[12px] font-semibold mb-2" style={{ color: C.ivory }}>Add Songs</p>{availableSongs.slice(0, 12).map((song) => <div key={song.id} className="flex items-center gap-2 py-2" style={{ borderBottom: `1px solid ${C.line}` }}><div className="w-8 h-8 rounded-lg" style={imageStyle(song.coverUrl, `linear-gradient(135deg, ${C.wood}, ${C.green})`)} /><div className="min-w-0 flex-1"><p className="text-[11px] truncate" style={{ color: C.ivory }}>{song.title}</p><p className="text-[10px] truncate" style={{ color: C.muted }}>{song.artist}</p></div><button type="button" onClick={() => add(song)} className="rounded-lg px-2 py-1 text-[10px]" style={{ background: C.gold, color: "#1A1408" }}>Add</button></div>)}</div>}{message && <p className="px-5 pb-5 text-[11px]" style={{ color: C.muted }}>{message}</p>}</div><MiniPlayer song={player.song} playing={player.playing} onToggle={player.toggle} onPrevious={player.previous} onNext={player.next} onOpen={() => nav.push("musicPlayer")} /></Phone>;
 }
 
 /* ============================== FULL MUSIC PLAYER ============================== */
@@ -2838,6 +2921,7 @@ export default function EventVerseApp() {
     venueDetail: <VenueDetail nav={nav} data={current.data} />,
     musicDetail: <MusicDetail nav={nav} data={current.data} player={player} account={account} />,
     musicVideoDetail: <MusicVideoDetail nav={nav} video={current.data} player={player} account={account} />,
+    playlistDetail: <PlaylistDetail nav={nav} data={current.data} player={player} account={account} catalog={catalog} />,
     notifications: <NotificationBoard nav={nav} account={account} />,
     security: <SecurityScreen nav={nav} account={account} />,
     tickets: <TicketSelection nav={nav} data={current.data} />,

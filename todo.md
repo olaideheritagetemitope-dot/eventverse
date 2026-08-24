@@ -2103,3 +2103,21 @@ The remaining unchecked items require the owner's authenticated production sessi
 - [x] Verify Organizer sees attendee and Organizer Premium
 - [x] Verify multi-role users see all matching plans without duplicates
 - [x] Run regression tests, type-check, production build, and checkpoint
+
+# Attached Directive Implementation — 2026-08-24
+
+- [x] Read and extract all actionable requirements from the attached pasted content
+- [x] Map each requirement to the existing Atizzy frontend, service, Supabase, and payment paths
+- [x] Implement the required changes without mock data or UI redesign
+- [x] Add or update focused regression coverage for the implemented directives
+- [x] Run full tests, type-check, production build, and live/deployed verification where possible
+- [ ] Save a recoverable checkpoint and report remaining owner-only validation gates
+
+# Playlist End-to-End Frontend Regression — 2026-08-24
+
+- [ ] Reproduce the mounted frontend path for CREATE → ADD SONG → REORDER → PLAY → EDIT → VISIBILITY → PUBLIC DISCOVERY → PLAY → DELETE
+- [ ] Identify route, state-refresh, mutation, or deployment-path disconnections causing the old UI to remain visible
+- [ ] Make playlist creation, song addition, reorder, playback, edit, visibility change, public discovery, public playback, and deletion reachable in the existing UI
+- [ ] Ensure each mutation refreshes the current playlist/library state immediately
+- [ ] Add focused lifecycle regression coverage
+- [ ] Run full tests, type-check, production build, and checkpoint

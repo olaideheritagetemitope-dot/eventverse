@@ -139,20 +139,131 @@ export async function recordPlay(userId, songId, secondsPlayed = 0) {
   if (error) throw error;
 }
 
-export async function loadPlaylists(userId) {
-  if (!userId) return [];
-  const { data, error } = await supabase.from("playlists").select("id,name,created_at,playlist_items(song_id,position,songs(id,title,artist_id,audio_url,cover_url,duration_seconds,play_count,artists(name)))").eq("user_id", userId).order("created_at", { ascending: false });
-  if (error) throw error;
-  return data || [];
+const PLAYLIST_COLUMNS = "id,user_id,name,description,cover_url,visibility,created_at,updated_at";
+const PLAYLIST_ITEM_COLUMNS = "id,playlist_id,song_id,position,added_at,added_by";
+const SONG_COLUMNS = "id,title,artist_id,audio_url,cover_url,duration_seconds,play_count,lyrics";
+
+const normalizePlaylist = (playlist, items = []) => ({
+  ...playlist,
+  items: items.slice().sort((a, b) => Number(a.position || 0) - Number(b.position || 0) || String(a.added_at || "").localeCompare(String(b.added_at || ""))),
+});
+
+async function hydratePlaylists(playlists) {
+  const rows = (playlists || []).map((playlist) => ({ ...playlist, items: [] }));
+  if (!rows.length) return rows;
+  const playlistIds = rows.map((playlist) => playlist.id).filter(Boolean);
+  const { data: itemRows, error: itemError } = await supabase.from("playlist_items").select(PLAYLIST_ITEM_COLUMNS).in("playlist_id", playlistIds).order("position", { ascending: true });
+  if (itemError) throw itemError;
+  const items = itemRows || [];
+  const songIds = [...new Set(items.map((item) => item.song_id).filter(Boolean))];
+  let songs = [];
+  if (songIds.length) {
+    const { data: songRows, error: songError } = await supabase.from("songs").select(SONG_COLUMNS).in("id", songIds);
+    if (songError) throw songError;
+    songs = songRows || [];
+  }
+  const songsById = new Map(songs.map((song) => [song.id, song]));
+  const itemsByPlaylist = new Map();
+  for (const item of items) {
+    const next = { ...item, song: songsById.get(item.song_id) || null };
+    const list = itemsByPlaylist.get(item.playlist_id) || [];
+    list.push(next);
+    itemsByPlaylist.set(item.playlist_id, list);
+  }
+  return rows.map((playlist) => normalizePlaylist(playlist, itemsByPlaylist.get(playlist.id) || []));
 }
 
-export async function createPlaylist(userId, name) {
-  if (!userId) throw new Error("Sign in to create a playlist.");
-  const cleanName = name.trim();
-  if (!cleanName) throw new Error("Enter a playlist name.");
-  const { data, error } = await supabase.from("playlists").insert({ user_id: userId, name: cleanName }).select("id,name,created_at").single();
+export async function loadPlaylists(userId) {
+  if (!userId) return [];
+  const { data, error } = await supabase.from("playlists").select(PLAYLIST_COLUMNS).eq("user_id", userId).order("updated_at", { ascending: false });
   if (error) throw error;
+  return hydratePlaylists(data);
+}
+
+export async function loadPublicPlaylists(limit = 50) {
+  const { data, error } = await supabase.from("playlists").select(PLAYLIST_COLUMNS).eq("visibility", "PUBLIC").order("updated_at", { ascending: false }).limit(limit);
+  if (error) throw error;
+  return hydratePlaylists(data);
+}
+
+export async function loadPlaylist(playlistId) {
+  if (!playlistId) throw new Error("A playlist is required.");
+  const { data, error } = await supabase.from("playlists").select(PLAYLIST_COLUMNS).eq("id", playlistId).maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("This playlist is private or no longer available.");
+  const [hydrated] = await hydratePlaylists([data]);
+  return hydrated;
+}
+
+export async function createPlaylist(userId, input) {
+  if (!userId) throw new Error("Sign in to create a playlist.");
+  const payload = typeof input === "string" ? { name: input } : (input || {});
+  const cleanName = String(payload.name || "").trim();
+  if (!cleanName) throw new Error("Enter a playlist name.");
+  const visibility = ["PRIVATE", "PUBLIC"].includes(String(payload.visibility || "PRIVATE").toUpperCase()) ? String(payload.visibility || "PRIVATE").toUpperCase() : "PRIVATE";
+  const { data, error } = await supabase.from("playlists").insert({ user_id: userId, name: cleanName, description: String(payload.description || "").trim() || null, cover_url: payload.cover_url || payload.coverUrl || null, visibility }).select(PLAYLIST_COLUMNS).single();
+  if (error) throw error;
+  return normalizePlaylist(data, []);
+}
+
+export async function updatePlaylist(userId, playlistId, changes = {}) {
+  if (!userId || !playlistId) throw new Error("Sign in to edit this playlist.");
+  const payload = {};
+  if (changes.name !== undefined) {
+    const cleanName = String(changes.name || "").trim();
+    if (!cleanName) throw new Error("Playlist name is required.");
+    payload.name = cleanName;
+  }
+  if (changes.description !== undefined) payload.description = String(changes.description || "").trim() || null;
+  if (changes.cover_url !== undefined || changes.coverUrl !== undefined) payload.cover_url = changes.cover_url ?? changes.coverUrl ?? null;
+  if (changes.visibility !== undefined) {
+    const visibility = String(changes.visibility).toUpperCase();
+    if (!["PRIVATE", "PUBLIC"].includes(visibility)) throw new Error("Choose Private or Public visibility.");
+    payload.visibility = visibility;
+  }
+  const { data, error } = await supabase.from("playlists").update(payload).eq("id", playlistId).eq("user_id", userId).select(PLAYLIST_COLUMNS).single();
+  if (error) throw error;
+  const [hydrated] = await hydratePlaylists([data]);
+  return hydrated;
+}
+
+export async function deletePlaylist(userId, playlistId) {
+  if (!userId || !playlistId) throw new Error("Sign in to delete this playlist.");
+  const { error } = await supabase.from("playlists").delete().eq("id", playlistId).eq("user_id", userId);
+  if (error) throw error;
+  return true;
+}
+
+export async function addSongToPlaylist(userId, playlistId, songId) {
+  if (!userId || !playlistId || !songId) throw new Error("Choose a valid song and playlist.");
+  const { data: existing, error: existingError } = await supabase.from("playlist_items").select("id").eq("playlist_id", playlistId).eq("song_id", songId).maybeSingle();
+  if (existingError) throw existingError;
+  if (existing) return existing;
+  const { data: last, error: lastError } = await supabase.from("playlist_items").select("position").eq("playlist_id", playlistId).order("position", { ascending: false }).limit(1).maybeSingle();
+  if (lastError) throw lastError;
+  const { data, error } = await supabase.from("playlist_items").insert({ playlist_id: playlistId, song_id: songId, position: Number(last?.position || -1) + 1, added_by: userId }).select("id,playlist_id,song_id,position,added_at,added_by").single();
+  if (error) {
+    if (error.code === "23505") return (await supabase.from("playlist_items").select("id,playlist_id,song_id,position,added_at,added_by").eq("playlist_id", playlistId).eq("song_id", songId).single()).data;
+    throw error;
+  }
   return data;
+}
+
+export async function removeSongFromPlaylist(userId, playlistId, songId) {
+  if (!userId || !playlistId || !songId) throw new Error("A valid playlist item is required.");
+  const { error } = await supabase.from("playlist_items").delete().eq("playlist_id", playlistId).eq("song_id", songId);
+  if (error) throw error;
+  return true;
+}
+
+export async function reorderPlaylistItems(userId, playlistId, itemIds = []) {
+  if (!userId || !playlistId) throw new Error("Sign in to reorder this playlist.");
+  const ids = itemIds.filter(Boolean);
+  for (let index = 0; index < ids.length; index += 1) {
+    const { error } = await supabase.from("playlist_items").update({ position: index }).eq("id", ids[index]).eq("playlist_id", playlistId);
+    if (error) throw error;
+  }
+  return true;
 }
 
 export async function submitBooking(userId, artistId, payload) {
