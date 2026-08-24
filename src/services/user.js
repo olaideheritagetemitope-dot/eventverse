@@ -635,18 +635,21 @@ export async function loadOrganizerEvents(userId) {
 
 export async function createOrganizerEvent(userId, payload) {
   if (!userId) throw new Error("Organizer access is required.");
-  const body = { organizer_id: userId, title: payload.title?.trim(), description: payload.description?.trim() || null, event_type: payload.event_type?.trim() || null, city: payload.city?.trim(), starts_at: payload.starts_at, ends_at: payload.ends_at || null, cover_url: managedMediaUrl(payload.cover_url, "event cover"), venue_id: null, status: "DRAFT" };
+  const body = { organizer_id: userId, title: payload.title?.trim(), description: payload.description?.trim() || null, event_type: payload.event_type?.trim() || null, city: payload.city?.trim(), starts_at: payload.starts_at, ends_at: payload.ends_at || null, cover_url: managedMediaUrl(payload.cover_url, "event cover"), venue_id: payload.venue_id || null, latitude: payload.latitude === "" || payload.latitude == null ? null : Number(payload.latitude), longitude: payload.longitude === "" || payload.longitude == null ? null : Number(payload.longitude), formatted_address: payload.formatted_address?.trim() || payload.address?.trim() || null, state_region: payload.state_region?.trim() || null, country: payload.country?.trim() || null, provider_place_id: payload.provider_place_id?.trim() || null, location_metadata: payload.location_metadata || {}, status: "DRAFT" };
   if (!body.title || !body.description || !body.city || !body.starts_at) throw new Error("Title, description, city, and start date are required.");
-  const { data, error } = await supabase.from("events").insert(body).select("id,organizer_id,venue_id,title,description,event_type,city,starts_at,ends_at,cover_url,status,created_at,updated_at").single();
+  if (!body.venue_id && (body.latitude == null || body.longitude == null)) throw new Error("Choose a venue or provide a valid event map location.");
+  if (!body.venue_id && (!Number.isFinite(body.latitude) || !Number.isFinite(body.longitude) || body.latitude < -90 || body.latitude > 90 || body.longitude < -180 || body.longitude > 180 || (body.latitude === 0 && body.longitude === 0))) throw new Error("Enter valid event latitude and longitude.");
+  const { data, error } = await supabase.from("events").insert(body).select("id,organizer_id,venue_id,title,description,event_type,city,starts_at,ends_at,cover_url,latitude,longitude,formatted_address,state_region,country,provider_place_id,location_metadata,status,created_at,updated_at").single();
   if (error) throw error;
   return data;
 }
 
 export async function updateOrganizerEvent(eventId, userId, payload) {
   if (!eventId || !userId) throw new Error("Organizer event access is required.");
-  const body = { title: payload.title?.trim(), description: payload.description?.trim() || null, event_type: payload.event_type?.trim() || null, city: payload.city?.trim(), starts_at: payload.starts_at, ends_at: payload.ends_at || null, cover_url: managedMediaUrl(payload.cover_url, "event cover"), venue_id: payload.venue_id || null, updated_at: new Date().toISOString() };
-  const { data, error } = await supabase.from("events").update(body).eq("id", eventId).eq("organizer_id", userId).select("id,organizer_id,venue_id,title,description,event_type,city,starts_at,ends_at,cover_url,status,created_at,updated_at").single();
+  const body = { title: payload.title?.trim(), description: payload.description?.trim() || null, event_type: payload.event_type?.trim() || null, city: payload.city?.trim(), starts_at: payload.starts_at, ends_at: payload.ends_at || null, cover_url: managedMediaUrl(payload.cover_url, "event cover"), venue_id: payload.venue_id || null, latitude: payload.latitude === "" || payload.latitude == null ? null : Number(payload.latitude), longitude: payload.longitude === "" || payload.longitude == null ? null : Number(payload.longitude), formatted_address: payload.formatted_address?.trim() || payload.address?.trim() || null, state_region: payload.state_region?.trim() || null, country: payload.country?.trim() || null, provider_place_id: payload.provider_place_id?.trim() || null, location_metadata: payload.location_metadata || {}, updated_at: new Date().toISOString() };
+  const { data, error } = await supabase.from("events").update(body).eq("id", eventId).eq("organizer_id", userId).select("id,organizer_id,venue_id,title,description,event_type,city,starts_at,ends_at,cover_url,latitude,longitude,formatted_address,state_region,country,provider_place_id,location_metadata,status,created_at,updated_at").single();
   if (error) throw error;
+  if (!data?.venue_id && (data?.latitude == null || data?.longitude == null)) throw new Error("A standalone event must have a valid map location.");
   return data;
 }
 
@@ -761,6 +764,8 @@ export async function createOwnedVenue(userId, payload) {
     p_description: payload.description || null, p_venue_type: payload.venue_type || null, p_amenities: payload.amenities || [],
     p_rules: payload.rules || null, p_contact_phone: payload.contact_phone || null, p_image_urls: (payload.image_urls || []).map((url) => managedMediaUrl(url, "venue photo")),
     p_pricing: payload.pricing || {}, p_cancellation_policy: payload.cancellation_policy || null,
+    p_latitude: Number(payload.latitude), p_longitude: Number(payload.longitude), p_formatted_address: payload.formatted_address || payload.address || null,
+    p_state_region: payload.state_region || null, p_country: payload.country || null, p_provider_place_id: payload.provider_place_id || null, p_location_metadata: payload.location_metadata || {},
   });
   if (error) throw error;
   return Array.isArray(data) ? data[0] : data;
@@ -807,6 +812,8 @@ export async function updateOwnedVenue(venueId, payload) {
     p_capacity: Number(payload.capacity), p_description: payload.description || null, p_venue_type: payload.venue_type || null,
     p_amenities: payload.amenities || [], p_rules: payload.rules || null, p_contact_phone: payload.contact_phone || null,
     p_image_urls: payload.image_urls || [], p_pricing: payload.pricing || {}, p_cancellation_policy: payload.cancellation_policy || null,
+    p_latitude: Number(payload.latitude), p_longitude: Number(payload.longitude), p_formatted_address: payload.formatted_address || payload.address || null,
+    p_state_region: payload.state_region || null, p_country: payload.country || null, p_provider_place_id: payload.provider_place_id || null, p_location_metadata: payload.location_metadata || {},
   });
   if (error) throw error;
   return Array.isArray(data) ? data[0] : data;
@@ -827,7 +834,7 @@ export async function initializeVenueBookingPayment(bookingId, idempotencyKey) {
 }
 
 export async function loadAvailableVenues(startsAt, endsAt) {
-  let query = supabase.from("venues").select("id,name,city,address,capacity,description,venue_type,amenities,rules,pricing,cancellation_policy").order("name", { ascending: true }).limit(100);
+  let query = supabase.from("venues").select("id,name,city,address,formatted_address,state_region,country,provider_place_id,location_metadata,latitude,longitude,capacity,description,venue_type,amenities,rules,pricing,cancellation_policy").order("name", { ascending: true }).limit(100);
   const { data, error } = await query;
   if (error) throw error;
   const { data: conflicts, error: conflictError } = await supabase.from("venue_bookings").select("venue_id").in("status", ["PENDING", "CONFIRMED"]).lt("starts_at", endsAt).gt("ends_at", startsAt);

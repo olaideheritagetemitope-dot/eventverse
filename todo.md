@@ -2193,10 +2193,41 @@ The remaining unchecked items require the owner's authenticated production sessi
 
 # Cross-account Public Playlist Visibility Regression — 2026-08-24
 
-- [ ] Test the public playlist read path as a non-owner account against live Supabase data
-- [ ] Identify whether RLS, RPC output, service hydration, catalog merging, or UI filtering removes public playlists
-- [ ] Repair the actual restricting layer without changing playlist privacy semantics or adding mock data
-- [ ] Add a non-owner visibility regression test and validate the active frontend path
-- [ ] Run focused tests, type-check, production build, checkpoint, and production publish verification
+- [x] Test the public playlist read path as a non-owner account against live Supabase data
+- [x] Identify that no live playlist row was persisted as PUBLIC; the non-owner read query and UI rendering path were not the restricting layer
+- [x] Repair the explicit publish persistence path without changing playlist privacy semantics or adding mock data
+- [x] Add a public visibility regression test and validate the active frontend path
+- [x] Run focused tests, type-check, lint, production build, and push the remediation to GitHub; real-account production verification remains pending
 
 #end-of-todo
+
+# Location Architecture — Venues, Events, and Proximity
+
+- [x] Audit existing venue, event, organizer, venue-manager, geolocation, map, discovery, RPC, schema, RLS, and regression paths
+- [x] Reuse the existing location infrastructure and define one canonical structured location contract
+- [x] Add or repair validated latitude/longitude persistence and efficient geographic indexes without duplicate systems
+- [x] Enforce real coordinates before venue publication and support owner location editing
+- [x] Make venue-linked events inherit canonical venue coordinates while preserving valid standalone-event behavior
+- [x] Implement the existing-compatible TomTom place search, map selection, pin adjustment, and reverse-location workflow
+- [ ] Make user geolocation permission denial and retry non-blocking for Home, discovery, music, artists, venues, and events
+- [ ] Implement one server-side proximity calculation for Events Near You and nearby venues/locations
+- [ ] Preserve independent Trending, Upcoming, Featured, and Popular Venues definitions
+- [x] Add regression coverage for location persistence, RPC contracts, proximity inputs, and no blank/black screen; device permission-denial coverage remains pending
+- [x] Run lifecycle tests, type-check, lint, production build, and apply the live migration; production UI/device smoke verification remains pending
+
+#end-of-todo
+
+# TomTom Secure Proxy Decision — 2026-08-24
+
+- [x] Route TomTom search, geocoding, reverse geocoding, and map configuration through a secure server-side proxy
+- [x] Keep the TomTom API key out of frontend source and GitHub
+- [x] Replace any direct frontend TomTom key dependency with the proxy-backed location service
+- [x] Validate the proxy contract and authorize a live lightweight TomTom geocoding request
+
+# Venue Manager TomTom Picker Visibility Regression — 2026-08-24
+
+- [ ] Confirm the active Venue Manager route renders the TomTom picker in the live dashboard
+- [ ] Trace why the map/search control is absent or nonfunctional in the frontend
+- [ ] Fix the active route/component wiring without creating a duplicate location flow
+- [ ] Verify search, map preview, pin adjustment, reverse geocode, and venue persistence
+- [ ] Run regression tests, type-check, lint, production build, and production smoke checks
