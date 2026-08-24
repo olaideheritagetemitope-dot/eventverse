@@ -37,6 +37,7 @@ describe("playlist system", () => {
     expect(service).toContain('supabase.from("songs").select(SONG_COLUMNS)');
     expect(service).toContain('lyrics_text');
     expect(service).toContain('sourceSong.lyrics_text');
+    expect(service).not.toContain('songs.lyrics');
     expect(service).toContain("hydratePlaylists");
     expect(service).toContain('eq("visibility", "PUBLIC")');
     expect(service).toContain('eq("user_id", userId)');
