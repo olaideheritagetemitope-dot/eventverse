@@ -34,7 +34,7 @@ describe("Paystack checkout latency contract", () => {
     expect(verifyRoute).toContain("Payment does not belong to the authenticated user");
     expect(verifyRoute).toContain("p_payment_id: payment.id");
     expect(verifyRoute).toContain("SUPABASE_SERVICE_ROLE_KEY");
-    expect(appSource).toContain('fetch("/api/paystack/verify"');
+    expect(appSource).toContain('fetch(apiUrl("/api/paystack/verify"');
     expect(appSource).toContain("callbackReference = url.searchParams.get(\"reference\") || url.searchParams.get(\"trxref\")");
     expect(appSource).toContain("data: pendingPayment || pendingArtistPayment || pendingPremiumPayment");
   });

@@ -1,4 +1,5 @@
 import { supabase } from "../lib/supabase";
+import { apiUrl } from "./api";
 
 const MEDIA_BUCKET = "atizzy-media";
 const MEDIA_LIMIT_BYTES = 50 * 1024 * 1024;
@@ -516,7 +517,7 @@ async function cleanupDeletedMedia(paths) {
   const token = sessionData.session?.access_token;
   if (!token) return { removed: [], failed: safePaths.map((path) => ({ path, reason: "Authentication required for cleanup" })) };
   try {
-    const response = await fetch("/api/media/cleanup", {
+    const response = await fetch(apiUrl("/api/media/cleanup"), {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ paths: safePaths }),
@@ -1149,7 +1150,7 @@ export async function initializeRoleApplicationPayment(applicationId, idempotenc
   if (!applicationId || !idempotencyKey || !email) throw new Error("Approved application and authenticated email are required.");
   const session = (await supabase.auth.getSession()).data.session;
   if (!session?.access_token) throw new Error("Please sign in again before starting payment.");
-  const response = await fetch("/api/paystack/role-initialize", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ applicationId, idempotencyKey, email, callbackUrl }) });
+  const response = await fetch(apiUrl("/api/paystack/role-initialize"), { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ applicationId, idempotencyKey, email, callbackUrl }) });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload.error || "Unable to initialize role verification payment.");
   return payload;
@@ -1337,7 +1338,7 @@ export async function initializePremiumPayment(planId, idempotencyKey, email, ca
   const { data: sessionData } = await supabase.auth.getSession();
   const accessToken = sessionData.session?.access_token;
   if (!accessToken) throw new Error("Please sign in again before starting Premium checkout.");
-  const response = await fetch("/api/paystack/premium-initialize", {
+  const response = await fetch(apiUrl("/api/paystack/premium-initialize"), {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
     body: JSON.stringify({ planId, idempotencyKey, email, callbackUrl }),
@@ -1411,7 +1412,7 @@ export async function deleteMyAccount() {
   if (sessionError) throw sessionError;
   const accessToken = sessionData.session?.access_token;
   if (!accessToken) throw new Error("Please sign in again before deleting your account.");
-  const response = await fetch("/api/account/delete", {
+  const response = await fetch(apiUrl("/api/account/delete"), {
     method: "POST",
     headers: { Authorization: `Bearer ${accessToken}` },
   });
