@@ -2239,3 +2239,21 @@ The remaining unchecked items require the owner's authenticated production sessi
 - [ ] Repair the canonical venue creation RPC/service mismatch without duplicate functions
 - [ ] Confirm the TomTom picker is mounted in the active Venue Manager create flow
 - [ ] Run venue creation, picker, regression, type, lint, and build checks
+
+# Venue Picker Confirmed-Location Regression — 2026-08-24
+
+- [ ] Verify the active Venue Manager route and production bundle actually mount the TomTom picker
+- [ ] Trace TomTom search, reverse-geocode, and map-preview responses in the active frontend
+- [ ] Fix picker state so selecting and confirming a result populates latitude, longitude, address, and provider ID
+- [ ] Keep venue creation blocked until a real confirmed location exists
+- [ ] Run UI, provider, venue creation, regression, type, lint, and build validation
+# TomTom Production Function-Limit Remediation — 2026-08-24
+
+- [x] Confirm the active Venue Manager source mounts TomTomVenueLocationPicker in the create-venue flow
+- [x] Identify production root cause: Vercel Hobby rejected 13 serverless functions with exceeded_serverless_functions_per_deployment
+- [x] Consolidate TomTom search, reverse geocoding, and static map into one dynamic serverless handler while preserving existing URLs
+- [x] Preserve server-side TomTom secret handling and no-public-key frontend contract
+- [x] Pass TomTom-focused tests, TypeScript check, lint, and production build
+- [ ] Verify the new production deployment is READY and run authenticated Venue Manager smoke flow
+- [ ] Verify production TomTom proxy responses and confirm venue creation persists coordinates
+- [ ] Verify live Nearby Events proximity discovery with location denial fallback

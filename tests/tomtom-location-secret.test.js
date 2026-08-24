@@ -7,18 +7,15 @@ const root = path.resolve(process.cwd());
 describe("TomTom secure location integration", () => {
   it("uses server-side proxy endpoints without requiring a public TomTom key", () => {
     const client = fs.readFileSync(path.join(root, "src/services/tomtom.js"), "utf8");
-    const searchHandler = fs.readFileSync(path.join(root, "api/tomtom/search.js"), "utf8");
-    const reverseHandler = fs.readFileSync(path.join(root, "api/tomtom/reverse.js"), "utf8");
-    const mapHandler = fs.readFileSync(path.join(root, "api/tomtom/static-map.js"), "utf8");
+    const handler = fs.readFileSync(path.join(root, "api/tomtom/[operation].js"), "utf8");
 
     expect(client).toContain("/api/tomtom/search");
     expect(client).toContain("/api/tomtom/reverse");
     expect(client).toContain("/api/tomtom/static-map");
     expect(client).not.toContain("NEXT_PUBLIC_TOMTOM_API_KEY");
-    for (const handler of [searchHandler, reverseHandler, mapHandler]) {
-      expect(handler).toMatch(/TOMTOM_API_KEY|TOMTOM_KEY|TOMTOM_TOKEN/);
-      expect(handler).not.toContain("NEXT_PUBLIC_TOMTOM_API_KEY");
-    }
+    expect(handler).toContain('"search", "reverse", "static-map"');
+    expect(handler).toMatch(/TOMTOM_API_KEY|TOMTOM_KEY|TOMTOM_TOKEN/);
+    expect(handler).not.toContain("NEXT_PUBLIC_TOMTOM_API_KEY");
   });
 
   it("authorizes a lightweight TomTom geocoding request", async () => {
