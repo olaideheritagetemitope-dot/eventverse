@@ -139,7 +139,7 @@ export async function recordPlay(userId, songId, secondsPlayed = 0) {
   if (error) throw error;
 }
 
-const PLAYLIST_COLUMNS = "id,user_id,name,description,cover_url,visibility,created_at,updated_at";
+const PLAYLIST_COLUMNS = "id,user_id,name,description,cover_url,visibility,public_edit_enabled,created_at,updated_at";
 const PLAYLIST_ITEM_COLUMNS = "id,playlist_id,song_id,position,added_at,added_by";
 const SONG_COLUMNS = "id,title,artist_id,audio_url,cover_url,duration_seconds,play_count,lyrics_text";
 
@@ -202,46 +202,81 @@ export async function createPlaylist(userId, input) {
   const cleanName = String(payload.name || "").trim();
   if (!cleanName) throw new Error("Enter a playlist name.");
   const visibility = ["PRIVATE", "PUBLIC"].includes(String(payload.visibility || "PRIVATE").toUpperCase()) ? String(payload.visibility || "PRIVATE").toUpperCase() : "PRIVATE";
-  const { data, error } = await supabase.from("playlists").insert({ user_id: userId, name: cleanName, description: String(payload.description || "").trim() || null, cover_url: payload.cover_url || payload.coverUrl || null, visibility }).select(PLAYLIST_COLUMNS).single();
+  const publicEditEnabled = visibility === "PUBLIC" && payload.public_edit_enabled === true;
+  const { data, error } = await supabase.from("playlists").insert({ user_id: userId, name: cleanName, description: String(payload.description || "").trim() || null, cover_url: payload.cover_url || payload.coverUrl || null, visibility, public_edit_enabled: publicEditEnabled }).select(PLAYLIST_COLUMNS).single();
   if (error) throw error;
   return normalizePlaylist(data, []);
 }
 
 export async function updatePlaylist(userId, playlistId, changes = {}) {
   if (!userId || !playlistId) throw new Error("Sign in to edit this playlist.");
+  const { data: current, error: currentError } = await supabase.from("playlists").select("id,user_id,visibility,public_edit_enabled").eq("id", playlistId).maybeSingle();
+  if (currentError) throw currentError;
+  if (!current) throw new Error("Playlist not found.");
+  const owner = current.user_id === userId;
+  const publicEditor = !owner && current.visibility === "PUBLIC" && current.public_edit_enabled === true;
+  if (!owner && !publicEditor) throw new Error("You do not have permission to edit this playlist.");
   const payload = {};
+  const nextVisibility = changes.visibility === undefined ? current.visibility : String(changes.visibility).toUpperCase();
   if (changes.name !== undefined) {
     const cleanName = String(changes.name || "").trim();
     if (!cleanName) throw new Error("Playlist name is required.");
     payload.name = cleanName;
   }
   if (changes.description !== undefined) payload.description = String(changes.description || "").trim() || null;
-  if (changes.cover_url !== undefined || changes.coverUrl !== undefined) payload.cover_url = changes.cover_url ?? changes.coverUrl ?? null;
-  if (changes.visibility !== undefined) {
-    const visibility = String(changes.visibility).toUpperCase();
-    if (!["PRIVATE", "PUBLIC"].includes(visibility)) throw new Error("Choose Private or Public visibility.");
-    payload.visibility = visibility;
+  if (owner && (changes.cover_url !== undefined || changes.coverUrl !== undefined)) payload.cover_url = changes.cover_url ?? changes.coverUrl ?? null;
+  if (owner && changes.visibility !== undefined) {
+    if (!["PRIVATE", "PUBLIC"].includes(nextVisibility)) throw new Error("Choose Private or Public visibility.");
+    payload.visibility = nextVisibility;
+  }
+  if (owner && changes.public_edit_enabled !== undefined) {
+    if (changes.public_edit_enabled === true && nextVisibility !== "PUBLIC") throw new Error("Public editing requires a public playlist.");
+    payload.public_edit_enabled = changes.public_edit_enabled === true;
   }
   if (!Object.keys(payload).length) throw new Error("Make a change before saving the playlist.");
-  const { data, error } = await supabase.from("playlists").update(payload).eq("id", playlistId).eq("user_id", userId).select(PLAYLIST_COLUMNS).maybeSingle();
+  const { data, error } = await supabase.from("playlists").update(payload).eq("id", playlistId).select(PLAYLIST_COLUMNS).maybeSingle();
   if (error) throw error;
-  if (!data) throw new Error("Playlist update was not saved. Confirm you own this playlist and try again.");
+  if (!data) throw new Error("Playlist update was not saved. Confirm you have permission to edit this playlist and try again.");
+  const [hydrated] = await hydratePlaylists([data]);
+  return hydrated;
+}
+
+export async function publishPlaylist(userId, playlistId, { name, description, public_edit_enabled = false } = {}) {
+  if (!userId || !playlistId) throw new Error("Sign in to publish this playlist.");
+  const cleanName = name === undefined ? undefined : String(name || "").trim();
+  if (cleanName === "") throw new Error("Playlist name is required.");
+  const payload = { visibility: "PUBLIC", public_edit_enabled: public_edit_enabled === true };
+  if (cleanName !== undefined) payload.name = cleanName;
+  if (description !== undefined) payload.description = String(description || "").trim() || null;
+  const { data, error } = await supabase
+    .from("playlists")
+    .update(payload)
+    .eq("id", playlistId)
+    .eq("user_id", userId)
+    .select(PLAYLIST_COLUMNS)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data || String(data.visibility || "").toUpperCase() !== "PUBLIC") {
+    throw new Error("Playlist was not published. Please try again.");
+  }
   const [hydrated] = await hydratePlaylists([data]);
   return hydrated;
 }
 
 export async function deletePlaylist(userId, playlistId) {
   if (!userId || !playlistId) throw new Error("Sign in to delete this playlist.");
-  const { error } = await supabase.from("playlists").delete().eq("id", playlistId).eq("user_id", userId);
+  const { data, error } = await supabase.from("playlists").delete().eq("id", playlistId).eq("user_id", userId).select("id").maybeSingle();
   if (error) throw error;
+  if (!data) throw new Error("Playlist was not deleted. Confirm you are the owner and try again.");
   return true;
 }
 
 export async function addSongToPlaylist(userId, playlistId, songId) {
   if (!userId || !playlistId || !songId) throw new Error("Choose a valid song and playlist.");
-  const { data: ownedPlaylist, error: playlistError } = await supabase.from("playlists").select("id,user_id").eq("id", playlistId).eq("user_id", userId).maybeSingle();
+  const { data: editablePlaylist, error: playlistError } = await supabase.from("playlists").select("id,user_id,visibility,public_edit_enabled").eq("id", playlistId).maybeSingle();
   if (playlistError) throw playlistError;
-  if (!ownedPlaylist) throw new Error("You can only add songs to a playlist you own.");
+  const canEdit = editablePlaylist && (editablePlaylist.user_id === userId || (editablePlaylist.visibility === "PUBLIC" && editablePlaylist.public_edit_enabled === true));
+  if (!canEdit) throw new Error("You can only add songs to a playlist you own or one that allows public edits.");
   const { data: existing, error: existingError } = await supabase.from("playlist_items").select("id,playlist_id,song_id,position,added_at,added_by").eq("playlist_id", playlistId).eq("song_id", songId).maybeSingle();
   if (existingError) throw existingError;
   if (existing) return existing;
@@ -262,6 +297,9 @@ export async function addSongToPlaylist(userId, playlistId, songId) {
 
 export async function removeSongFromPlaylist(userId, playlistId, songId) {
   if (!userId || !playlistId || !songId) throw new Error("A valid playlist item is required.");
+  const { data: editablePlaylist, error: playlistError } = await supabase.from("playlists").select("id,user_id,visibility,public_edit_enabled").eq("id", playlistId).maybeSingle();
+  if (playlistError) throw playlistError;
+  if (!editablePlaylist || (editablePlaylist.user_id !== userId && !(editablePlaylist.visibility === "PUBLIC" && editablePlaylist.public_edit_enabled === true))) throw new Error("You do not have permission to remove songs from this playlist.");
   const { error } = await supabase.from("playlist_items").delete().eq("playlist_id", playlistId).eq("song_id", songId);
   if (error) throw error;
   return true;
@@ -269,6 +307,9 @@ export async function removeSongFromPlaylist(userId, playlistId, songId) {
 
 export async function reorderPlaylistItems(userId, playlistId, itemIds = []) {
   if (!userId || !playlistId) throw new Error("Sign in to reorder this playlist.");
+  const { data: editablePlaylist, error: playlistError } = await supabase.from("playlists").select("id,user_id,visibility,public_edit_enabled").eq("id", playlistId).maybeSingle();
+  if (playlistError) throw playlistError;
+  if (!editablePlaylist || (editablePlaylist.user_id !== userId && !(editablePlaylist.visibility === "PUBLIC" && editablePlaylist.public_edit_enabled === true))) throw new Error("You do not have permission to reorder this playlist.");
   const ids = itemIds.filter(Boolean);
   for (let index = 0; index < ids.length; index += 1) {
     const { error } = await supabase.from("playlist_items").update({ position: index }).eq("id", ids[index]).eq("playlist_id", playlistId);

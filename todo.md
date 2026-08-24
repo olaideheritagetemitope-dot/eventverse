@@ -2140,8 +2140,63 @@ The remaining unchecked items require the owner's authenticated production sessi
 
 # Recurring Playlist songs.lyrics Runtime Regression — 2026-08-24
 
-- [ ] Search every source, generated, service, migration, and query path for `songs.lyrics`
-- [ ] Trace the exact save-handler refresh chain producing the error
-- [ ] Remove or replace the remaining stale runtime selector in the active path
-- [ ] Add a regression guard that rejects any playlist runtime query containing `songs.lyrics`
-- [ ] Run focused/full tests, type-check, production build, and checkpoint
+- [x] Search every source, generated, service, migration, and query path for `songs.lyrics`
+- [x] Trace the exact save-handler refresh chain producing the error
+- [x] Remove or replace the remaining stale runtime selector in the active path
+- [x] Add a regression guard that rejects any playlist runtime query containing `songs.lyrics`
+- [x] Run focused/full tests, type-check, production build, and checkpoint
+
+# Playlist Creator and Public Editing Permissions — 2026-08-24
+
+- [x] Confirm playlist creators can edit their own metadata, items, visibility, and cover
+- [x] Confirm playlist creators can delete their own playlists
+- [x] Add an owner-controlled public-editing setting
+- [x] Allow non-owner edits only when the playlist is public and public editing is enabled
+- [x] Keep private playlists and public read-only playlists protected from non-owner mutations
+- [x] Expose the public-editing control in the existing PlaylistDetail UI
+- [x] Add regression coverage for owner, public-editor, and denied mutation paths
+- [x] Run full tests, type-check, production build, and checkpoint
+
+# Playlist Public Editing Completion — 2026-08-24
+
+- [x] Audit active playlist hydration and confirm all database song selectors use `lyrics_text` rather than the nonexistent `songs.lyrics` column
+- [x] Apply Supabase migration 0115 for owner-controlled `public_edit_enabled` and public-editor item/metadata policies to project `blalvoelllndmbppbkcy`
+- [x] Wire the owner-only public-edit toggle into the existing PlaylistDetail settings UI
+- [x] Keep playlist visibility, cover upload, and deletion owner-controlled while allowing opted-in public editors to add, remove, reorder, and edit metadata
+- [x] Add regression coverage for public-editing schema, service authorization, and visible UI controls
+- [x] Pass focused playlist tests, TypeScript validation, lint, and production build
+- [ ] Complete authenticated production smoke test for CREATE → ADD SONG → REORDER → PLAY → EDIT → VISIBILITY → PUBLIC DISCOVERY → PLAY → DELETE
+- [ ] Replace the known large frontend bundle warning with production code splitting when scheduling the optimization milestone
+
+#end-of-todo
+
+# Playlist Public Visibility and Owner Delete Regression — 2026-08-24
+
+- [x] Trace why an owner cannot delete a public playlist through the active UI and Supabase delete policy
+- [x] Trace why a public playlist is not visible to a different authenticated account through discovery and item hydration
+- [x] Verify live public playlist rows, visibility values, ownership, and RLS policies without modifying user data
+- [x] Apply the smallest root fix to the authoritative backend/query path
+- [x] Add regression coverage for cross-account public discovery and owner deletion
+- [x] Run focused tests, type-check, and production build; authenticated two-account smoke validation remains pending
+
+#end-of-todo
+
+# Public Playlist Discovery Regression — 2026-08-24
+
+- [x] Trace the latest public playlist from publish action through stored row, RLS, service hydration, and rendered discovery list
+- [x] Identify that the live rows were still PRIVATE and that the shared save path did not provide an explicit verified publish operation
+- [x] Repair the authoritative publish path without adding mock data or changing Atizzy visual structure
+- [x] Add regression coverage for explicit public publishing and persisted PUBLIC verification
+- [x] Run focused tests, type-check, lint, and production build; publishing and real-account verification remain pending
+
+#end-of-todo
+
+# Cross-account Public Playlist Visibility Regression — 2026-08-24
+
+- [ ] Test the public playlist read path as a non-owner account against live Supabase data
+- [ ] Identify whether RLS, RPC output, service hydration, catalog merging, or UI filtering removes public playlists
+- [ ] Repair the actual restricting layer without changing playlist privacy semantics or adding mock data
+- [ ] Add a non-owner visibility regression test and validate the active frontend path
+- [ ] Run focused tests, type-check, production build, checkpoint, and production publish verification
+
+#end-of-todo
