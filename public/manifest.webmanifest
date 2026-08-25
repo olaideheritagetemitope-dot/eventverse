@@ -1,7 +1,7 @@
 {
-  "name": "Atizzy",
-  "short_name": "Atizzy",
-  "description": "Discover events, artists, music, and tickets with Atizzy.",
+  "name": "Eventverse",
+  "short_name": "Eventverse",
+  "description": "Discover events, artists, music, and tickets with Eventverse.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#111111",
