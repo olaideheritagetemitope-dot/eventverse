@@ -10,6 +10,8 @@ const sql = fs.readFileSync(path.join(root, "supabase/0121_related_content_engin
 describe("Related Content engine contract", () => {
   it("uses one live RPC wrapper and does not block detail pages on failure", () => {
     expect(service).toContain('supabase.rpc("get_related_content"');
+    expect(service).toContain("rpcRow.related_payload");
+    expect(service).toContain("Array.isArray(payload.items)");
     expect(source).toContain("loadRelatedContent(entityType, entityId");
     expect(source).toContain('aria-busy="true"');
     expect(source).toContain("Related content is temporarily unavailable.");

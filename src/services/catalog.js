@@ -341,7 +341,10 @@ export async function loadRelatedContent(entityType, entityId, options = {}) {
     p_limit: options.limit ?? 12,
   });
   if (error) throw error;
-  const payload = Array.isArray(data) ? (data[0] || {}) : (data && typeof data === "object" ? data : {});
+  const rpcRow = Array.isArray(data) ? (data[0] || {}) : (data && typeof data === "object" ? data : {});
+  const payload = rpcRow.related_payload && typeof rpcRow.related_payload === "object"
+    ? rpcRow.related_payload
+    : rpcRow;
   const sourceItems = Array.isArray(payload.items) ? payload.items : [];
   return sourceItems.map((item) => ({
     ...item,
