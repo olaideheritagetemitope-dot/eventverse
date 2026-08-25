@@ -9,9 +9,15 @@
     "preview": "vite preview --host 0.0.0.0",
     "check": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint src api",
-    "test": "vitest run"
+    "test": "vitest run",
+    "cap:sync": "pnpm run build && cap sync",
+    "cap:open:android": "cap open android",
+    "android:release": "pnpm run build && cap sync android && cd android && ./gradlew bundleRelease",
+    "android:validate": "cd android && ./gradlew bundleRelease --stacktrace"
   },
   "dependencies": {
+    "@capacitor/android": "^7.4.4",
+    "@capacitor/core": "^7.4.4",
     "@supabase/supabase-js": "^2.112.3",
     "@tomtom-org/maps-sdk": "^0.51.3",
     "@vitejs/plugin-react": "latest",
@@ -25,6 +31,7 @@
     "vite": "latest"
   },
   "devDependencies": {
+    "@capacitor/cli": "^7.4.4",
     "@eslint/js": "^10.0.1",
     "autoprefixer": "^10.5.4",
     "eslint": "^10.9.0",

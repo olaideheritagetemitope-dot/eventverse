@@ -245,12 +245,12 @@ export const toSong = (song) => ({
 });
 
 const baseCatalogQueries = {
-  events: () => supabase.from("events").select("id,organizer_id,venue_id,title,description,event_type,city,starts_at,ends_at,cover_url,status,rating,review_count,venues(id,name,city,address,capacity),ticket_types(id,price)").in("status", ["PUBLISHED", "SOLD_OUT", "LIVE", "COMPLETED"]).order("starts_at"),
+  events: () => supabase.from("events").select("id,organizer_id,venue_id,title,description,event_type,city,starts_at,ends_at,cover_url,status,rating,review_count,venues(id,name,city,address,capacity,latitude,longitude),ticket_types(id,price)").in("status", ["PUBLISHED", "SOLD_OUT", "LIVE", "COMPLETED"]).order("starts_at"),
   artists: () => supabase.from("artists").select("id,user_id,name,bio,verified,follower_count,image_url,background_url").order("follower_count", { ascending: false }),
   songs: () => supabase.from("songs").select("id,artist_id,title,duration_seconds,audio_url,cover_url,play_count,status,published_at,artists(id,name,image_url)").eq("status", "PUBLISHED").not("audio_url", "is", null).order("play_count", { ascending: false }),
   musicVideos: () => supabase.from("music_videos").select("id,artist_id,song_id,title,description,thumbnail_url,video_url,status,published_at,created_at,artists(id,name),songs(id,title,duration_seconds,audio_url,cover_url,lyrics_text,artists(id,name))").eq("status", "PUBLISHED").not("video_url", "is", null).order("published_at", { ascending: false }),
   categories: () => supabase.from("categories").select("id,name,slug").order("name"),
-  venues: () => supabase.from("venues").select("id,name,city,address,capacity,status,image_urls").eq("status", "ACTIVE").order("name"),
+  venues: () => supabase.from("venues").select("id,name,city,address,capacity,status,image_urls,latitude,longitude").eq("status", "ACTIVE").order("name"),
 };
 
 async function settleCatalogQueries() {
@@ -285,11 +285,11 @@ export async function searchCatalog(query) {
   if (!term) return { events: [], artists: [], songs: [], venues: [] };
   const pattern = `%${term}%`;
   const entries = [
-    ["events", () => supabase.from("events").select("id,organizer_id,venue_id,title,description,event_type,city,starts_at,ends_at,cover_url,status,rating,review_count,venues(id,name,city,address,capacity),ticket_types(id,price)").in("status", ["PUBLISHED", "SOLD_OUT", "LIVE", "COMPLETED"]).or(`title.ilike.${pattern},description.ilike.${pattern},city.ilike.${pattern}`).order("starts_at").limit(20)],
+    ["events", () => supabase.from("events").select("id,organizer_id,venue_id,title,description,event_type,city,starts_at,ends_at,cover_url,status,rating,review_count,venues(id,name,city,address,capacity,latitude,longitude),ticket_types(id,price)").in("status", ["PUBLISHED", "SOLD_OUT", "LIVE", "COMPLETED"]).or(`title.ilike.${pattern},description.ilike.${pattern},city.ilike.${pattern}`).order("starts_at").limit(20)],
     ["artists", () => supabase.from("artists").select("id,user_id,name,bio,verified,follower_count,image_url,background_url").or(`name.ilike.${pattern},bio.ilike.${pattern}`).order("follower_count", { ascending: false }).limit(20)],
     ["artistProfiles", () => supabase.from("user_profiles").select("id,full_name,avatar_url").ilike("full_name", pattern).limit(20)],
     ["songs", () => supabase.from("songs").select("id,artist_id,title,duration_seconds,audio_url,cover_url,play_count,status,published_at,artists(id,name,image_url)").eq("status", "PUBLISHED").not("audio_url", "is", null).ilike("title", pattern).order("play_count", { ascending: false }).limit(20)],
-    ["venues", () => supabase.from("venues").select("id,name,city,address,capacity,status,image_urls").eq("status", "ACTIVE").or(`name.ilike.${pattern},city.ilike.${pattern},address.ilike.${pattern}`).order("name").limit(20)],
+    ["venues", () => supabase.from("venues").select("id,name,city,address,capacity,status,image_urls,latitude,longitude").eq("status", "ACTIVE").or(`name.ilike.${pattern},city.ilike.${pattern},address.ilike.${pattern}`).order("name").limit(20)],
   ];
   const settled = await Promise.allSettled(entries.map(([, loader]) => loader()));
   const resultByName = Object.fromEntries(entries.map(([name], index) => {
@@ -331,10 +331,30 @@ export async function loadEventDetail(eventId) {
   };
 }
 
+export async function loadRelatedContent(entityType, entityId, options = {}) {
+  if (!entityType || !entityId) return [];
+  const { data, error } = await supabase.rpc("get_related_content", {
+    p_entity_type: String(entityType).toUpperCase(),
+    p_entity_id: entityId,
+    p_latitude: options.latitude ?? null,
+    p_longitude: options.longitude ?? null,
+    p_limit: options.limit ?? 12,
+  });
+  if (error) throw error;
+  const payload = Array.isArray(data) ? (data[0] || {}) : (data && typeof data === "object" ? data : {});
+  const sourceItems = Array.isArray(payload.items) ? payload.items : [];
+  return sourceItems.map((item) => ({
+    ...item,
+    contentType: String(item?.contentType || item?.content_type || "").toUpperCase(),
+    imageUrl: mediaUrl(item?.imageUrl || item?.image_url),
+    subtitle: item?.subtitle || "",
+  })).filter((item) => item?.id && item?.title && item?.contentType);
+}
+
 export async function loadVenueDetail(venueId) {
   const [venueResult, eventResult] = await Promise.all([
-    supabase.from("venues").select("id,name,city,address,capacity,status,image_urls").eq("id", venueId).neq("status", "ARCHIVED").maybeSingle(),
-    supabase.from("events").select("id,title,description,event_type,city,starts_at,ends_at,cover_url,status,rating,review_count,venues(id,name,city,address,capacity),ticket_types(id,price)").eq("venue_id", venueId).in("status", ["PUBLISHED", "SOLD_OUT", "LIVE", "COMPLETED"]).order("starts_at").limit(30),
+    supabase.from("venues").select("id,name,city,address,capacity,status,image_urls,latitude,longitude").eq("id", venueId).neq("status", "ARCHIVED").maybeSingle(),
+    supabase.from("events").select("id,title,description,event_type,city,starts_at,ends_at,cover_url,status,rating,review_count,venues(id,name,city,address,capacity,latitude,longitude),ticket_types(id,price)").eq("venue_id", venueId).in("status", ["PUBLISHED", "SOLD_OUT", "LIVE", "COMPLETED"]).order("starts_at").limit(30),
   ]);
   const firstError = [venueResult, eventResult].find((result) => result.error)?.error;
   if (firstError) throw firstError;

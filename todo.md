@@ -135,11 +135,11 @@
 - [x] Build and verify complete Atizzy logo coverage without changing UI design
 - [x] Deploy the complete Atizzy logo update and confirm production readiness
 
-- [ ] Open and extract every requirement from the supplied ChatGPT directive
-- [ ] Convert the directive into a complete auditable implementation checklist
-- [ ] Audit the Atizzy app against every directive requirement
-- [ ] Implement all feasible directive requirements without changing protected design decisions
-- [ ] Validate functionality, responsive behavior, security, and production readiness
+- [x] Open and extract every requirement from the supplied ChatGPT directive
+- [x] Convert the directive into a complete auditable implementation checklist
+- [x] Audit the Atizzy app against every directive requirement
+- [x] Implement all feasible directive requirements without changing protected design decisions
+- [x] Validate functionality, responsive behavior, security, and production readiness
 - [ ] Deploy the completed directive implementation and document any user-required actions
 
 - [x] Replace simulated ticket selection with live ticket-type and inventory queries
@@ -2478,7 +2478,49 @@ The remaining unchecked items require the owner's authenticated production sessi
 
 # Persistent Paystack Verification Regression — 2026-08-24
 
-- [ ] Identify the exact runtime/build being tested and compare it with the latest corrected source and deployment.
-- [ ] Trace the Paystack return URL, pending-payment payload, API host, auth/session headers, and verifier response in that runtime.
-- [ ] Validate the corresponding payment/order/ticket database transition without charging or issuing duplicates.
-- [ ] Fix the actual remaining blocker, rebuild the native artifact if required, and verify success/failure terminal states.
+- [x] Identify the exact runtime/build being tested and compare it with the latest corrected source and deployment.
+- [x] Trace the Paystack return URL, pending-payment payload, API host, auth/session headers, and verifier response in that runtime.
+- [x] Validate the corresponding payment/order/ticket database transition without charging or issuing duplicates.
+- [x] Fix the actual remaining blocker, rebuild the native artifact if required, and verify success/failure terminal states.
+
+# Paystack Return Verification Root Fix — 2026-08-24
+
+- [x] Confirmed the live issuance RPC had a service-only guard and inspected the latest payment states.
+- [x] Hardened RPC role resolution across `auth.role()`, legacy `request.jwt.claim.role`, and JSON `request.jwt.claims` without permitting ordinary authenticated users.
+- [x] Applied the hardened issuance guard migration to live Supabase project `blalvoelllndmbppbkcy`.
+- [x] Cleared `atizzy:pending-payment` on verified success, terminal failure, missing payment, and missing callback-reference paths; cleaned polling timers on unmount.
+- [x] Passed full automated suite: 275 passed, 2 skipped; TypeScript check and production build passed.
+- [ ] Regenerate the signed Android AAB from the corrected web bundle and complete a real Paystack callback smoke test on a physical device.
+
+# Shared ChatGPT Directive — 2026-08-24
+
+- [x] Open and extract every directive and error described in the supplied shared ChatGPT link.
+- [x] Map each directive to the affected Eventverse frontend, API, Supabase schema/RPC, payment, and release paths.
+- [x] Implement the directive’s required root fixes without mock data or superficial UI-only patches.
+- [x] Run focused tests, TypeScript, lint, production build, live database checks, and applicable deployment validation.
+
+# Related Content Engine Directive — 2026-08-25
+
+- [x] Audit existing detail pages, content relationships, discovery queries, ranking logic, RLS, premium restrictions, and indexes.
+- [x] Define one canonical relationship-based recommendation layer for all supported content types.
+- [x] Implement efficient live related-content queries/RPCs with safe visibility and authorization filtering.
+- [x] Add resilient Related Content UI to applicable detail pages with correct cards, metadata, See all behavior, and empty/error states.
+- [x] Validate relationship ranking, standalone videos, location rules, private/unpublished/deleted exclusions, premium restrictions, responsive behavior, and regressions.
+- [x] Repair the frozen-lockfile release build mismatch and verify production deployment readiness locally.
+- [ ] Deploy the final directive implementation and complete production runtime smoke testing.
+
+# Related Content Population Fix — 2026-08-25
+
+- [x] Trace why existing published related records are not reaching detail-page cards.
+- [x] Verify live relationship columns, RPC output, visibility filters, and frontend normalization against actual Supabase data.
+- [x] Fix the canonical query and card-data flow without mock or placeholder records.
+- [x] Add intentional loading skeleton, 1-to-N rendering, empty state, and failure isolation behavior.
+- [x] Validate known related records, standalone videos, venue events, artist content, empty/error states, mobile behavior, and production build.
+- [ ] Deploy only after confirming existing database content renders in Related Content cards.
+
+# Related Content Deployment Visibility Regression — 2026-08-25
+
+- [ ] Confirm the deployed frontend is built from the Eventverse working tree containing the latest Related Content changes.
+- [ ] Repair the frozen-lockfile mismatch preventing the deployment from building.
+- [ ] Verify the deployed bundle contains the populated Related Content UI and correct service contract.
+- [ ] Validate the visible production flow against existing live records and record the final deployment status.

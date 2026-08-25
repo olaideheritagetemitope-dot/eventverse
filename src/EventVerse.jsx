@@ -6,7 +6,7 @@ import {
   Ticket, User, LogOut, X, QrCode, Shuffle, Repeat, ListMusic, ChevronDown, MoreVertical,
 } from "lucide-react";
 import { supabase } from "./lib/supabase";
-import { loadCatalog, loadArtistDetail, loadEventDetail, loadVenueDetail, searchCatalog, formatFollowers, toEvent, toSong, toMusicVideo, loadMusicVideoDetail, loadMusicVideoForSong, loadRelatedStandaloneMusicVideo } from "./services/catalog";
+import { loadCatalog, loadArtistDetail, loadEventDetail, loadVenueDetail, searchCatalog, formatFollowers, toEvent, toSong, toMusicVideo, loadMusicVideoDetail, loadMusicVideoForSong, loadRelatedStandaloneMusicVideo, loadRelatedContent } from "./services/catalog";
 import CheckInScreen from "./components/CheckInScreen";
 import { loadCurrentUser, loadFavoriteState, toggleEventFavorite, toggleArtistFollow, toggleMusicFavorite, toggleMusicVideoFavorite, loadMusicFavorites, recordPlay, loadPlaylists, createPlaylist, submitBooking, loadRoleDashboard, loadArtistWorkspace, loadArtistCreatorContent, createArtistSong, setArtistSongStatus, archiveArtistSong, deleteArtistSong, createArtistAlbum, updateArtistAlbum, setArtistAlbumStatus, createArtistMusicVideo, updateArtistMusicVideo, setArtistMusicVideoStatus, updateArtistProfile, updateArtistSong, artistUpdateBookingStatus, issueTicketQrToken, updateProfile, loadArtistOnboarding, initializeArtistFeePayment, loadArtistFeeTransaction, loadArtistAdminOverview, updateArtistFee, loadOrganizerApplication, applyAsOrganizer, loadOrganizerEvents, createOrganizerEvent, updateOrganizerEvent, addOrganizerTicketType, discoverPrivateTicket, linkOrganizerArtist, publishOrganizerEvent, cancelOrganizerEvent, loadOrganizerEventDashboard, loadVenueManagerWorkspace, applyAsVenueManager, createOwnedVenue, updateOwnedVenue, archiveOwnedVenue, deleteOwnedVenue, requestVenueBooking, respondVenueBooking, setVenueAvailability, initializeVenueBookingPayment, loadAvailableVenues, searchOrganizerArtists, searchEventStaffUsers, assignEventStaff, loadEventStaffForOrganizer, updateEventStaffShift, revokeEventStaffAssignment, loadEventStaffWorkspace, respondEventStaffAssignment, acknowledgeEventStaffTask, loadSuperAdminAnalytics, loadAdminDashboardSnapshot, adminListUsers, adminListUsersPage, adminSuspendUser, adminReviewEvent, loadAdminPaymentSupport, loadAdminAuditLogs, loadUserExperienceSnapshot, loadUserCollections, recordUserSearch, clearUserSearchHistory, updateUserPreferences, markUserNotificationRead, markAllUserNotificationsRead, createSupportRequest, uploadMediaFile, loadMyPosts, createPost, updatePost, setPostStatus, deletePost, removeMediaAsset, loadPolicySettings, updatePolicySetting, loadRoleCapabilityMatrix, loadAdminPermissionGrants, setAdminPermission, loadRoleGovernanceSnapshot, loadOnboardingConfig, loadPublicRoleOnboardingConfig, saveOnboardingQuestion, submitRoleApplication, loadRoleApplication, initializeRoleApplicationPayment, reviewRoleApplication, creditWalletForCancelledOrder, loadPublicContentAnalytics, createContentComment, setContentRating, setContentLike, setRoleFeePolicy, setPlatformFeePolicy, adminSetEventStatus, loadGovernanceEvents, loadContentEngagement, superAdminSetRole, superAdminSetRolePermission, loadRoleAssignmentHistory, loadPremiumSnapshot, loadPremiumAttendeeSnapshot, loadPremiumEventDiscovery, initializePremiumPayment, cancelPremiumSubscription, setPremiumPlan, loadPublicPlaylists, loadPlaylist, updatePlaylist, publishPlaylist, deletePlaylist, addSongToPlaylist, removeSongFromPlaylist, reorderPlaylistItems, updateOrganizerTicketReleasePolicy, deleteMyAccount, loadPublishedLegalDocument, loadAdminLegalDocuments, saveAdminLegalDocument, publishAdminLegalDocument, unpublishAdminLegalDocument, restoreAdminLegalDocument, acceptPublishedLegalDocument } from "./services/user";
 import QRCode from "qrcode";
@@ -1080,6 +1080,42 @@ function SearchScreen({ nav, catalog, account }) {
   );
 }
 
+function RelatedContent({ entityType, entityId, nav, latitude, longitude }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(Boolean(entityId));
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let active = true;
+    if (!entityId) { setItems([]); setLoading(false); return undefined; }
+    setLoading(true); setFailed(false);
+    loadRelatedContent(entityType, entityId, { latitude, longitude, limit: 12 })
+      .then((rows) => { if (active) setItems(rows); })
+      .catch(() => { if (active) { setItems([]); setFailed(true); } })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [entityType, entityId, latitude, longitude]);
+  const heading = <div className="flex items-center justify-between mb-3"><h2 className="text-[14px] font-semibold" style={{ color: C.ivory }}>Related Content</h2>{!loading && !failed && items.length >= 6 && <button type="button" onClick={() => nav.push("relatedContent", { entityType, entityId, latitude, longitude })} className="text-[11px]" style={{ color: C.goldSoft }}>See all</button>}</div>;
+  if (loading) return <section className="mt-6 mb-6" aria-label="Related Content" aria-busy="true">{heading}<div className="flex gap-3 overflow-hidden">{[0, 1, 2].map((key) => <div key={key} className="flex-shrink-0 w-36 h-32 rounded-2xl animate-pulse" style={{ background: C.card, border: `1px solid ${C.line}` }} />)}</div></section>;
+  if (failed) return <section className="mt-6 mb-6" aria-label="Related Content"><h2 className="text-[14px] font-semibold" style={{ color: C.ivory }}>Related Content</h2><p className="mt-3 text-[11px]" style={{ color: C.muted }}>Related content is temporarily unavailable.</p></section>;
+  if (!items.length) return <section className="mt-6 mb-6" aria-label="Related Content"><h2 className="text-[14px] font-semibold" style={{ color: C.ivory }}>Related Content</h2><p className="mt-3 text-[11px]" style={{ color: C.muted }}>No related content available yet.</p></section>;
+  const open = (item) => {
+    const data = { id: item.id, title: item.title, name: item.title, imageUrl: item.imageUrl, coverUrl: item.imageUrl, artist: item.subtitle };
+    const route = { EVENT: "eventDetail", ARTIST: "artist", VENUE: "venueDetail", SONG: "musicDetail", ALBUM: "albumDetail", MUSIC_VIDEO: "musicVideoDetail", PLAYLIST: "playlistDetail" }[item.contentType];
+    if (route) nav.push(route, data);
+  };
+  return <section className="mt-6 mb-6" aria-label="Related Content">
+    {heading}
+    <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">{items.slice(0, 6).map((item) => <button type="button" key={`${item.contentType}-${item.id}`} onClick={() => open(item)} className="flex-shrink-0 w-36 text-left rounded-2xl overflow-hidden" style={{ background: C.card, border: `1px solid ${C.line}` }}><div className="h-20" style={imageStyle(item.imageUrl, `linear-gradient(135deg, ${C.wood}, ${C.green})`)} /><div className="p-2.5"><p className="text-[11.5px] font-semibold truncate" style={{ color: C.ivory }}>{item.title}</p><p className="text-[10px] truncate mt-1" style={{ color: C.muted }}>{item.subtitle || item.contentType.replace("_", " ")}</p></div></button>)}</div>
+  </section>;
+}
+
+function RelatedContentScreen({ nav, data }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => { let active = true; loadRelatedContent(data?.entityType, data?.entityId, data || {}).then((rows) => active && setItems(rows)).catch(() => active && setItems([])).finally(() => active && setLoading(false)); return () => { active = false; }; }, [data?.entityType, data?.entityId]);
+  return <Phone><TopBack title="Related Content" onBack={nav.pop} /><div className="flex-1 overflow-y-auto px-5 pb-6">{loading && <p className="py-8 text-center text-[12px]" style={{ color: C.muted }}>Loading related content...</p>}{!loading && !items.length && <p className="py-8 text-center text-[12px]" style={{ color: C.muted }}>No related content is available yet.</p>}{items.map((item) => <button type="button" key={`${item.contentType}-${item.id}`} onClick={() => nav.push(({ EVENT: "eventDetail", ARTIST: "artist", VENUE: "venueDetail", SONG: "musicDetail", MUSIC_VIDEO: "musicVideoDetail", PLAYLIST: "playlistDetail" }[item.contentType] || "home"), { id: item.id, title: item.title, name: item.title, artist: item.subtitle, coverUrl: item.imageUrl, imageUrl: item.imageUrl })} className="w-full flex items-center gap-3 py-3 text-left" style={{ borderBottom: `1px solid ${C.line}` }}><div className="w-14 h-14 rounded-xl flex-shrink-0" style={imageStyle(item.imageUrl, `linear-gradient(135deg, ${C.wood}, ${C.green})`)} /><div className="min-w-0 flex-1"><p className="text-[13px] font-semibold truncate" style={{ color: C.ivory }}>{item.title}</p><p className="text-[11px] mt-1 truncate" style={{ color: C.muted }}>{item.subtitle || item.contentType.replace("_", " ")}</p></div><ChevronRight size={15} color={C.muted} /></button>)}</div></Phone>;
+}
+
 /* ============================== EVENT DETAIL ============================== */
 // Compatibility: EngagementPanel targetType="MUSIC" is normalized by the service to the live SONG target.
 function EngagementPanel({ targetType, targetId, account }) {
@@ -1179,6 +1215,7 @@ function EventDetail({ nav, data, account }) {
           </div>
           <ChevronRight size={16} color={C.muted} />
         </div>
+        <RelatedContent entityType="EVENT" entityId={ev.id} nav={nav} latitude={ev.venueRecord?.latitude} longitude={ev.venueRecord?.longitude} />
         <EngagementPanel targetType="EVENT" targetId={ev.id} account={account} />
       </div>
       <div className="px-5 py-4 flex items-center gap-4" style={{ background: C.bg, borderTop: `1px solid ${C.line}` }}>
@@ -1412,20 +1449,33 @@ function Processing({ nav, data }) {
   useEffect(() => {
     let mounted = true;
     let attempts = 0;
+    let timer;
+    const clearPendingPayment = () => {
+      try { window.localStorage.removeItem("atizzy:pending-payment"); } catch (storageError) { console.warn("Unable to clear pending payment", storageError); }
+    };
     const poll = async () => {
-      if (!data?.payment?.payment_id) return;
+      if (!data?.payment?.payment_id) {
+        if (mounted) { setStatus("FAILED"); setError("Payment attempt details are unavailable."); clearPendingPayment(); }
+        return;
+      }
       const { data: payment, error: paymentError } = await supabase.from("payments").select("id,order_id,status,provider,amount,currency,verified_at").eq("id", data.payment.payment_id).maybeSingle();
       if (!mounted) return;
       if (paymentError) { setError(paymentError.message); return; }
-      if (payment) setStatus(payment.status);
-      if (payment?.status === "VERIFIED_SUCCESS") {
+      if (!payment) { setStatus("FAILED"); setError("Payment attempt was not found."); clearPendingPayment(); return; }
+      setStatus(payment.status);
+      if (payment.status === "VERIFIED_SUCCESS") {
+        clearPendingPayment();
         const { data: ticket } = await supabase.from("tickets").select("id,order_id,ticket_type_id,status,checked_in_at,created_at,ticket_types(name,events(id,title,city,starts_at,cover_url,venues(name)))").eq("order_id", payment.order_id).order("created_at", { ascending: true }).maybeSingle();
         if (mounted) nav.replace("success", { ...data, payment, order: { id: payment.order_id, total: payment.amount }, ticket });
         return;
       }
-      if (["FAILED", "EXPIRED", "REFUNDED"].includes(payment?.status)) return;
+      if (["FAILED", "EXPIRED", "REFUNDED"].includes(payment.status)) {
+        clearPendingPayment();
+        return;
+      }
       attempts += 1;
-      if (attempts < 30) setTimeout(poll, 2000);
+      if (attempts < 30) timer = window.setTimeout(poll, 2000);
+      else if (mounted) setError("Payment verification is taking longer than expected. You can safely return and try again without reusing this attempt.");
     };
     const verifyReturnedPayment = async () => {
       const paymentId = data?.payment?.payment_id;
@@ -1440,6 +1490,10 @@ function Processing({ nav, data }) {
           });
           const payload = await response.json().catch(() => ({}));
           if (!response.ok && mounted) setError(payload.error || "Payment verification is still pending.");
+        } else if (mounted) {
+          setStatus("FAILED");
+          setError("The payment callback did not include a usable payment reference.");
+          clearPendingPayment();
         }
       } catch (verificationError) {
         if (mounted) setError(verificationError.message || "Payment verification is still pending.");
@@ -1447,8 +1501,8 @@ function Processing({ nav, data }) {
       if (mounted) await poll();
     };
     void verifyReturnedPayment();
-    return () => { mounted = false; };
-  }, [data?.payment?.payment_id, data?.payment?.providerReference, data?.payment?.reference]);
+    return () => { mounted = false; if (timer) window.clearTimeout(timer); };
+  }, [data?.payment?.payment_id, data?.payment?.providerReference, data?.payment?.reference, data?.payment?.transactionReference]);
   const terminal = ["FAILED", "EXPIRED", "REFUNDED"].includes(status);
   return <Phone><div className="flex-1 flex flex-col items-center justify-center px-8"><div className="w-24 h-24 rounded-full flex items-center justify-center mb-8" style={{ background: terminal ? `${C.red}33` : `${C.gold}22`, border: `1px solid ${terminal ? C.red : C.gold}66` }}><Loader2 size={38} color={terminal ? C.red : C.gold} className={terminal ? "" : "animate-spin"} /></div><p className="text-[16px] font-semibold mb-2" style={{ color: C.ivory }}>{terminal ? `Payment ${status.toLowerCase()}` : "Waiting for payment verification"}</p><p className="text-[13px] text-center" style={{ color: C.muted }}>{error || (terminal ? "No ticket was issued for this payment attempt." : "Atizzy will issue tickets only after the provider or webhook confirms payment.")}</p>{terminal && <button onClick={nav.pop} className="mt-6 text-[13px] font-semibold" style={{ color: C.goldSoft }}>Return to payment</button>}</div></Phone>;
 }
@@ -2402,6 +2456,7 @@ function ArtistProfile({ nav, data, account, catalog }) {
             <span className="text-[11px]" style={{ color: C.muted }}>{s.duration}</span>
           </div>
         ))}
+        <RelatedContent entityType="ARTIST" entityId={a.id} nav={nav} />
         <div className="pt-3 pb-6">
           <GhostButton onClick={() => nav.push("booking", a)}>Book Artist</GhostButton>
         </div>
@@ -2818,7 +2873,7 @@ function VenueDetail({ nav, data }) {
     return () => { active = false; };
   }, [data?.id]);
   const venue = state.venue;
-  return <Phone><TopBack title="Venue" onBack={nav.pop} /> <div className="flex-1 overflow-y-auto px-5 pb-6">{loading && <p className="py-8 text-center text-[13px]" style={{ color: C.muted }}>Loading venue...</p>}{error && <AuthMessage error={error} />}{venue && <><div className="rounded-2xl p-5 mb-5" style={{ ...imageStyle(venue?.imageUrl, `linear-gradient(145deg, ${C.wood}, ${C.card})`), backgroundBlendMode: "overlay" }}><MapPin size={22} color={C.gold} /><h1 className="ev-display text-2xl mt-3" style={{ color: C.ivory }}>{venue.name}</h1><p className="text-[12px] mt-1" style={{ color: C.muted }}>{venue.address || venue.city || "Location pending"}</p><p className="text-[11px] mt-3" style={{ color: C.goldSoft }}>Capacity {venue.capacity ? Number(venue.capacity).toLocaleString() : "pending"}</p></div><p className="text-[12px] font-semibold mb-3" style={{ color: C.muted }}>EVENTS AT THIS VENUE</p>{state.events.map((event) => <div key={event.id} className="mb-3"><EventCard ev={event} wide onClick={() => nav.push("eventDetail", event)} /></div>)}{!loading && !state.events.length && <p className="py-6 text-center text-[13px]" style={{ color: C.muted }}>No published events at this venue yet.</p>}</>}</div></Phone>;
+  return <Phone><TopBack title="Venue" onBack={nav.pop} /> <div className="flex-1 overflow-y-auto px-5 pb-6">{loading && <p className="py-8 text-center text-[13px]" style={{ color: C.muted }}>Loading venue...</p>}{error && <AuthMessage error={error} />}{venue && <><div className="rounded-2xl p-5 mb-5" style={{ ...imageStyle(venue?.imageUrl, `linear-gradient(145deg, ${C.wood}, ${C.card})`), backgroundBlendMode: "overlay" }}><MapPin size={22} color={C.gold} /><h1 className="ev-display text-2xl mt-3" style={{ color: C.ivory }}>{venue.name}</h1><p className="text-[12px] mt-1" style={{ color: C.muted }}>{venue.address || venue.city || "Location pending"}</p><p className="text-[11px] mt-3" style={{ color: C.goldSoft }}>Capacity {venue.capacity ? Number(venue.capacity).toLocaleString() : "pending"}</p></div><p className="text-[12px] font-semibold mb-3" style={{ color: C.muted }}>EVENTS AT THIS VENUE</p>{state.events.map((event) => <div key={event.id} className="mb-3"><EventCard ev={event} wide onClick={() => nav.push("eventDetail", event)} /></div>)}{!loading && !state.events.length && <p className="py-6 text-center text-[13px]" style={{ color: C.muted }}>No published events at this venue yet.</p>}<RelatedContent entityType="VENUE" entityId={venue.id} nav={nav} latitude={venue.latitude} longitude={venue.longitude} /></>}</div></Phone>;
 }
 
 function MusicVideoDetail({ nav, video, player, account }) {
@@ -2856,7 +2911,7 @@ function MusicVideoDetail({ nav, video, player, account }) {
     catch (error) { setLiked(!next); setMessage(error.message || "Unable to update video favorite."); }
   };
   if (!currentVideo) return <Phone><div className="flex-1 flex items-center justify-center px-6 text-center" style={{ color: C.muted }}>Music video details are unavailable.</div></Phone>;
-  return <Phone><TopBack title="Music Video" onBack={nav.pop} right={<button type="button" onClick={toggleLike} aria-label={liked ? "Unlike music video" : "Like music video"}><Heart size={18} color={liked ? C.gold : C.ivory} fill={liked ? C.gold : "none"} /></button>} /><div className="flex-1 overflow-y-auto px-5 pb-6"><div className="relative aspect-video rounded-3xl mb-5 overflow-hidden" style={{ background: C.card }}>{videoUrl ? <video key={videoUrl} ref={videoRef} src={videoUrl} poster={thumbnailUrl} controls playsInline preload="metadata" crossOrigin="anonymous" onLoadedMetadata={() => setVideoError("")} onError={() => setVideoError("This video could not be decoded on this device. Please retry or check the media upload.")} className="w-full h-full object-contain" aria-label={`${currentVideo.title || "Music video"} video`} /> : <p className="h-full flex items-center justify-center text-[12px]" style={{ color: C.muted }}>Video unavailable.</p>}</div>{videoError && <p className="mb-4 text-[11px]" role="alert" style={{ color: C.red }}>{videoError}</p>}<p className="text-[11px] uppercase tracking-[0.18em]" style={{ color: C.gold }}>Music Video</p><h1 className="ev-display text-2xl mt-1" style={{ color: C.ivory }}>{currentVideo.title || "Untitled music video"}</h1><p className="text-[13px] mt-1" style={{ color: C.goldSoft }}>{currentVideo.artist || "Artist pending"}</p>{message && <p className="text-[11px] mt-2" role="status" style={{ color: C.red }}>{message}</p>}{currentVideo.description && <p className="text-[12px] mt-4 leading-5" style={{ color: C.muted }}>{currentVideo.description}</p>}{linkedSong ? <div className="rounded-2xl p-4 mt-5" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[11px] uppercase tracking-[0.14em]" style={{ color: C.gold }}>Linked song</p><p className="text-[14px] font-semibold mt-1" style={{ color: C.ivory }}>{linkedSong.title}</p><p className="text-[11px] mt-1" style={{ color: C.muted }}>Lyrics and audio remain available from the linked Song record.</p><GoldButton onClick={() => { player.play(linkedSong); recordPlay(account?.user?.id, linkedSong.id).catch(() => {}); }}><Play size={15} fill="#1A1408" className="inline mr-2" /> Play linked audio</GoldButton></div> : <div className="rounded-2xl p-4 mt-5" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[12px] font-semibold" style={{ color: C.ivory }}>Standalone music video</p><p className="text-[11px] mt-1 leading-5" style={{ color: C.muted }}>This video is published independently and does not require an audio or Song record.</p></div>}</div></Phone>;
+  return <Phone><TopBack title="Music Video" onBack={nav.pop} right={<button type="button" onClick={toggleLike} aria-label={liked ? "Unlike music video" : "Like music video"}><Heart size={18} color={liked ? C.gold : C.ivory} fill={liked ? C.gold : "none"} /></button>} /><div className="flex-1 overflow-y-auto px-5 pb-6"><div className="relative aspect-video rounded-3xl mb-5 overflow-hidden" style={{ background: C.card }}>{videoUrl ? <video key={videoUrl} ref={videoRef} src={videoUrl} poster={thumbnailUrl} controls playsInline preload="metadata" crossOrigin="anonymous" onLoadedMetadata={() => setVideoError("")} onError={() => setVideoError("This video could not be decoded on this device. Please retry or check the media upload.")} className="w-full h-full object-contain" aria-label={`${currentVideo.title || "Music video"} video`} /> : <p className="h-full flex items-center justify-center text-[12px]" style={{ color: C.muted }}>Video unavailable.</p>}</div>{videoError && <p className="mb-4 text-[11px]" role="alert" style={{ color: C.red }}>{videoError}</p>}<p className="text-[11px] uppercase tracking-[0.18em]" style={{ color: C.gold }}>Music Video</p><h1 className="ev-display text-2xl mt-1" style={{ color: C.ivory }}>{currentVideo.title || "Untitled music video"}</h1><p className="text-[13px] mt-1" style={{ color: C.goldSoft }}>{currentVideo.artist || "Artist pending"}</p>{message && <p className="text-[11px] mt-2" role="status" style={{ color: C.red }}>{message}</p>}{currentVideo.description && <p className="text-[12px] mt-4 leading-5" style={{ color: C.muted }}>{currentVideo.description}</p>}<RelatedContent entityType="MUSIC_VIDEO" entityId={currentVideo.id} nav={nav} />{linkedSong ? <div className="rounded-2xl p-4 mt-5" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[11px] uppercase tracking-[0.14em]" style={{ color: C.gold }}>Linked song</p><p className="text-[14px] font-semibold mt-1" style={{ color: C.ivory }}>{linkedSong.title}</p><p className="text-[11px] mt-1" style={{ color: C.muted }}>Lyrics and audio remain available from the linked Song record.</p><GoldButton onClick={() => { player.play(linkedSong); recordPlay(account?.user?.id, linkedSong.id).catch(() => {}); }}><Play size={15} fill="#1A1408" className="inline mr-2" /> Play linked audio</GoldButton></div> : <div className="rounded-2xl p-4 mt-5" style={{ background: C.card, border: `1px solid ${C.line}` }}><p className="text-[12px] font-semibold" style={{ color: C.ivory }}>Standalone music video</p><p className="text-[11px] mt-1 leading-5" style={{ color: C.muted }}>This video is published independently and does not require an audio or Song record.</p></div>}</div></Phone>;
 }
 
 function MusicDetail({ nav, data, player, account }) {
@@ -2866,7 +2921,32 @@ function MusicDetail({ nav, data, player, account }) {
   if (data?.videoUrl || data?.musicVideoUrl || data?.video_url || data?.music_video_url || data?.media_kind === "MUSIC_VIDEO") return <MusicVideoDetail nav={nav} video={data} player={player} account={account} />;
   if (!song) return <Phone><div className="flex-1 flex items-center justify-center text-[13px]" style={{ color: C.muted }}>Music details are unavailable.</div></Phone>;
   const toggleLike = async () => { if (!account?.user?.id) return nav.push("login"); const next = !liked; setLiked(next); try { await toggleMusicFavorite(account.user.id, song.id, next); } catch { setLiked(!next); } };
-  return <Phone><TopBack title="Music Detail" onBack={nav.pop} right={<button onClick={toggleLike}><Heart size={18} color={liked ? C.gold : C.ivory} fill={liked ? C.gold : "none"} /></button>} /><div className="flex-1 overflow-y-auto px-5 pb-6"><div className="aspect-square rounded-3xl mb-5" style={imageStyle(song.coverUrl, `linear-gradient(145deg, ${C.green}, ${C.wood})`)} /><h1 className="ev-display text-2xl" style={{ color: C.ivory }}>{song.title}</h1><p className="text-[13px] mt-1" style={{ color: C.goldSoft }}>{song.artist}</p><p className="text-[11px] mt-2" style={{ color: C.muted }}>{song.plays || "0"} plays · {song.duration}</p><div className="mt-6"><GoldButton onClick={() => { player.play(song); recordPlay(account?.user?.id, song.id).catch(() => {}); }}> <Play size={15} fill="#1A1408" className="inline mr-2" /> Play now</GoldButton></div><div className="mt-4"><GhostButton onClick={() => nav.push("musicPlayer", song)}>Open full player</GhostButton></div><EngagementPanel targetType="SONG" targetId={song.id} account={account} /></div></Phone>;
+  return <Phone><TopBack title="Music Detail" onBack={nav.pop} right={<button onClick={toggleLike}><Heart size={18} color={liked ? C.gold : C.ivory} fill={liked ? C.gold : "none"} /></button>} /><div className="flex-1 overflow-y-auto px-5 pb-6"><div className="aspect-square rounded-3xl mb-5" style={imageStyle(song.coverUrl, `linear-gradient(145deg, ${C.green}, ${C.wood})`)} /><h1 className="ev-display text-2xl" style={{ color: C.ivory }}>{song.title}</h1><p className="text-[13px] mt-1" style={{ color: C.goldSoft }}>{song.artist}</p><p className="text-[11px] mt-2" style={{ color: C.muted }}>{song.plays || "0"} plays · {song.duration}</p><div className="mt-6"><GoldButton onClick={() => { player.play(song); recordPlay(account?.user?.id, song.id).catch(() => {}); }}> <Play size={15} fill="#1A1408" className="inline mr-2" /> Play now</GoldButton></div><div className="mt-4"><GhostButton onClick={() => nav.push("musicPlayer", song)}>Open full player</GhostButton></div>        <RelatedContent entityType="SONG" entityId={song.id} nav={nav} />
+        <EngagementPanel targetType="SONG" targetId={song.id} account={account} /></div></Phone>;
+}
+
+function AlbumDetail({ nav, data, player, account }) {
+  const [album, setAlbum] = useState(null);
+  const [songs, setSongs] = useState([]);
+  const [loading, setLoading] = useState(Boolean(data?.id));
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let active = true;
+    if (!data?.id) { setLoading(false); return undefined; }
+    setLoading(true); setError("");
+    Promise.all([
+      supabase.from("albums").select("id,title,description,cover_url,release_date,artist_id,artists(id,name,image_url)").eq("id", data.id).eq("status", "PUBLISHED").maybeSingle(),
+      supabase.from("album_songs").select("position,songs(id,title,artist_id,audio_url,cover_url,duration_seconds,artists(name))").eq("album_id", data.id).order("position"),
+    ]).then(([albumResult, songResult]) => {
+      if (!active) return;
+      if (albumResult.error || songResult.error) throw albumResult.error || songResult.error;
+      const record = albumResult.data;
+      setAlbum(record ? { ...record, artist: record.artists?.name || "Artist pending", imageUrl: record.cover_url } : null);
+      setSongs((songResult.data || []).map((row) => ({ ...row.songs, artist: row.songs?.artists?.name || record?.artists?.name || "Artist pending", coverUrl: row.songs?.cover_url, audioUrl: row.songs?.audio_url })).filter((song) => song.id && song.audioUrl));
+    }).catch((loadError) => { if (active) setError(loadError.message || "Unable to load this album."); }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [data?.id]);
+  return <Phone><TopBack title="Album" onBack={nav.pop} /><div className="flex-1 overflow-y-auto px-5 pb-6">{loading && <p className="py-8 text-center text-[12px]" style={{ color: C.muted }}>Loading album...</p>}{!loading && error && <AuthMessage error={error} />}{!loading && !error && !album && <p className="py-8 text-center text-[12px]" style={{ color: C.muted }}>This album is unavailable.</p>}{album && <><div className="aspect-square rounded-3xl mb-5" style={imageStyle(album.imageUrl, `linear-gradient(145deg, ${C.green}, ${C.wood})`)} /><p className="text-[11px] uppercase tracking-[0.18em]" style={{ color: C.gold }}>Album</p><h1 className="ev-display text-2xl mt-1" style={{ color: C.ivory }}>{album.title}</h1><p className="text-[13px] mt-1" style={{ color: C.goldSoft }}>{album.artist}</p>{album.description && <p className="text-[12px] mt-4 leading-5" style={{ color: C.muted }}>{album.description}</p>}<div className="mt-5">{songs.map((song, index) => <button type="button" key={song.id} onClick={() => { player.play(song); recordPlay(account?.user?.id, song.id).catch(() => {}); }} className="w-full flex items-center gap-3 py-3 text-left" style={{ borderBottom: `1px solid ${C.line}` }}><span className="w-5 text-[11px]" style={{ color: C.muted }}>{index + 1}</span><div className="w-11 h-11 rounded-lg flex-shrink-0" style={imageStyle(song.coverUrl, C.card)} /><div className="min-w-0 flex-1"><p className="text-[13px] font-semibold truncate" style={{ color: C.ivory }}>{song.title}</p><p className="text-[11px] truncate" style={{ color: C.muted }}>{song.artist}</p></div><Play size={15} color={C.gold} /></button>)}{!songs.length && <p className="py-6 text-center text-[12px]" style={{ color: C.muted }}>No published songs are available in this album yet.</p>}</div><RelatedContent entityType="ALBUM" entityId={album.id} nav={nav} /></>}</div></Phone>;
 }
 
 function SecurityScreen({ nav, account }) {
@@ -3170,6 +3250,8 @@ export default function EventVerseApp() {
     eventDetail: <EventDetail nav={nav} data={current.data} account={account} />,
     venueDetail: <VenueDetail nav={nav} data={current.data} />,
     musicDetail: <MusicDetail nav={nav} data={current.data} player={player} account={account} />,
+    albumDetail: <AlbumDetail nav={nav} data={current.data} player={player} account={account} />,
+    relatedContent: <RelatedContentScreen nav={nav} data={current.data} />,
     musicVideoDetail: <MusicVideoDetail nav={nav} video={current.data} player={player} account={account} />,
     playlistDetail: <PlaylistDetail nav={nav} data={current.data} player={player} account={account} catalog={catalog} />,
     notifications: <NotificationBoard nav={nav} account={account} />,
