@@ -1,6 +1,5 @@
 import crypto from "node:crypto";
-
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+import { supabaseServerFetch, supabaseServerRpc, hasSupabaseServerConfig, SUPABASE_URL } from "../_lib/supabase-server.js";
 const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
 function json(res, status, body) {
@@ -23,20 +22,12 @@ async function supabaseRpc(name, args, authorization, apiKey = SUPABASE_PUBLISHA
 }
 
 async function updatePayment(paymentId, patch) {
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/payments?id=eq.${encodeURIComponent(paymentId)}`, {
+  const { response, payload } = await supabaseServerFetch(`/rest/v1/payments?id=eq.${encodeURIComponent(paymentId)}`, {
     method: "PATCH",
-    headers: {
-      apikey: SUPABASE_PUBLISHABLE_KEY,
-      Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-      "Content-Type": "application/json",
-      Prefer: "return=minimal",
-    },
+    headers: { Prefer: "return=minimal" },
     body: JSON.stringify({ ...patch, updated_at: new Date().toISOString() }),
   });
-  if (!response.ok) {
-    const payload = await response.json().catch(() => ({}));
-    throw new Error(payload?.message || payload?.hint || "Unable to persist payment checkout");
-  }
+  if (!response.ok) throw new Error(payload?.message || payload?.hint || "Unable to persist payment checkout");
 }
 
 function getAuthorizationUrl(payment) {
@@ -67,7 +58,7 @@ async function paystackInitialize({ email, amount, reference, callbackUrl }) {
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return json(res, 405, { error: "Method not allowed" });
-  if (!process.env.PAYSTACK_SECRET_KEY || !process.env.SUPABASE_SERVICE_ROLE_KEY || !SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) return json(res, 503, { error: "Payment provider is not configured" });
+  if (!process.env.PAYSTACK_SECRET_KEY || !hasSupabaseServerConfig() || !SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) return json(res, 503, { error: "Payment provider is not configured" });
 
   const authorization = req.headers.authorization;
   if (!authorization?.startsWith("Bearer ")) return json(res, 401, { error: "Authentication required" });
@@ -112,13 +103,10 @@ export default async function handler(req, res) {
       callbackUrl: callbackUrl || `${req.headers.origin || "https://eventverse-eight.vercel.app"}/?payment=callback`,
     });
 
-    const serviceAuthorization = `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`;
-    await supabaseRpc(
-      "attach_payment_provider_reference",
-      { p_payment_id: payment.payment_id, p_provider_reference: paystack.reference },
-      serviceAuthorization,
-      process.env.SUPABASE_SERVICE_ROLE_KEY,
-    );
+    await supabaseServerRpc("attach_payment_provider_reference", {
+      p_payment_id: payment.payment_id,
+      p_provider_reference: paystack.reference,
+    });
     await updatePayment(payment.payment_id, {
       provider_reference: paystack.reference,
       checkout_url: paystack.authorization_url || null,

@@ -24,3 +24,8 @@ dist
 /inspect-*.json
 /verify-*.json
 /audit-*.sql
+
+# Local Android release signing material
+/release/*.jks
+/release/*credentials*.txt
+android/local.properties

@@ -1,13 +1,7 @@
 import crypto from "node:crypto";
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+import { supabaseServerFetch, supabaseServerRpc, hasSupabaseServerConfig, SUPABASE_URL } from "../_lib/supabase-server.js";
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 function json(res, status, body) { res.status(status).json(body); }
-async function supabaseFetch(path, options = {}) {
-  const response = await fetch(`${SUPABASE_URL}${path}`, { ...options, headers: { apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`, ...(options.headers || {}) } });
-  const payload = await response.json().catch(() => null);
-  return { response, payload };
-}
 async function paystackVerify(reference) {
   const response = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
     headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
@@ -17,13 +11,11 @@ async function paystackVerify(reference) {
   return payload.data || {};
 }
 async function activate(payment, providerReference, paidAmount, paidCurrency) {
-  const { response, payload } = await supabaseFetch("/rest/v1/rpc/activate_premium_payment", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ p_payment_id: payment.id, p_provider_reference: providerReference, p_paid_amount: Number(paidAmount) / 100, p_paid_currency: paidCurrency || payment.currency }) });
-  if (!response.ok) throw new Error(payload?.message || payload?.hint || "Unable to activate Premium entitlement");
-  return payload;
+  return supabaseServerRpc("activate_premium_payment", { p_payment_id: payment.id, p_provider_reference: providerReference, p_paid_amount: Number(paidAmount) / 100, p_paid_currency: paidCurrency || payment.currency });
 }
 export default async function handler(req, res) {
   if (req.method !== "POST") return json(res, 405, { error: "Method not allowed" });
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !PAYSTACK_SECRET_KEY) return json(res, 503, { error: "Premium webhook is not configured" });
+  if (!SUPABASE_URL || !hasSupabaseServerConfig() || !PAYSTACK_SECRET_KEY) return json(res, 503, { error: "Premium webhook is not configured" });
   const rawBody = typeof req.body === "string" ? req.body : JSON.stringify(req.body || {});
   const signature = req.headers["x-paystack-signature"];
   const expected = crypto.createHmac("sha512", PAYSTACK_SECRET_KEY).update(rawBody).digest("hex");
@@ -34,7 +26,7 @@ export default async function handler(req, res) {
     const data = payload.data || {};
     const reference = String(data.reference || "").trim();
     if (!reference) return json(res, 400, { error: "Webhook reference is required" });
-    const paymentResult = await supabaseFetch(`/rest/v1/premium_payments?select=id,amount,currency,status,provider_reference&or=(transaction_reference.eq.${encodeURIComponent(reference)},provider_reference.eq.${encodeURIComponent(reference)})&limit=1`);
+    const paymentResult = await supabaseServerFetch(`/rest/v1/premium_payments?select=id,amount,currency,status,provider_reference&or=(transaction_reference.eq.${encodeURIComponent(reference)},provider_reference.eq.${encodeURIComponent(reference)})&limit=1`);
     if (!paymentResult.response.ok || !paymentResult.payload?.[0]) return json(res, 202, { accepted: true, ignored: true });
     const payment = paymentResult.payload[0];
     if (payment.status === "SUCCESS") return json(res, 200, { processed: true, replayed: true });

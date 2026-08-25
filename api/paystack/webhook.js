@@ -1,48 +1,22 @@
 import crypto from "node:crypto";
-
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+import { supabaseServerFetch, supabaseServerRpc, hasSupabaseServerConfig, SUPABASE_URL } from "../_lib/supabase-server.js";
 
 function json(res, status, body) {
   res.status(status).json(body);
 }
 
-async function supabaseRpc(name, args) {
-  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
-    method: "POST",
-    headers: {
-      apikey: serviceRole,
-      Authorization: `Bearer ${serviceRole}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(args),
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload?.message || payload?.hint || "Supabase request failed");
-  return payload;
-}
-
 async function supabasePatch(path, body) {
-  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const response = await fetch(`${SUPABASE_URL}${path}`, {
+  const { response, payload } = await supabaseServerFetch(path, {
     method: "PATCH",
-    headers: {
-      apikey: serviceRole,
-      Authorization: `Bearer ${serviceRole}`,
-      "Content-Type": "application/json",
-      Prefer: "return=minimal",
-    },
+    headers: { Prefer: "return=minimal" },
     body: JSON.stringify(body),
   });
-  const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload?.message || payload?.hint || "Supabase update failed");
   return payload;
 }
 
 async function findArtistTransactionByReference(reference) {
-  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/artist_fee_transactions?select=id,amount,status,transaction_type,user_id,artist_id&provider=eq.paystack&or=(provider_reference.eq.${encodeURIComponent(reference)},transaction_reference.eq.${encodeURIComponent(reference)})&limit=1`, { headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}` } });
-  const payload = await response.json().catch(() => ({}));
+  const { response, payload } = await supabaseServerFetch(`/rest/v1/artist_fee_transactions?select=id,amount,status,transaction_type,user_id,artist_id&provider=eq.paystack&or=(provider_reference.eq.${encodeURIComponent(reference)},transaction_reference.eq.${encodeURIComponent(reference)})&limit=1`);
   if (!response.ok) throw new Error(payload?.message || "Unable to find artist transaction");
   return payload?.[0] || null;
 }
@@ -55,9 +29,7 @@ async function markArtistFailure(transaction) {
 }
 
 async function findRoleApplicationPaymentByReference(reference) {
-  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/role_application_payments?select=id,application_id,amount,status&provider=eq.paystack&or=(provider_reference.eq.${encodeURIComponent(reference)},transaction_reference.eq.${encodeURIComponent(reference)})&limit=1`, { headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}` } });
-  const payload = await response.json().catch(() => ({}));
+  const { response, payload } = await supabaseServerFetch(`/rest/v1/role_application_payments?select=id,application_id,amount,status&provider=eq.paystack&or=(provider_reference.eq.${encodeURIComponent(reference)},transaction_reference.eq.${encodeURIComponent(reference)})&limit=1`);
   if (!response.ok) throw new Error(payload?.message || "Unable to find role application payment");
   return payload?.[0] || null;
 }
@@ -67,9 +39,7 @@ async function markRoleApplicationFailure(payment) {
 }
 
 async function findVenuePaymentByReference(reference) {
-  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/venue_booking_payments?select=id,booking_id,amount,status&provider=eq.paystack&or=(provider_reference.eq.${encodeURIComponent(reference)},transaction_reference.eq.${encodeURIComponent(reference)})&limit=1`, { headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}` } });
-  const payload = await response.json().catch(() => ({}));
+  const { response, payload } = await supabaseServerFetch(`/rest/v1/venue_booking_payments?select=id,booking_id,amount,status&provider=eq.paystack&or=(provider_reference.eq.${encodeURIComponent(reference)},transaction_reference.eq.${encodeURIComponent(reference)})&limit=1`);
   if (!response.ok) throw new Error(payload?.message || "Unable to find venue payment");
   return payload?.[0] || null;
 }
@@ -79,17 +49,9 @@ async function markVenueFailure(payment) {
 }
 
 async function findPaymentByReference(reference) {
-  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const response = await fetch(
-    `${SUPABASE_URL}/rest/v1/payments?select=id,amount,order_id,status&provider=eq.paystack&or=(provider_reference.eq.${encodeURIComponent(reference)},transaction_reference.eq.${encodeURIComponent(reference)})&limit=1`,
-    {
-      headers: {
-        apikey: serviceRole,
-        Authorization: `Bearer ${serviceRole}`,
-      },
-    },
+  const { response, payload } = await supabaseServerFetch(
+    `/rest/v1/payments?select=id,amount,order_id,status&provider=eq.paystack&or=(provider_reference.eq.${encodeURIComponent(reference)},transaction_reference.eq.${encodeURIComponent(reference)})&limit=1`,
   );
-  const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload?.message || "Unable to find payment");
   return payload?.[0] || null;
 }
@@ -135,7 +97,7 @@ export default async function handler(req, res) {
       logWebhook("warn", { failure_category: "invalid_signature" });
       return json(res, 401, { error: "Invalid signature" });
     }
-    if (!process.env.PAYSTACK_SECRET_KEY || !process.env.SUPABASE_SERVICE_ROLE_KEY || !SUPABASE_URL) {
+    if (!process.env.PAYSTACK_SECRET_KEY || !hasSupabaseServerConfig()) {
       return json(res, 503, { error: "Payment verification is not configured" });
     }
 
@@ -163,7 +125,7 @@ export default async function handler(req, res) {
           return json(res, 400, { error: "Artist payment amount, currency, or status mismatch" });
         }
         logWebhook("info", { event: event.event, reference, transaction_id: artistTransaction.id });
-        const result = await supabaseRpc("activate_artist_fee_transaction", { p_transaction_id: artistTransaction.id, p_provider_reference: reference });
+        const result = await supabaseServerRpc("activate_artist_fee_transaction", { p_transaction_id: artistTransaction.id, p_provider_reference: reference });
         return json(res, 200, { received: true, result });
       }
       if (["charge.failed", "charge.dispute.create"].includes(event.event)) {
@@ -183,7 +145,7 @@ export default async function handler(req, res) {
           logWebhook("warn", { event: event.event, reference, payment_id: roleApplicationPayment.id, failure_category: "role_application_amount_currency_or_status_mismatch" });
           return json(res, 400, { error: "Role verification payment amount, currency, or status mismatch" });
         }
-        const result = await supabaseRpc("activate_role_application_payment", { p_payment_id: roleApplicationPayment.id, p_provider_reference: reference });
+        const result = await supabaseServerRpc("activate_role_application_payment", { p_payment_id: roleApplicationPayment.id, p_provider_reference: reference });
         return json(res, 200, { received: true, result });
       }
       if (["charge.failed", "charge.dispute.create"].includes(event.event)) {
@@ -203,7 +165,7 @@ export default async function handler(req, res) {
           logWebhook("warn", { event: event.event, reference, payment_id: venuePayment.id, failure_category: "venue_amount_currency_or_status_mismatch" });
           return json(res, 400, { error: "Venue payment amount, currency, or status mismatch" });
         }
-        const result = await supabaseRpc("verify_venue_booking_payment", { p_payment_id: venuePayment.id, p_provider_reference: reference });
+        const result = await supabaseServerRpc("verify_venue_booking_payment", { p_payment_id: venuePayment.id, p_provider_reference: reference });
         return json(res, 200, { received: true, result });
       }
       if (["charge.failed", "charge.dispute.create"].includes(event.event)) {
@@ -225,7 +187,7 @@ export default async function handler(req, res) {
         return json(res, 400, { error: "Payment amount, currency, or status mismatch" });
       }
       logWebhook("info", { event: event.event, reference, payment_id: payment.id, order_id: payment.order_id });
-      const result = await supabaseRpc("verify_payment_and_issue_tickets", {
+      const result = await supabaseServerRpc("verify_payment_and_issue_tickets", {
         p_payment_id: payment.id,
         p_provider_reference: reference,
       });
@@ -234,7 +196,7 @@ export default async function handler(req, res) {
 
     if (["charge.failed", "charge.dispute.create"].includes(event.event)) {
       logWebhook("warn", { event: event.event, reference, payment_id: payment.id, order_id: payment.order_id, failure_category: "charge_failed_or_disputed" });
-      const result = await supabaseRpc("mark_payment_failed", {
+      const result = await supabaseServerRpc("mark_payment_failed", {
         p_payment_id: payment.id,
         p_provider_reference: reference,
       });

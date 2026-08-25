@@ -22,18 +22,22 @@ describe("Paystack checkout latency contract", () => {
     expect(initializeRoute.indexOf('"initialize_order_payment"')).toBeGreaterThan(-1);
     expect(initializeRoute.indexOf("await supabaseRpc(")).toBeLessThan(initializeRoute.indexOf("await paystackInitialize("));
     expect(initializeRoute).toContain('"attach_payment_provider_reference"');
-    expect(initializeRoute).toContain("SUPABASE_SERVICE_ROLE_KEY");
-    expect(initializeRoute).toContain("apiKey = SUPABASE_PUBLISHABLE_KEY");
-    expect(initializeRoute).toContain("process.env.SUPABASE_SERVICE_ROLE_KEY,\n    );");
+    expect(initializeRoute).toContain("supabaseServerRpc");
+    expect(initializeRoute).toContain("hasSupabaseServerConfig");
+    const serverHelper = fs.readFileSync(path.join(root, "api/_lib/supabase-server.js"), "utf8");
+    expect(serverHelper).toContain("supabaseServerFetch");
   });
 
   it("verifies the browser-return transaction before invoking exactly-once issuance", () => {
     expect(verifyRoute).toContain('"/auth/v1/user"');
     expect(verifyRoute).toContain("https://api.paystack.co/transaction/verify/");
-    expect(verifyRoute).toContain('"/rest/v1/rpc/verify_payment_and_issue_tickets"');
+    expect(verifyRoute).toContain('supabaseServerRpc("verify_payment_and_issue_tickets"');
     expect(verifyRoute).toContain("Payment does not belong to the authenticated user");
     expect(verifyRoute).toContain("p_payment_id: payment.id");
-    expect(verifyRoute).toContain("SUPABASE_SERVICE_ROLE_KEY");
+    expect(verifyRoute).toContain("hasSupabaseServerConfig");
+    const serverHelper = fs.readFileSync(path.join(root, "api/_lib/supabase-server.js"), "utf8");
+    expect(serverHelper).toContain('SUPABASE_SERVICE_ROLE_KEY.startsWith("sb_secret_")');
+    expect(serverHelper).toContain("headers.Authorization = `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`");
     expect(appSource).toContain('fetch(apiUrl("/api/paystack/verify"');
     expect(appSource).toContain("callbackReference = url.searchParams.get(\"reference\") || url.searchParams.get(\"trxref\")");
     expect(appSource).toContain("data: pendingPayment || pendingArtistPayment || pendingPremiumPayment");
